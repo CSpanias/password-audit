@@ -1,0 +1,9 @@
+[project]
+name = "password-audit"
+version = "0.1.0"
+description = "Password audit framework"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.scripts]
+password-audit = "password_audit:main"
