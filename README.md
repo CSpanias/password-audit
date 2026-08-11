@@ -94,31 +94,41 @@ Analyses recovered passwords and generates Markdown report suitable for Active D
 A password audit using `password-audit` typically follows four stages:
 
 ```markdown
-NTDS Dump (secretsdump.py)
+Extract the NTDS-dit
     |
     +--> domain.ntds   
     | 
     v
-password-audit organise
+Collect BloodHound Data
+    |
+    +--> bloodhound.zip  
+    | 
+    v
+Parse the NTDS dump
     |
     +--> ntlm-hashes.txt
     +--> domain-admins.txt
     +--> company-words.txt
     +--> domain-policy.txt
     +--> enabled-users.txt
+    +--> .ntds-disabled.txt
+    +--> .ntds-enabled.txt
+    +--> .ntds-machines.txt
+    +--> ntds-users-clean.txt
+    +--> ntlm-hashes.txt
     |
     v
-Hashcat
+Crack NTLM hashes
     |
     +--> hashcat.potfile
     |
     v
-password-audit organise -n ntds -p potfile
+Map recovered passwords back to users
     |
     +--> mapped-ntlm-passwords.txt
     |
     v
-password-audit analyse -M mapped-ntlm-passwords.txt
+Analyse the results & generate the report
     |
     v
     +--> report.md
