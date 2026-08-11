@@ -13,11 +13,11 @@ should be handled elsewhere.
 from collections import Counter
 from collections import defaultdict
 
-from common.constants import (
+from passwords.constants import (
     COMMON_PASSWORDS,
-    DAYS,
     KEYBOARD_PATTERNS,
     MONTHS,
+    DAYS,
     SEASONS,
 )
 

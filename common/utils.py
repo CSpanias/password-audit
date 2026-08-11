@@ -92,6 +92,37 @@ def username_base(username):
     return user
 
 
+def normalize_username(username):
+    """
+    Normalise a username for comparison purposes.
+
+    Domain prefixes and UPN suffixes are removed and the
+    resulting username is converted to lowercase.
+
+    Examples:
+        DOMAIN\\admin -> admin
+        admin@test.com -> admin
+
+    Args:
+        username (str):
+            Username value.
+
+    Returns:
+        str:
+            Normalised username.
+    """
+
+    username = username.lower()
+
+    if "\\" in username:
+        username = username.split("\\", 1)[1]
+
+    if "@" in username:
+        username = username.split("@", 1)[0]
+
+    return username
+
+
 # ---------------------------------------------------------------------------
 # Password Handling
 # ---------------------------------------------------------------------------
