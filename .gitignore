@@ -2,6 +2,8 @@
 *.ntds
 *.md
 *.xml
+*.potfile
+*.txt
 ntds-organiser/
 
 # Keep documentation
