@@ -25,9 +25,24 @@ from common.utils import (
 # ---------------------------------------------------------------------------
 
 def commentary_admins(results):
+    """
+    Generate commentary for recovered Domain Administrator passwords.
 
-    admins = (results["admins"]["accounts"])
-    count = (results["admins"]["count"])
+    The commentary includes a summary of the finding and a sample
+    table of affected privileged accounts where passwords were
+    successfully recovered.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
+
+    admins = results["admins"]["accounts"]
+    count = results["admins"]["count"]
 
     if not count:
 
@@ -56,6 +71,21 @@ def commentary_admins(results):
 # ---------------------------------------------------------------------------
 
 def commentary_password_lengths(results):
+    """
+    Generate commentary relating to password length policy compliance.
+
+    Recovered passwords are compared against the configured minimum
+    password length requirement and the most frequently observed
+    password lengths are summarised.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
 
     minimum_length = results["password_length"]["minimum_length"]
     failures = results["password_length"]["failures"]
@@ -117,6 +147,20 @@ def commentary_password_lengths(results):
 # ---------------------------------------------------------------------------
 
 def commentary_password_reuse(results):
+    """
+    Generate commentary relating to password reuse.
+
+    The commentary summarises passwords observed across multiple
+    accounts and highlights the associated security implications.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
 
     reused_passwords = []
 
@@ -151,6 +195,20 @@ def commentary_password_reuse(results):
 
 
 def commentary_similar_account_reuse(results):
+    """
+    Generate commentary for password reuse between related accounts.
+
+    Similar account names are evaluated to identify possible reuse
+    between standard and privileged identities.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
 
     reuse_accounts = results["password_reuse"]["accounts"]
     count = results["password_reuse"]["count"]
@@ -203,9 +261,23 @@ def commentary_similar_account_reuse(results):
 # ---------------------------------------------------------------------------
 
 def commentary_username_passwords(results):
+    """
+    Generate commentary for passwords containing username-derived content.
 
-    accounts = (results["username_passwords"]["accounts"])
-    count = (results["username_passwords"]["count"])
+    Accounts whose passwords include usernames or common username
+    variations are summarised and sample findings are presented.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+        Markdown-formatted commentary.
+    """
+
+    accounts = results["username_passwords"]["accounts"]
+    count = results["username_passwords"]["count"]
 
     if not count:
         return ""
@@ -232,6 +304,20 @@ def commentary_username_passwords(results):
 # ---------------------------------------------------------------------------
 
 def commentary_company_words(results):
+    """
+    Generate commentary for organisation-related password content.
+
+    The commentary summarises passwords containing organisation
+    names, abbreviations, or other organisation-specific terms.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
 
     accounts = results["company_words"]["accounts"]
     count = results["company_words"]["count"]
@@ -277,6 +363,20 @@ def commentary_company_words(results):
 # ---------------------------------------------------------------------------
 
 def commentary_date_passwords(results):
+    """
+    Generate commentary for date-related password content.
+
+    Passwords containing months, days, seasons, or similar temporal
+    references are summarised together with common examples.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
 
     accounts = results["date_passwords"]["accounts"]
     count = results["date_passwords"]["count"]
@@ -323,6 +423,20 @@ def commentary_date_passwords(results):
 # ---------------------------------------------------------------------------
 
 def commentary_keyboard_walks(results):
+    """
+    Generate commentary for keyboard walking patterns.
+
+    Passwords containing predictable keyboard sequences are
+    summarised together with the most frequently observed patterns.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
 
     accounts = results["keyboard_walks"]["accounts"]
     count = results["keyboard_walks"]["count"]
@@ -371,6 +485,20 @@ def commentary_keyboard_walks(results):
 # ---------------------------------------------------------------------------
 
 def commentary_common_passwords(results):
+    """
+    Generate commentary for commonly used password terms.
+
+    Passwords containing widely used password phrases and common
+    weak password variants are summarised.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
 
     accounts = results["common_passwords"]["accounts"]
     count = results["common_passwords"]["count"]
@@ -418,6 +546,21 @@ def commentary_common_passwords(results):
 # ---------------------------------------------------------------------------
 
 def commentary_character_classes(results):
+    """
+    Generate commentary for character class adoption.
+
+    The distribution of lowercase letters, uppercase letters,
+    numeric characters, and special characters is summarised
+    across the recovered password population.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
 
     stats = results["character_classes"]
 
@@ -445,6 +588,21 @@ def commentary_character_classes(results):
 # ---------------------------------------------------------------------------
 
 def technical_commentary(results):
+    """
+    Generate the complete technical commentary section.
+
+    Individual commentary components are assembled into a single
+    Markdown-formatted section suitable for inclusion within a
+    password audit report.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Complete technical commentary in Markdown format.
+    """
 
     lines = []
 
