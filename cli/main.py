@@ -8,7 +8,7 @@ dispatches execution to individual framework components.
 import argparse
 
 from cli.analysis import run_password_analysis
-from cli.ntds import run_ntds_organiser
+from cli.organise import run_ntds_organiser
 
 
 def main():
