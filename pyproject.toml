@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "password-audit"
 version = "0.1.0"
@@ -6,4 +10,4 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.scripts]
-password-audit = "password_audit:main"
+password-audit = "cli.main:main"
