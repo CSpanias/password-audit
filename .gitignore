@@ -2,6 +2,7 @@
 *.ntds
 *.md
 *.xml
+ntds-organiser/
 
 # Keep documentation
 !README.md

@@ -54,11 +54,9 @@ password-audit -h
 
 ## Components
 
-### NTDS Organiser (`organiser`)
+### NTDS Organiser
 
-Automates post-processing of `secretsdump.py` output and combines NTDS data with BloodHound and Hashcat artefacts.
-
-#### Features
+Automates post-processing of the NTDS dump, BloodHound data, and Hashcat artefacts.
 
 * Parse NTDS dumps
 * Separate enabled and disabled accounts
@@ -72,11 +70,9 @@ Automates post-processing of `secretsdump.py` output and combines NTDS data with
 * Map recovered passwords from Hashcat potfiles
 * Generate LM candidate datasets
 
-### Password Analyser (`analysis`)
+### Password Analyser
 
-Analyses recovered passwords and generates Markdown reporting content suitable for Active Directory password assessments.
-
-#### Features
+Analyses recovered passwords and generates Markdown report suitable for Active Directory password audits.
 
 * Password recovery statistics
 * Crack-rate analysis
@@ -100,6 +96,8 @@ A password audit using `password-audit` typically follows four stages:
 ```markdown
 NTDS Dump (secretsdump.py)
     |
+    +--> domain.ntds   
+    | 
     v
 password-audit organise
     |
