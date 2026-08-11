@@ -8,6 +8,8 @@ or Hashcat integration).
 Functions in this module should be broadly reusable across the
 entire codebase.
 """
+
+
 import re
 from .constants import NUMBER_WORDS
 

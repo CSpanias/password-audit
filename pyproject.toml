@@ -16,7 +16,7 @@ password-audit = "cli.main:main"
 include = [
     "cli",
     "common",
-    "ntds",
+    "organise",
     "analysis",
     "reports",
     "cracking",

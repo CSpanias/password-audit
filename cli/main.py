@@ -33,45 +33,45 @@ def main():
     )
 
     # NTDS Organiser
-    ntds_parser = subparsers.add_parser(
-        "ntds",
+    organise_parser = subparsers.add_parser(
+        "organise",
         help="Process NTDS, BloodHound, and Hashcat data",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    ntds_parser.add_argument(
+    organise_parser.add_argument(
         "-n",
         "--ntds",
         required=True,
         help="Secretsdump NTDS file"
     )
 
-    ntds_parser.add_argument(
+    organise_parser.add_argument(
         "-o",
         "--output",
         default="ntds-organiser",
         help="Output directory"
     )
 
-    ntds_parser.add_argument(
+    organise_parser.add_argument(
         "-f",
         "--filter",
         help="Comma-separated testing account filters"
     )
 
-    ntds_parser.add_argument(
+    organise_parser.add_argument(
         "-b",
         "--bloodhound",
         help="BloodHound ZIP export"
     )
 
-    ntds_parser.add_argument(
+    organise_parser.add_argument(
         "-p",
         "--potfile",
         help="Hashcat potfile containing recovered passwords"
     )
 
-    ntds_parser.set_defaults(
+    organise_parser.set_defaults(
         func=run_ntds_organiser
     )
 
@@ -82,7 +82,6 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    
     analysis_parser.add_argument(
         "-M",
         "--mapped-passwords",

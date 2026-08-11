@@ -75,9 +75,9 @@ Automates post-processing of `secretsdump.py` output and combines NTDS data with
 #### Usage
 
 ```bash
-password-audit ntds -n company.ntds
+password-audit organise -n company.ntds
 
-password-audit ntds \
+password-audit organise \
     -n company.ntds \
     -b bloodhound.zip \
     -p hashcat.potfile
@@ -151,7 +151,7 @@ password-audit -h
 ### NTDS Organiser Help
 
 ```bash
-password-audit ntds -h
+password-audit organise -h
 ```
 
 ### Password Analyser Help
