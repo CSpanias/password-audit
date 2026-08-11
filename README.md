@@ -54,7 +54,7 @@ password-audit -h
 
 ## Components
 
-### NTDS Organiser
+### NTDS Organiser (`organiser`)
 
 Automates post-processing of `secretsdump.py` output and combines NTDS data with BloodHound and Hashcat artefacts.
 
@@ -72,122 +72,7 @@ Automates post-processing of `secretsdump.py` output and combines NTDS data with
 * Map recovered passwords from Hashcat potfiles
 * Generate LM candidate datasets
 
-#### Typical Workflow
-
-A password audit using password-audit typically follows four stages:
-
-```text
-NTDS Dump
-    |
-    v
-password-audit organise
-    |
-    +--> ntlm-hashes.txt
-    +--> domain-admins.txt
-    +--> company-words.txt
-    +--> domain-policy.txt
-    +--> enabled-users.txt
-    |
-    v
-Hashcat
-    |
-    v
-hashcat.potfile
-    |
-    v
-password-audit organise --potfile
-    |
-    v
-mapped-ntlm-passwords.txt
-    |
-    v
-password-audit analyse
-    |
-    v
-report.md
-```
-### End-to-End Example
-
-1. Extract NTDS.dit using [`secretsdump.py`](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py):
-
-```bash
-secretsdump.py <domain>/<da-account>:<da-password>@<dc-ip> -user-status -just-dc-ntlm -outputfile <domain>
-```
-
-2. Extract BloodHound data (e.g. using [`rusthound-ce`](https://github.com/g0h4n/RustHound-CE)):
-
-```bash
-rusthound-ce -u <user> -p <pass> -d <domain> -i <dc-ip> -z
-```
-
-3. Process the NTDS dump and enrich the results with BloodHound data:
-
-```bash
-password-audit organise -n company.ntds -b bloodhound.zip
-```
-
-This generates datasets including:
-
-```bash
-ntlm-hashes.txt
-domain-admins.txt
-domain-policy.txt
-company-words.txt
-enabled-users.txt
-```
-
-4. Use [`hashcat`](https://github.com/hashcat/hashcat) to recover passwords from the exported NTLM hashes:
-
-```bash
-hashcat -m1000 ntds-organiser/ntlm-hashes.txt wordlist.txt -r rule.rule -O -d 1
-```
-
-Recovered passwords are stored automatically in:
-
-```bash
-hashcat.potfile
-```
-
-3. Map Recovered Passwords
-
-Map recovered passwords back to user accounts.
-
-```bash
-password-audit organise -n company.ntds -b bloodhound.zip -p hashcat.potfile
-```
-
-This generates:
-
-```bash
-mapped-ntlm-passwords.txt
-```
-
-containing:
-
-```bash
-user1:Password123
-user2:Summer2025!
-user3:Welcome1
-```
-
-4. Analyse the dataset and generate the audit report:
-
-```bash
-password-audit analyse -M ntds-organiser/mapped-ntlm-passwords.txt
-```
-
-The required datasets are loaded automatically from the `./ntds-organiser` directory:
-
-```bash
-domain-admins.txt
-domain-policy.txt
-company-words.txt
-enabled-users.txt
-```
-
----
-
-### Password Analyser
+### Password Analyser (`analysis`)
 
 Analyses recovered passwords and generates Markdown reporting content suitable for Active Directory password assessments.
 
@@ -208,59 +93,78 @@ Analyses recovered passwords and generates Markdown reporting content suitable f
 * Technical commentary generation
 * Remediation guidance generation
 
-#### Usage
+## Typical Workflow
 
-```bash
-password-audit analysis \
-    -M ntds-organiser/mapped-ntlm-passwords.txt
-```
+A password audit using `password-audit` typically follows four stages:
 
-Example output:
-
-```bash
-[+] Markdown report written to: report.md
-```
-
-## Workflow
-
-```text
-NTDS Dump
+```markdown
+NTDS Dump (secretsdump.py)
     |
     v
-NTDS Organiser
+password-audit organise
     |
-    +--> NTLM Hashes
-    +--> Domain Admins
-    +--> Domain Policy
-    +--> Company Words
-    +--> Mapped Passwords
-    |
-    v
-Password Analyser
+    +--> ntlm-hashes.txt
+    +--> domain-admins.txt
+    +--> company-words.txt
+    +--> domain-policy.txt
+    +--> enabled-users.txt
     |
     v
-Markdown Report
+Hashcat
+    |
+    +--> hashcat.potfile
+    |
+    v
+password-audit organise -n ntds -p potfile
+    |
+    +--> mapped-ntlm-passwords.txt
+    |
+    v
+password-audit analyse -M mapped-ntlm-passwords.txt
+    |
+    v
+    +--> report.md
 ```
 
-## Command Reference
+### End-to-End Example
 
-### Show Help
+1. Extract NTDS.dit using [`secretsdump.py`](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py):
 
 ```bash
-password-audit -h
+secretsdump.py <domain>/<username>:<password>@<dc-ip> -user-status -just-dc-ntlm -outputfile <domain>
 ```
 
-### NTDS Organiser Help
+2. Extract BloodHound data (e.g. using [`rusthound-ce`](https://github.com/g0h4n/RustHound-CE)):
 
 ```bash
-password-audit organise -h
+rusthound-ce -u <username> -p <password> -d <domain> -i <dc-ip> -z
 ```
 
-### Password Analyser Help
+3. Process the NTDS dump and BloodHound data:
 
 ```bash
-password-audit analysis -h
+password-audit organise -n company.ntds -b bloodhound.zip
 ```
+
+4. Use [`hashcat`](https://github.com/hashcat/hashcat) to recover passwords from the exported NTLM hashes:
+
+```bash
+hashcat -m1000 ntds-organiser/ntlm-hashes.txt wordlist.txt -r rule.rule
+```
+
+5. Map recovered passwords back to user accounts:
+
+```bash
+password-audit organise -n company.ntds -p hashcat.potfile
+```
+
+6. Analyse the dataset and generate the audit report:
+
+```bash
+password-audit analyse -M ntds-organiser/mapped-ntlm-passwords.txt
+```
+
+---
 
 ## Requirements
 
