@@ -6,5 +6,9 @@
 *.txt
 ntds-organiser/
 
+# Generated files
+__pycache__/
+*.pyc
+
 # Keep documentation
 !README.md
