@@ -13,7 +13,13 @@ from cli.ntds import run_ntds_organiser
 
 def main():
     """
-    Execute the password-audit command-line interface.
+    Execute the Password Audit command-line interface.
+
+    Command-line arguments are parsed and execution is
+    dispatched to the selected framework component.
+
+    Returns:
+        None
     """
 
     parser = argparse.ArgumentParser(
@@ -25,10 +31,52 @@ def main():
         required=True,
     )
 
+    # NTDS Organiser
+    ntds_parser = subparsers.add_parser(
+        "ntds",
+        help="Process NTDS, BloodHound, and Hashcat data",
+    )
+
+    ntds_parser.add_argument(
+        "-n",
+        "--ntds",
+        required=True,
+        help="NTDS dump file"
+    )
+
+    ntds_parser.add_argument(
+        "-o",
+        "--output",
+        default="ntds-organiser",
+        help="Output directory"
+    )
+
+    ntds_parser.add_argument(
+        "-f",
+        "--filter",
+        help="Testing account filter"
+    )
+
+    ntds_parser.add_argument(
+        "-b",
+        "--bloodhound",
+        help="BloodHound zip file"
+    )
+
+    ntds_parser.add_argument(
+        "-p",
+        "--potfile",
+        help="Hashcat potfile"
+    )
+
+    ntds_parser.set_defaults(
+        func=run_ntds_organiser
+    )
+
     # Password Analysis
     password_parser = subparsers.add_parser(
         "passwords",
-        help="Analyse recovered passwords",
+        help="Analyse recovered passwords and generate reports",
     )
     
     password_parser.add_argument(
@@ -67,49 +115,7 @@ def main():
     )
 
     password_parser.set_defaults(
-            func=run_password_analysis
-    )
-
-    # NTDS Organiser
-    ntds_parser = subparsers.add_parser(
-        "ntds",
-        help="Organise NTDS datasets",
-    )
-
-    ntds_parser.add_argument(
-        "-n",
-        "--ntds",
-        required=True,
-        help="NTDS dump file"
-    )
-
-    ntds_parser.add_argument(
-        "-o",
-        "--output",
-        default="ntds-organiser",
-        help="Output directory"
-    )
-
-    ntds_parser.add_argument(
-        "-f",
-        "--filter",
-        help="Testing account filter"
-    )
-
-    ntds_parser.add_argument(
-        "-b",
-        "--bloodhound",
-        help="BloodHound zip file"
-    )
-
-    ntds_parser.add_argument(
-        "-p",
-        "--potfile",
-        help="Hashcat potfile"
-    )
-
-    ntds_parser.set_defaults(
-        func=run_ntds_organiser
+        func=run_password_analysis
     )
 
     args = parser.parse_args()
