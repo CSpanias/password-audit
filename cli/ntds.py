@@ -41,7 +41,7 @@ def run_ntds_organiser(args):
         None
     """
     output_dir = Path(args.output)
-    output_dir.mkdir(parents=True, exist_ok=True,)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     info("NTDS Organiser")
 
@@ -80,7 +80,17 @@ def run_ntds_organiser(args):
         hash_lookup=hash_lookup,
     )
 
-    export_results(results, output_dir,)
+    filtered_users = results["filtered_users"]
+
+    if filtered_users:
+        warn(f"Filtered Accounts ({len(filtered_users)})")
+
+        for account in filtered_users:
+            print(f" - {account['username']}")
+
+        print()
+
+    export_results(results, output_dir)
 
     print()
 

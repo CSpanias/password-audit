@@ -23,7 +23,8 @@ def main():
     """
 
     parser = argparse.ArgumentParser(
-        description="Password Audit Framework"
+        description="Password Audit Framework",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     subparsers = parser.add_subparsers(
@@ -35,13 +36,14 @@ def main():
     ntds_parser = subparsers.add_parser(
         "ntds",
         help="Process NTDS, BloodHound, and Hashcat data",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     ntds_parser.add_argument(
         "-n",
         "--ntds",
         required=True,
-        help="NTDS dump file"
+        help="Secretsdump NTDS file"
     )
 
     ntds_parser.add_argument(
@@ -54,19 +56,19 @@ def main():
     ntds_parser.add_argument(
         "-f",
         "--filter",
-        help="Testing account filter"
+        help="Comma-separated testing account filters"
     )
 
     ntds_parser.add_argument(
         "-b",
         "--bloodhound",
-        help="BloodHound zip file"
+        help="BloodHound ZIP export"
     )
 
     ntds_parser.add_argument(
         "-p",
         "--potfile",
-        help="Hashcat potfile"
+        help="Hashcat potfile containing recovered passwords"
     )
 
     ntds_parser.set_defaults(
@@ -77,13 +79,15 @@ def main():
     password_parser = subparsers.add_parser(
         "passwords",
         help="Analyse recovered passwords and generate reports",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
     
     password_parser.add_argument(
         "-M",
         "--mapped-passwords",
         required=True,
-        help="Recovered NTLM passwords file"
+        help="Recovered username:password dataset"
     )
 
     password_parser.add_argument(
