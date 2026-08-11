@@ -11,26 +11,26 @@ from common.constants import (
     COLOR_RESET,
 )
 
-from passwords.parsers import (
+from analysis.parsers import (
     load_passwords,
     load_list,
     load_domain_policy,
     load_company_words,
 )
 
-from passwords.results import (
+from analysis.results import (
     build_results,
 )
 
-from passwords.executive_summary import (
+from analysis.executive_summary import (
     executive_summary,
 )
 
-from passwords.technical_commentary import (
+from analysis.technical_commentary import (
     technical_commentary,
 )
 
-from passwords.remediation_guidance import (
+from analysis.remediation_guidance import (
     remediation_guidance,
 )
 

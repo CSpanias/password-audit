@@ -109,7 +109,7 @@ Analyses recovered passwords and generates Markdown reporting content suitable f
 #### Usage
 
 ```bash
-password-audit passwords \
+password-audit analysis \
     -M ntds-organiser/mapped-ntlm-passwords.txt
 ```
 
@@ -157,7 +157,7 @@ password-audit ntds -h
 ### Password Analyser Help
 
 ```bash
-password-audit passwords -h
+password-audit analysis -h
 ```
 
 ## Requirements

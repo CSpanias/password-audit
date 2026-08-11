@@ -7,7 +7,7 @@ dispatches execution to individual framework components.
 
 import argparse
 
-from cli.passwords import run_password_analysis
+from cli.analysis import run_password_analysis
 from cli.ntds import run_ntds_organiser
 
 
@@ -76,49 +76,49 @@ def main():
     )
 
     # Password Analysis
-    password_parser = subparsers.add_parser(
-        "passwords",
+    analysis_parser = subparsers.add_parser(
+        "analysis",
         help="Analyse recovered passwords and generate reports",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     
-    password_parser.add_argument(
+    analysis_parser.add_argument(
         "-M",
         "--mapped-passwords",
         required=True,
         help="Recovered username:password dataset"
     )
 
-    password_parser.add_argument(
+    analysis_parser.add_argument(
         "-A",
         "--domain-admins",
         default="./ntds-organiser/domain-admins.txt",
         help="Domain Admin account list"
     )
 
-    password_parser.add_argument(
+    analysis_parser.add_argument(
         "-P",
         "--pass-policy",
         default="./ntds-organiser/domain-policy.txt",
         help="Domain password policy"
     )
 
-    password_parser.add_argument(
+    analysis_parser.add_argument(
         "-C",
         "--company-words",
         default="./ntds-organiser/company-words.txt",
         help="Organisation-specific password analysis terms"
     )
 
-    password_parser.add_argument(
+    analysis_parser.add_argument(
         "-E",
         "--enabled-users",
         default="./ntds-organiser/enabled-users.txt",
         help="Enabled user accounts list"
     )
 
-    password_parser.set_defaults(
+    analysis_parser.set_defaults(
         func=run_password_analysis
     )
 
