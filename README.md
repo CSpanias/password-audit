@@ -1,12 +1,13 @@
 # Password-Audit
 
-A Python-based framework designed to streamline Active Directory password audits.
+A Python-based framework designed to streamline Active Directory (AD) password audits.
 
-`password-audit` combines NTDS processing, password recovery analysis, and future cracking workflows into a single modular toolkit.
+`password-audit` is a modular AD password auditing framework that combines dataset organisation, password recovery campaigns, and password analysis into a single toolkit.
 
 The framework currently includes:
 
 * **NTDS Organiser**: Parses and enriches Active Directory hash datasets.
+* **Password Cracker**: Executes and tracks Hashcat recovery campaigns.
 * **Password Analyser**: Analyses recovered passwords and generates assessment reports.
 
 ## Installation
@@ -59,39 +60,55 @@ password-audit -h
 Automates post-processing of the NTDS dump, BloodHound data, and Hashcat artefacts.
 
 * Parse NTDS dumps
-* Separate enabled and disabled accounts
-* Identify machine accounts
-* Extract NTLM hashes
-* Detect LM hashes
+    * Separate enabled and disabled accounts
+    * Identify machine accounts
+    * Extract NTLM hashes
+    * Detect LM hashes
 * Parse BloodHound ZIP exports
-* Extract Domain Administrators
-* Extract domain password policy
-* Generate organisation-specific wordlists
+    * Extract Domain Administrators
+    * Extract domain password policy
+    * Generate organisation-specific wordlists
 * Map recovered passwords from Hashcat potfiles
 * Generate LM candidate datasets
 
+### Password Cracker
+
+Executes Hashcat recovery campaigns using configurable campaign definitions and tracks historical attack effectiveness.
+
+* Multi-phase password recovery campaigns
+* Loopback dictionary generation
+* Campaign validation
+* Campaign result tracking
+* Historical campaign statistics
+* Attack ROI analysis
+* Campaign duration estimation
+* Hashcat integration
+* JSON-based campaign definitions
+
 ### Password Analyser
 
-Analyses recovered passwords and generates Markdown report suitable for Active Directory password audits.
+Analyses recovered passwords and generates Markdown report suitable for AD password audits.
 
-* Password recovery statistics
-* Crack-rate analysis
-* Privileged account identification
-* Password reuse detection
-* Username-derived passwords
-* Organisation-related passwords
-* Common password analysis
-* Date-based password analysis
-* Keyboard-walk analysis
-* Password length analysis
-* Character-class analysis
-* Executive summary generation
-* Technical commentary generation
-* Remediation guidance generation
+* Statistics
+    * Password recovery statistics
+    * Crack-rate analysis
+    * Privileged account identification
+    * Password reuse detection
+    * Username-derived passwords
+    * Organisation-related passwords
+    * Common password analysis
+    * Date-based password analysis
+    * Keyboard-walk analysis
+    * Password length analysis
+    * Character-class analysis
+* Report generation
+    * Executive summary
+    * Technical commentary
+    * Remediation guidance
 
 ## Typical Workflow
 
-A password audit using `password-audit` typically follows four stages:
+A password audit using `password-audit` typically follows the following stages:
 
 ```markdown
 Extract NTDS (secretsdump) and Collect BloodHound Data (rusthound-ce)
@@ -113,9 +130,11 @@ Parse NTDS and BloodHound data (password-audit organise)
     +--> ntlm-hashes.txt
     |
     v
-Crack NTLM hashes (hashcat)
+Crack hashes (password-audit crack run)
     |
     +--> hashcat.potfile
+    +--> campaign-results.json
+    +--> loopback.txt
     |
     v
 Map recovered passwords back to users (password-audit organise)
@@ -131,40 +150,54 @@ Analyse the results & generate the report (password-audit analyse)
 
 ### End-to-End Example
 
-1. Extract NTDS using [`secretsdump.py`](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py):
+1. Extract NTDS ([`secretsdump.py`](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py)) and BloodHound data ([`rusthound-ce`](https://github.com/g0h4n/RustHound-CE)):
 
 ```bash
-secretsdump.py <domain>/<username>:<password>@<dc-ip> -user-status -just-dc-ntlm -outputfile <domain>
+# NTDS dump
+secretsdump.py \
+    <domain>/<username>:<password>@<dc-ip> \
+    -user-status \
+    -just-dc-ntlm \
+    -outputfile <domain>
+
+# BloodHound data
+rusthound-ce \
+    -u <username> \
+    -p <password> \
+    -d <domain> \
+    -i <dc-ip> -z
 ```
 
-2. Extract BloodHound data (e.g. using [`rusthound-ce`](https://github.com/g0h4n/RustHound-CE)):
+2. Process the generated `.ntds` and `.zip` files:
 
 ```bash
-rusthound-ce -u <username> -p <password> -d <domain> -i <dc-ip> -z
+password-audit organise \
+    -n company.ntds \
+    -b bloodhound.zip
 ```
 
-3. Process the NTDS dump and BloodHound data:
+3. Recover passwords using the defined configuration:
 
 ```bash
-password-audit organise -n company.ntds -b bloodhound.zip
+password-audit crack run \
+    -C campaign.json \
+    -H ntds-organiser/ntlm-hashes.txt \
+    -N internal-audit
 ```
 
-4. Use [`hashcat`](https://github.com/hashcat/hashcat) to recover passwords from the exported NTLM hashes:
+4. Map recovered passwords back to user accounts:
 
 ```bash
-hashcat -m1000 ntds-organiser/ntlm-hashes.txt wordlist.txt -r rule.rule
+password-audit organise \
+    -n company.ntds \
+    -p hashcat.potfile
 ```
 
-5. Map recovered passwords back to user accounts:
+5. Analyse the dataset and generate the audit report:
 
 ```bash
-password-audit organise -n company.ntds -p hashcat.potfile
-```
-
-6. Analyse the dataset and generate the audit report:
-
-```bash
-password-audit analyse -M ntds-organiser/mapped-ntlm-passwords.txt
+password-audit analyse \
+    -M ntds-organiser/mapped-ntlm-passwords.txt
 ```
 
 ---
@@ -183,7 +216,9 @@ password-audit analyse -M ntds-organiser/mapped-ntlm-passwords.txt
 
 ## Roadmap
 
-* Hashcat Scheduler integration
-* Additional privileged group analysis
-* Additional report formats
+* Workflow automation 
+* Historical campaign comparison reports 
+* Advanced campaign effectiveness analytics 
+* Additional privileged group analysis 
+* Additional report formats 
 * Supporting audit utilities
