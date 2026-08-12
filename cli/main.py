@@ -76,48 +76,48 @@ def main():
     )
 
     # Password Analysis
-    analysis_parser = subparsers.add_parser(
-        "analysis",
+    analyse_parser = subparsers.add_parser(
+        "analyse",
         help="Analyse recovered passwords and generate reports",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    analysis_parser.add_argument(
+    analyse_parser.add_argument(
         "-M",
         "--mapped-passwords",
         required=True,
         help="Recovered username:password dataset"
     )
 
-    analysis_parser.add_argument(
+    analyse_parser.add_argument(
         "-A",
         "--domain-admins",
         default="./ntds-organiser/domain-admins.txt",
         help="Domain Admin account list"
     )
 
-    analysis_parser.add_argument(
+    analyse_parser.add_argument(
         "-P",
         "--pass-policy",
         default="./ntds-organiser/domain-policy.txt",
         help="Domain password policy"
     )
 
-    analysis_parser.add_argument(
+    analyse_parser.add_argument(
         "-C",
         "--company-words",
         default="./ntds-organiser/company-words.txt",
         help="Organisation-specific password analysis terms"
     )
 
-    analysis_parser.add_argument(
+    analyse_parser.add_argument(
         "-E",
         "--enabled-users",
         default="./ntds-organiser/enabled-users.txt",
         help="Enabled user accounts list"
     )
 
-    analysis_parser.set_defaults(
+    analyse_parser.set_defaults(
         func=run_password_analysis
     )
 
