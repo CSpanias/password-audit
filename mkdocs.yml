@@ -2,9 +2,21 @@ site_name: Password-Audit
 site_description: Active Directory Password Auditing Framework
 site_url: https://cspanias.github.io/password-audit/
 repo_url: https://github.com/CSpanias/password-audit
+strict: true
 
 theme:
   name: material
+
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    - scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
 
 markdown_extensions:
   - admonition
