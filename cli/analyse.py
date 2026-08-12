@@ -10,33 +10,10 @@ from common.console import (
     ok,
 )
 
-from analysis.parsers import (
-    load_passwords,
-    load_list,
-    load_domain_policy,
-    load_company_words,
+from analysis.workflow import (
+    analyse_passwords,
 )
 
-from analysis.results import (
-    build_results,
-)
-
-from analysis.executive_summary import (
-    executive_summary,
-)
-
-from analysis.technical_commentary import (
-    technical_commentary,
-)
-
-from analysis.remediation_guidance import (
-    remediation_guidance,
-)
-
-from reports.markdown import (
-    render_markdown,
-    write_markdown,
-)
 
 
 def run_password_analysis(args):
@@ -56,28 +33,13 @@ def run_password_analysis(args):
     """
 
 
-    passwords = load_passwords(args.mapped_passwords)
-    domain_admins = load_list(args.domain_admins)
-    company_words = load_company_words(args.company_words)
-    enabled_users = load_list(args.enabled_users)
-
-    policy = load_domain_policy(args.pass_policy)
-
-    results = build_results(
-        passwords=passwords,
-        domain_admins=domain_admins,
-        company_words=company_words,
-        minimum_length=int(policy["Minimum Password Length"]),
-        enabled_users=enabled_users,
+    analyse_passwords(
+        mapped_passwords=args.mapped_passwords,
+        domain_admins=args.domain_admins,
+        company_words=args.company_words,
+        pass_policy=args.pass_policy,
+        enabled_users=args.enabled_users,
     )
-
-    report = {
-        "executive_summary": executive_summary(results),
-        "technical_commentary": technical_commentary(results),
-        "remediation_guidance": remediation_guidance(results),
-    }
-
-    write_markdown("report.md", render_markdown(report))
 
     print()
     ok("Markdown report written to: report.md")

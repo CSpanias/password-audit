@@ -10,22 +10,11 @@ from pathlib import Path
 
 from common.console import (
     info,
-    warn,
     summary,
 )
 
-from ntds.parsers import (
-    parse_ntds_file,
-    load_bloodhound_zip,
-    load_potfile,
-)
-
-from ntds.results import (
-    build_results,
-)
-
-from ntds.exports import (
-    export_results,
+from ntds.workflow import (
+    organise_dataset,
 )
 
 
@@ -45,52 +34,13 @@ def run_ntds_organiser(args):
 
     info("NTDS Organiser")
 
-    entries = parse_ntds_file(args.ntds)
-
-    users_json = None
-    groups_json = None
-    domains_json = None
-
-    if args.bloodhound:
-
-        users_json, groups_json, domains_json = (
-            load_bloodhound_zip(args.bloodhound)
-        )
-
-        if users_json is None:
-            warn("users.json not found")
-
-        if groups_json is None:
-            warn("groups.json not found")
-
-        if domains_json is None:
-            warn("domains.json not found")
-
-    hash_lookup = None
-
-    if args.potfile:
-        hash_lookup = load_potfile(args.potfile)
-
-    results = build_results(
-        entries=entries,
+    results = organise_dataset(
+        ntds_file=args.ntds,
+        output_dir=output_dir,
+        bloodhound_file=args.bloodhound,
+        potfile=args.potfile,
         username_filter=args.filter,
-        users_json=users_json,
-        groups_json=groups_json,
-        domains_json=domains_json,
-        hash_lookup=hash_lookup,
     )
-
-    filtered_users = results["filtered_users"]
-
-    if filtered_users:
-        warn(f"Filtered Accounts ({len(filtered_users)})")
-
-        for account in filtered_users:
-            print(f" - {account['username']}")
-
-        print()
-
-    export_results(results, output_dir)
 
     print()
 

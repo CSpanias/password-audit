@@ -20,4 +20,5 @@ include = [
     "analysis",
     "reports",
     "cracking",
+    "auditing"
 ]

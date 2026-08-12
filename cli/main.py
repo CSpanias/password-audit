@@ -10,6 +10,7 @@ import argparse
 from cli.organise import run_ntds_organiser
 from cli.crack import run_cracking_campaign
 from cli.analyse import run_password_analysis
+from cli.audit import run_audit_workflow
 from cracking.statistics import print_phase_statistics
 from cracking.estimate import print_campaign_estimate
 
@@ -32,6 +33,42 @@ def main():
     subparsers = parser.add_subparsers(
         dest="command",
         required=True,
+    )
+
+    #-----------------------------------------------
+    # Audit
+    #-----------------------------------------------
+
+    audit_parser = subparsers.add_parser(
+        "audit",
+        help="Execute an end-to-end password audit",
+    )
+
+    audit_parser.add_argument(
+        "-n",
+        "--ntds",
+        required=True,
+    )
+
+    audit_parser.add_argument(
+        "-b",
+        "--bloodhound",
+    )
+
+    audit_parser.add_argument(
+        "-C",
+        "--campaign",
+        required=True,
+    )
+
+    audit_parser.add_argument(
+        "-N",
+        "--campaign-name",
+        required=True,
+    )
+
+    audit_parser.set_defaults(
+        func=run_audit_workflow,
     )
 
     #-----------------------------------------------
