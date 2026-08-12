@@ -54,6 +54,7 @@ def estimate_campaign(path):
                 {
                     "id": phase_id,
                     "duration": None,
+                    "runs": 0,
                 }
             )
 
@@ -66,6 +67,7 @@ def estimate_campaign(path):
             {
                 "id": phase_id,
                 "duration": duration,
+                "runs": statistics[phase_id]["runs"],
             }
         )
 
@@ -98,31 +100,22 @@ def print_campaign_estimate(args):
 
             print(
                 f"{phase['id']:<20}: "
-                "Unknown (no history)"
+                f"Unknown ({phase['runs']} runs)"
             )
-
             continue
 
         print(
             f"{phase['id']:<20}: "
-            f"{human_time(phase['duration'])}"
+            f"{human_time(phase['duration'])} "
+            f"({phase['runs']} runs)"
         )
 
     print()
 
     if incomplete:
-
-        print(
-            f"Estimated Total   : "
-            f"{human_time(total_duration)} "
-            "(partial estimate)"
-        )
+        print(f"Estimated Total   : {human_time(total_duration)} (partial estimate)")
 
     else:
-
-        print(
-            f"Estimated Total   : "
-            f"{human_time(total_duration)}"
-        )
+        print(f"Estimated Total   : {human_time(total_duration)}")
 
     print()

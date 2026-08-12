@@ -58,6 +58,8 @@ def phase_statistics():
                     "duration": 0,
                     "newRecovered": 0,
                     "passwordsPerMinute": 0,
+                    "bestRecovered": 0,
+                    "bestROI": 0,
                 }
             )
 
@@ -65,7 +67,15 @@ def phase_statistics():
             stats[phase_id]["duration"] += phase["duration"]
             stats[phase_id]["newRecovered"] += phase["newRecovered"]
             stats[phase_id]["passwordsPerMinute"] += (
-                            phase["passwordsPerMinute"]
+                phase["passwordsPerMinute"]
+            )
+            stats[phase_id]["bestRecovered"] = max(
+                stats[phase_id]["bestRecovered"],
+                phase["newRecovered"],
+            )
+            stats[phase_id]["bestROI"] = max(
+                stats[phase_id]["bestROI"],
+                phase["passwordsPerMinute"],
             )
 
     return stats
@@ -89,6 +99,8 @@ def calculate_phase_statistics():
             "averageDuration": round(data["duration"] / data["runs"], 2),
             "averageRecovered": round(data["newRecovered"] / data["runs"], 2),
             "averageROI": round(data["passwordsPerMinute"] / data["runs"], 2),
+            "bestRecovered": data["bestRecovered"],
+            "bestROI": round(data["bestROI"], 2),
         }
 
     return calculated
@@ -122,7 +134,9 @@ def print_phase_statistics(_args=None):
 
         summary("Runs", data["runs"])
         summary("Average Duration", human_time(data["averageDuration"]))
-        summary("Average Recovery", round(data["averageRecovered"], 2))
-        summary("Average ROI", f"{round(data['averageROI'], 2)} passwords/min")
+        summary("Average Recovery", data["averageRecovered"])
+        summary("Average ROI", f"{data['averageROI']} passwords/min")
+        summary("Best Recovery", data["bestRecovered"])
+        summary("Best ROI", f"{data['bestROI']} passwords/min")
 
         print()
