@@ -7,8 +7,6 @@ historical campaign execution data.
 
 import json
 
-from pathlib import Path
-
 from cracking.constants import HISTORY_DIR
 from common.utils import human_time
 from common.console import summary
@@ -73,6 +71,29 @@ def phase_statistics():
     return stats
 
 
+def calculate_phase_statistics():
+    """
+    Calculate aggregated statistics for each phase.
+
+    Returns:
+        dict:
+            Phase statistics including averages.
+    """
+
+    calculated = {}
+
+    for phase_id, data in phase_statistics().items():
+
+        calculated[phase_id] = {
+            "runs": data["runs"],
+            "averageDuration": round(data["duration"] / data["runs"], 2),
+            "averageRecovered": round(data["newRecovered"] / data["runs"], 2),
+            "averageROI": round(data["passwordsPerMinute"] / data["runs"], 2),
+        }
+
+    return calculated
+
+
 def print_phase_statistics(_args=None):
     """
     Display historical statistics for campaign phases.
@@ -85,7 +106,7 @@ def print_phase_statistics(_args=None):
         None
     """
 
-    stats = phase_statistics()
+    stats = calculate_phase_statistics()
 
     if not stats:
 
@@ -96,16 +117,12 @@ def print_phase_statistics(_args=None):
 
     for phase_id, data in sorted(stats.items()):
 
-        average_duration = (data["duration"] / data["runs"])
-        average_recovered = round(data["newRecovered"] / data["runs"], 2)
-        average_roi = round(data["passwordsPerMinute"] / data["runs"], 2)
-
         print(f"{phase_id}")
         print("-" * len(phase_id))
 
         summary("Runs", data["runs"])
-        summary("Average Duration", human_time(average_duration))
-        summary("Average Recovery", average_recovered)
-        summary("Average ROI", f"{average_roi} passwords/min")
+        summary("Average Duration", human_time(data["averageDuration"]))
+        summary("Average Recovery", round(data["averageRecovered"], 2))
+        summary("Average ROI", f"{round(data['averageROI'], 2)} passwords/min")
 
         print()

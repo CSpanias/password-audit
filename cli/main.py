@@ -11,6 +11,7 @@ from cli.organise import run_ntds_organiser
 from cli.crack import run_cracking_campaign
 from cli.analyse import run_password_analysis
 from cracking.statistics import print_phase_statistics
+from cracking.estimate import print_campaign_estimate
 
 def main():
     """
@@ -145,6 +146,17 @@ def main():
     estimate_parser = crack_subparsers.add_parser(
         "estimate",
         help="Estimate campaign duration",
+    )
+
+    estimate_parser.add_argument(
+        "-C",
+        "--campaign",
+        required=True,
+        help="Campaign configuration file",
+    )
+
+    estimate_parser.set_defaults(
+        func=print_campaign_estimate,
     )
 
     #-----------------------------------------------
