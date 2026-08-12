@@ -70,7 +70,7 @@ def main():
     audit_parser.add_argument(
         "-M",
         "--mapped-passwords",
-        required=True,
+        default="./ntds-organiser/mapped-ntlm-passwords.txt",
         help="Recovered username:password dataset"
     )
 
