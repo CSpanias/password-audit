@@ -6,10 +6,11 @@ dispatches execution to individual framework components.
 """
 
 import argparse
+
 from cli.organise import run_ntds_organiser
 from cli.crack import run_cracking_campaign
 from cli.analyse import run_password_analysis
-
+from cracking.statistics import print_phase_statistics
 
 def main():
     """
@@ -32,7 +33,10 @@ def main():
         required=True,
     )
 
+    #-----------------------------------------------
     # NTDS Organiser
+    #-----------------------------------------------
+
     organise_parser = subparsers.add_parser(
         "organise",
         help="Process NTDS, BloodHound, and Hashcat data",
@@ -75,6 +79,10 @@ def main():
         func=run_ntds_organiser
     )
 
+    #-----------------------------------------------
+    # Hashcat Scheduler
+    #-----------------------------------------------
+
     crack_parser = subparsers.add_parser(
         "crack",
         help="Execute Hashcat cracking campaigns",
@@ -111,7 +119,25 @@ def main():
         func=run_cracking_campaign
     )
 
+    #-----------------------------------------------
+    # Hashcat Scheduler stats
+    #-----------------------------------------------
+
+    crack_subparsers = crack_parser.add_subparsers()
+
+    stats_parser = crack_subparsers.add_parser(
+        "stats",
+        help="Display historical cracking statistics",
+    )
+
+    stats_parser.set_defaults(
+        func=print_phase_statistics
+    )
+
+    #-----------------------------------------------
     # Password Analysis
+    #-----------------------------------------------
+
     analyse_parser = subparsers.add_parser(
         "analyse",
         help="Analyse recovered passwords and generate reports",

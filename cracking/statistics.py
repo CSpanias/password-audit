@@ -9,13 +9,9 @@ import json
 
 from pathlib import Path
 
-from cracking.constants import (
-    HISTORY_DIR,
-)
-
-from common.utils import (
-    human_time,
-)
+from cracking.constants import HISTORY_DIR
+from common.utils import human_time
+from common.console import summary
 
 
 def load_history():
@@ -77,9 +73,13 @@ def phase_statistics():
     return stats
 
 
-def print_phase_statistics():
+def print_phase_statistics(_args=None):
     """
     Display historical statistics for campaign phases.
+
+    Args:
+        args:
+            Parsed command-line arguments.
 
     Returns:
         None
@@ -96,40 +96,16 @@ def print_phase_statistics():
 
     for phase_id, data in sorted(stats.items()):
 
-        average_duration = (
-            data["duration"] / data["runs"]
-        )
-
-        average_recovered = round(
-            data["newRecovered"] / data["runs"],
-            2,
-        )
-
-        average_roi = round(
-            data["passwordsPerMinute"] / data["runs"],
-            2,
-        )
+        average_duration = (data["duration"] / data["runs"])
+        average_recovered = round(data["newRecovered"] / data["runs"], 2)
+        average_roi = round(data["passwordsPerMinute"] / data["runs"], 2)
 
         print(f"{phase_id}")
         print("-" * len(phase_id))
 
-        print(
-            f"Runs               : {data['runs']}"
-        )
-
-        print(
-            f"Average Duration   : "
-            f"{human_time(average_duration)}"
-        )
-
-        print(
-            f"Average Recovery   : "
-            f"{average_recovered}"
-        )
-
-        print(
-            f"Average ROI        : "
-            f"{average_roi} passwords/min"
-        )
+        summary("Runs", data["runs"])
+        summary("Average Duration", human_time(average_duration))
+        summary("Average Recovery", average_recovered)
+        summary("Average ROI", f"{average_roi} passwords/min")
 
         print()
