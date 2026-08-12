@@ -4,6 +4,7 @@
 *.xml
 *.potfile
 *.txt
+*.json
 ntds-organiser/
 
 # Generated files

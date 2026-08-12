@@ -33,6 +33,7 @@ from cracking.loopback import (
 
 from cracking.results import (
     write_results,
+    archive_results
 )
 
 from cracking.validation import (
@@ -50,8 +51,9 @@ def run_campaign(
     Execute a password recovery campaign.
 
     Enabled campaign phases are executed sequentially using
-    Hashcat. Recovery statistics are collected after each
-    phase and written to a campaign results file.
+    Hashcat. Recovery statistics are collected throughout
+    execution and written to campaign results files upon
+    completion.
 
     Args:
         config:
@@ -161,11 +163,11 @@ def run_campaign(
 
         duration_minutes = result["duration"] / 60
 
-        if duration_minutes:
-            passwords_per_minute = round(
-                result["newRecovered"] / duration_minutes,
-                2,
-            ) if duration_minutes else 0
+        passwords_per_minute = (
+            round(result["newRecovered"] / duration_minutes, 2)
+            if duration_minutes
+            else 0
+        )
 
         results["phases"].append(
             {
@@ -181,8 +183,9 @@ def run_campaign(
             }
         )
 
-        write_results(results)
-
     results["completed"] = datetime.now().isoformat()
+
+    write_results(results)
+    archive_results(results)
 
     return results
