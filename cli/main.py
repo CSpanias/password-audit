@@ -62,7 +62,7 @@ def main():
     )
 
     audit_parser.add_argument(
-        "-N",
+        "-CN",
         "--campaign-name",
         required=True,
     )
@@ -184,7 +184,7 @@ def main():
     )
 
     run_parser.add_argument(
-        "-N",
+        "-CN",
         "--campaign-name",
         required=True,
     )
