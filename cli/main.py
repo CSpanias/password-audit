@@ -42,6 +42,7 @@ def main():
     audit_parser = subparsers.add_parser(
         "audit",
         help="Execute an end-to-end password audit",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     audit_parser.add_argument(
@@ -62,7 +63,7 @@ def main():
     )
 
     audit_parser.add_argument(
-        "-CN",
+        "-G",
         "--campaign-name",
         required=True,
     )
@@ -89,7 +90,7 @@ def main():
     )
 
     audit_parser.add_argument(
-        "-CW",
+        "-W",
         "--company-words",
         default="./ntds-organiser/company-words.txt",
         help="Organisation-specific password analysis terms"
@@ -159,6 +160,7 @@ def main():
     crack_parser = subparsers.add_parser(
         "crack",
         help="Password recovery campaigns",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     crack_subparsers = crack_parser.add_subparsers(
@@ -169,6 +171,7 @@ def main():
     run_parser = crack_subparsers.add_parser(
         "run",
         help="Execute a cracking campaign",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     run_parser.add_argument(
@@ -184,7 +187,7 @@ def main():
     )
 
     run_parser.add_argument(
-        "-CN",
+        "-G",
         "--campaign-name",
         required=True,
     )
@@ -205,6 +208,7 @@ def main():
     stats_parser = crack_subparsers.add_parser(
         "stats",
         help="Display historical cracking statistics",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     stats_parser.set_defaults(
@@ -218,6 +222,7 @@ def main():
     estimate_parser = crack_subparsers.add_parser(
         "estimate",
         help="Estimate campaign duration",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     estimate_parser.add_argument(
@@ -263,7 +268,7 @@ def main():
     )
 
     analyse_parser.add_argument(
-        "-CW",
+        "-G",
         "--company-words",
         default="./ntds-organiser/company-words.txt",
         help="Organisation-specific password analysis terms"
