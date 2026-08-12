@@ -67,6 +67,41 @@ def main():
         required=True,
     )
 
+    audit_parser.add_argument(
+        "-M",
+        "--mapped-passwords",
+        required=True,
+        help="Recovered username:password dataset"
+    )
+
+    audit_parser.add_argument(
+        "-A",
+        "--domain-admins",
+        default="./ntds-organiser/domain-admins.txt",
+        help="Domain Admin account list"
+    )
+
+    audit_parser.add_argument(
+        "-P",
+        "--pass-policy",
+        default="./ntds-organiser/domain-policy.txt",
+        help="Domain password policy"
+    )
+
+    audit_parser.add_argument(
+        "-CW",
+        "--company-words",
+        default="./ntds-organiser/company-words.txt",
+        help="Organisation-specific password analysis terms"
+    )
+
+    audit_parser.add_argument(
+        "-E",
+        "--enabled-users",
+        default="./ntds-organiser/enabled-users.txt",
+        help="Enabled user accounts list"
+    )
+
     audit_parser.set_defaults(
         func=run_audit_workflow,
     )

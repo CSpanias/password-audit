@@ -8,8 +8,12 @@
 ntds-organiser/
 
 # Generated files
+*.egg-info/
+dist/
+build/
 __pycache__/
 *.pyc
+
 
 # Keep documentation
 !README.md

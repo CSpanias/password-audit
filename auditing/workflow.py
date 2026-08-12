@@ -41,6 +41,11 @@ def run_audit(
     bloodhound_file,
     campaign_file,
     campaign_name,
+    mapped_passwords=None,
+    domain_admins=None,
+    company_words=None,
+    enabled_users=None,
+    pass_policy=None
 ):
     """
     Execute an end-to-end password audit workflow.
@@ -57,6 +62,21 @@ def run_audit(
 
         campaign_name:
             Campaign identifier.
+
+        mapped_passwords:
+            Override mapped password dataset.
+
+        domain_admins:
+            Override Domain Administrators dataset.
+
+        company_words:
+            Override organisation wordlist.
+
+        enabled_users:
+            Override enabled users dataset.
+
+        pass_policy:
+            Override domain password policy.
 
     Returns:
         dict:
@@ -110,16 +130,39 @@ def run_audit(
         potfile=hashcat_potfile,
     )
 
-    mapped_passwords = (output_dir / "mapped-ntlm-passwords.txt")
-
     info("Stage 4/4 - Analysing Passwords")
+
+    mapped_passwords = (
+        mapped_passwords
+        or output_dir / "mapped-ntlm-passwords.txt"
+    )
+
+    domain_admins = (
+        domain_admins
+        or output_dir / "domain-admins.txt"
+    )
+
+    company_words = (
+        company_words
+        or output_dir / "company-words.txt"
+    )
+
+    pass_policy = (
+        pass_policy
+        or output_dir / "domain-policy.txt"
+    )
+
+    enabled_users = (
+        enabled_users
+        or output_dir / "enabled-users.txt"
+    )
 
     analyse_passwords(
         mapped_passwords=mapped_passwords,
-        domain_admins=output_dir / "domain-admins.txt",
-        company_words=output_dir / "company-words.txt",
-        pass_policy=output_dir / "domain-policy.txt",
-        enabled_users=output_dir / "enabled-users.txt",
+        domain_admins=domain_admins,
+        company_words=company_words,
+        pass_policy=pass_policy,
+        enabled_users=enabled_users,
     )
 
     report_file = Path("report.md")
