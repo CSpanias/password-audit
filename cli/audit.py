@@ -27,4 +27,9 @@ def run_audit_workflow(args):
         bloodhound_file=args.bloodhound,
         campaign_file=args.campaign,
         campaign_name=args.campaign_name,
+        mapped_passwords=args.mapped_passwords,
+        domain_admins=args.domain_admins,
+        company_words=args.company_words,
+        enabled_users=args.enabled_users,
+        pass_policy=args.pass_policy,
     )
