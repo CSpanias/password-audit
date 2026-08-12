@@ -31,7 +31,11 @@ def print_summary(results):
     for phase in results["phases"]:
 
         print(
-            ...
+            f"| {phase['id']:<13} "
+            f"| {phase['durationHuman']:<8} "
+            f"| {phase['newRecovered']:>13} "
+            f"| {phase['totalRecovered']:>15} "
+            f"| {phase['passwordsPerMinute']:>7.2f} |"
         )
 
     total_duration = sum(
