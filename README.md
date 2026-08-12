@@ -202,6 +202,10 @@ password-audit analyse \
 
 ---
 
+## Documentation 
+
+Additional documentation is available in the [`docs/README.md`](https://github.com/CSpanias/password-audit/blob/main/docs/README.md) directory. 
+
 ## Requirements
 
 ### Core

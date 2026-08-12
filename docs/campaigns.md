@@ -29,8 +29,6 @@ A campaign contains two top-level sections:
     * `wordlist`: Wordlist file used by the phase. (required only if `"type": "wordlist"`)
     * `rule`: Rule file to be used by the phase.
 
-Phases are executed sequentially in the order they are defined.
-
 Example `config.json` file:
 
 ```json
@@ -58,6 +56,8 @@ Example `config.json` file:
     ]
 }
 ```
+
+Phases are executed sequentially in the order they are defined.
 
 Loopback phases generate a temporary dictionary from passwords recovered during previous phases. If no passwords have been recovered, the loopback phase is skipped automatically.
 
