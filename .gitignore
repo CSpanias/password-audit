@@ -15,13 +15,7 @@ __pycache__/
 *.pyc
 site/
 
-
-# Keep documentation
+# Documentation
 !README.md
-!analyse.md
-!campaigns.md
-!crack.md
-!development.md
-!organise.md
-!installation.md
-!index.md
+!docs/
+!docs/*.md
