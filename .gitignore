@@ -13,6 +13,7 @@ dist/
 build/
 __pycache__/
 *.pyc
+site/
 
 
 # Keep documentation
