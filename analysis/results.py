@@ -6,7 +6,7 @@ constructs the standardised results structure consumed by
 reporting components.
 """
 
-from analyse.analysis import (
+from analysis.analysis import (
     compromised_admins,
     password_length_failures,
     top_passwords,
