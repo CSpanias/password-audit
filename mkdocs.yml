@@ -1,0 +1,25 @@
+site_name: Password-Audit
+site_description: Active Directory Password Auditing Framework
+repo_url: https://github.com/CSpanias/password-audit
+
+theme:
+  name: material
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+nav:
+  - Home: README.md
+
+  - User Guides:
+      - Installation: installation.md
+      - Organise: organise.md
+      - Crack: crack.md
+      - Analyse: analyse.md
+
+  - Development:
+      - Development Guide: development.md

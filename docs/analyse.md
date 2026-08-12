@@ -1,91 +1,52 @@
 # Password Analyser
 
-The Password Analyser module identifies password security weaknesses and generates assessment reports from recovered password datasets.
+## Overview 
 
-## Features
+The Password Analyser module identifies password security weaknesses and generates a Markdown-formatted report from recovered password datasets.
 
-* Password recovery statistics
-* Crack-rate analysis
-* Privileged account identification
-* Password reuse detection
-* Username-derived password detection
-* Organisation-related password detection
-* Common password analysis
-* Date-based password analysis
-* Keyboard-walk analysis
-* Password length analysis
-* Character-class analysis
-* Executive summary generation
-* Technical commentary generation
-* Remediation guidance generation
-
-## Commands
-
-### Generate a Report
+The only required argument is `--mapped-passwords` / `-M` which is the dataset in a `domain\username:password` format. All other information is loaded automatically from the default `./ntds-organiser` directory, but all options can be overridden manually:
 
 ```bash
-password-audit analyse \
-    -M ntds-organiser/mapped-ntlm-passwords.txt
+$ password-audit analyse -h
+usage: password-audit analyse [-h] -M MAPPED_PASSWORDS [-A DOMAIN_ADMINS] [-P PASS_POLICY] [-G COMPANY_WORDS] [-E ENABLED_USERS]
+
+options:
+  -h, --help            show this help message and exit
+  -M, --mapped-passwords MAPPED_PASSWORDS
+                        Recovered username:password dataset
+  -A, --domain-admins DOMAIN_ADMINS
+                        Domain Admin account list (default: ./ntds-organiser/domain-admins.txt)
+  -P, --pass-policy PASS_POLICY
+                        Domain password policy (default: ./ntds-organiser/domain-policy.txt)
+  -G, --company-words COMPANY_WORDS
+                        Organisation-specific password analysis terms (default: ./ntds-organiser/company-words.txt)
+  -E, --enabled-users ENABLED_USERS
+                        Enabled user accounts list (default: ./ntds-organiser/enabled-users.txt)
 ```
 
-## Inputs
-
-| File | Description |
-|------|-------------|
-| `mapped-ntlm-passwords.txt` | Recovered passwords mapped to user accounts |
-
-## Output
-
-| File | Description |
-|------|-------------|
-| `report.md` | Markdown audit report |
-
-## Analysis Areas
-
-The analyser examines:
+The `analyser` currently identifies:
 
 * Password recovery rates
-* Privileged account exposure
+* Privileged account exposure (at the moment only Domain Admins)
 * Password reuse
 * Common passwords
 * Username-derived passwords
 * Organisation-related passwords
 * Date-based passwords
 * Keyboard-walk passwords
-* Password complexity
 * Character-class usage
 
-## Workflow Position
+## Usage
 
-The analyser is typically executed after:
-
-1. NTDS processing
-2. Password recovery
-3. Password mapping
-
-```text
-password-audit organise
-        ↓
-password-audit crack run
-        ↓
-password-audit organise
-        ↓
-mapped-ntlm-passwords.txt
-        ↓
-password-audit analyse
-        ↓
-report.md
-```
-
-## Example Workflow
+Simply pass the final dataset (assuming everything else is within `./ntds-organiser`):
 
 ```bash
 password-audit analyse \
     -M ntds-organiser/mapped-ntlm-passwords.txt
 ```
 
-Generated report:
+This will generate the `report.md` file which will contain the analysis separated in the following sections:
 
-```text
-report.md
-```
+1. Executive Summary (high-level assessment and key findings)
+2. Technical Commentary (detailed analysis of password weaknesses)
+3. Remediation Guidance (recommendations for improving password security)

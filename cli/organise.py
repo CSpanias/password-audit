@@ -7,15 +7,8 @@ mapping, dataset export, and summary generation.
 
 
 from pathlib import Path
-
-from common.console import (
-    info,
-    summary,
-)
-
-from ntds.workflow import (
-    organise_dataset,
-)
+from common.console import info, summary, warn
+from ntds.workflow import organise_dataset
 
 
 def run_ntds_organiser(args):
@@ -41,6 +34,17 @@ def run_ntds_organiser(args):
         potfile=args.potfile,
         username_filter=args.filter,
     )
+
+    filtered_users = results["filtered_users"]
+
+    if filtered_users:
+
+        warn(f"Filtered Accounts ({len(filtered_users)})")
+
+        for account in filtered_users:
+            print(f" - {account['username']}")
+
+        print()
 
     print()
 
