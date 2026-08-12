@@ -85,45 +85,49 @@ def main():
 
     crack_parser = subparsers.add_parser(
         "crack",
-        help="Execute Hashcat cracking campaigns",
+        help="Password recovery campaigns",
     )
 
-    crack_parser.add_argument(
+    crack_subparsers = crack_parser.add_subparsers(
+        dest="crack_command",
+        required=True,
+    )
+
+    run_parser = crack_subparsers.add_parser(
+        "run",
+        help="Execute a cracking campaign",
+    )
+
+    run_parser.add_argument(
         "-C",
         "--campaign",
         required=True,
-        help="Campaign configuration file"
     )
 
-    crack_parser.add_argument(
+    run_parser.add_argument(
         "-H",
         "--hashes",
         required=True,
-        help="Hash dataset"
     )
 
-    crack_parser.add_argument(
+    run_parser.add_argument(
         "-N",
         "--campaign-name",
         required=True,
-        help="Campaign name"
     )
 
-    crack_parser.add_argument(
+    run_parser.add_argument(
         "--debug",
         action="store_true",
-        help="Show Hashcat commands and verbose output"
     )
 
-    crack_parser.set_defaults(
-        func=run_cracking_campaign
+    run_parser.set_defaults(
+        func=run_cracking_campaign,
     )
 
     #-----------------------------------------------
-    # Hashcat Scheduler stats
+    # Hashcat Scheduler stats subcommand
     #-----------------------------------------------
-
-    crack_subparsers = crack_parser.add_subparsers()
 
     stats_parser = crack_subparsers.add_parser(
         "stats",
@@ -131,7 +135,16 @@ def main():
     )
 
     stats_parser.set_defaults(
-        func=print_phase_statistics
+        func=print_phase_statistics,
+    )
+
+    #-----------------------------------------------
+    # Hashcat Scheduler estimate subcommand
+    #-----------------------------------------------
+
+    estimate_parser = crack_subparsers.add_parser(
+        "estimate",
+        help="Estimate campaign duration",
     )
 
     #-----------------------------------------------
