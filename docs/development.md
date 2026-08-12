@@ -4,7 +4,7 @@ This document provides an overview of the project structure and development prac
 
 ## Installation
 
-For the development installation, see [Installation](installation.md#development-installation).
+For the development installation, see [Installation](./installation.md#development-installation).
 
 ## Design Principles
 
