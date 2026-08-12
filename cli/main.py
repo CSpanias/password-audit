@@ -45,13 +45,13 @@ def main():
     )
 
     audit_parser.add_argument(
-        "-n",
+        "-N",
         "--ntds",
         required=True,
     )
 
     audit_parser.add_argument(
-        "-b",
+        "-B",
         "--bloodhound",
     )
 
@@ -117,33 +117,33 @@ def main():
     )
 
     organise_parser.add_argument(
-        "-n",
+        "-N",
         "--ntds",
         required=True,
         help="Secretsdump NTDS file"
     )
 
     organise_parser.add_argument(
-        "-o",
+        "-O",
         "--output",
         default="ntds-organiser",
         help="Output directory"
     )
 
     organise_parser.add_argument(
-        "-f",
+        "-F",
         "--filter",
         help="Comma-separated testing account filters"
     )
 
     organise_parser.add_argument(
-        "-b",
+        "-B",
         "--bloodhound",
         help="BloodHound ZIP export"
     )
 
     organise_parser.add_argument(
-        "-p",
+        "-P",
         "--potfile",
         help="Hashcat potfile containing recovered passwords"
     )
@@ -263,7 +263,7 @@ def main():
     )
 
     analyse_parser.add_argument(
-        "-C",
+        "-CW",
         "--company-words",
         default="./ntds-organiser/company-words.txt",
         help="Organisation-specific password analysis terms"
