@@ -30,6 +30,7 @@ nav:
 
   - User Guides:
       - Installation: installation.md
+      - Audit: audit.md
       - Organise: organise.md
       - Crack: crack.md
       - Analyse: analyse.md
