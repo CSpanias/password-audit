@@ -17,7 +17,7 @@ include = [
     "cli",
     "common",
     "ntds",
-    "analyse",
+    "analysis",
     "reports",
     "cracking",
 ]
