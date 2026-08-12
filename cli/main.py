@@ -49,23 +49,27 @@ def main():
         "-N",
         "--ntds",
         required=True,
+        help="Secretsdump NTDS file"
     )
 
     audit_parser.add_argument(
         "-B",
         "--bloodhound",
+        help="BloodHound ZIP export"
     )
 
     audit_parser.add_argument(
         "-C",
         "--campaign",
         required=True,
+        help="Campaign configuration file"
     )
 
     audit_parser.add_argument(
         "-G",
         "--campaign-name",
         required=True,
+        help="Campaign identifier"
     )
 
     audit_parser.add_argument(
@@ -178,23 +182,27 @@ def main():
         "-C",
         "--campaign",
         required=True,
+        help="Campaign configuration file"
     )
 
     run_parser.add_argument(
         "-H",
         "--hashes",
         required=True,
+        help="File containing NTLM hashes to recover",
     )
 
     run_parser.add_argument(
         "-G",
         "--campaign-name",
         required=True,
+        help="Campaign identifier"
     )
 
     run_parser.add_argument(
         "--debug",
         action="store_true",
+        help="Display verbose Hashcat output",
     )
 
     run_parser.set_defaults(
