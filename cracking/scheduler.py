@@ -35,6 +35,10 @@ from cracking.results import (
     write_results,
 )
 
+from cracking.validation import (
+    validate_campaign,
+)
+
 
 def run_campaign(
         config,
@@ -67,20 +71,39 @@ def run_campaign(
             Campaign execution results.
     """
 
+    validate_campaign(config)
+
     parameters = config["parameters"]
 
     hash_file = os.path.abspath(hash_file)
 
-    hashcat_dir = parameters.get("hashcatDir", DEFAULT_HASHCAT_DIR)
+    hashcat_dir = parameters.get(
+        "hashcatDir", 
+        DEFAULT_HASHCAT_DIR
+    )
+
     hashcat_binary = parameters.get(
         "hashcatBinary",
         os.path.join(hashcat_dir, "hashcat.exe")
     )
-    hashcat_potfile = os.path.join(hashcat_dir, "hashcat.potfile")
-    wordlist_dir = os.path.join(hashcat_dir, "wordlists")
-    rules_dir = os.path.join(hashcat_dir, "rules")
+
+    hashcat_potfile = os.path.join(
+        hashcat_dir, 
+        "hashcat.potfile"
+    )
+
+    wordlist_dir = os.path.join(
+        hashcat_dir, 
+        "wordlists"
+    )
+
+    rules_dir = os.path.join(
+        hashcat_dir, 
+        "rules"
+    )
 
     hash_mode = parameters["hashMode"]
+
     flags = parameters.get("flags", [])
 
     results = {
@@ -136,6 +159,14 @@ def run_campaign(
             debug=debug
         )
 
+        duration_minutes = result["duration"] / 60
+
+        if duration_minutes:
+            passwords_per_minute = round(
+                result["newRecovered"] / duration_minutes,
+                2,
+            ) if duration_minutes else 0
+
         results["phases"].append(
             {
                 "id": phase["id"],
@@ -145,7 +176,8 @@ def run_campaign(
                 "durationHuman": human_time(result["duration"]),
                 "newRecovered": result["newRecovered"],
                 "totalRecovered": result["totalRecovered"],
-                "returnCode": result["returncode"]
+                "returnCode": result["returncode"],
+                "passwordsPerMinute": passwords_per_minute
             }
         )
 

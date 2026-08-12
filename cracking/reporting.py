@@ -5,6 +5,7 @@ This module generates campaign execution summaries and other
 operator-facing output.
 """
 
+from common.utils import human_time
 
 def print_summary(results):
     """
@@ -24,16 +25,37 @@ def print_summary(results):
 
     print("\n## Campaign Summary\n")
 
-    print("| Phase         | Duration | New Passwords | Total Passwords |")
-    print("|---------------|----------|---------------|-----------------|")
+    print("| Phase         | Duration | New Passwords | Total Passwords | ROI/min |")
+    print("|---------------|----------|---------------|-----------------|---------|")
 
     for phase in results["phases"]:
 
         print(
-            f"| {phase['id']:<13} "
-            f"| {phase['durationHuman']:<8} "
-            f"| {phase['newRecovered']:>13} "
-            f"| {phase['totalRecovered']:>15} |"
+            ...
         )
+
+    total_duration = sum(
+        phase["duration"]
+        for phase in results["phases"]
+    )
+
+    total_new = sum(
+        phase["newRecovered"]
+        for phase in results["phases"]
+    )
+
+    final_recovered = (
+        results["phases"][-1]["totalRecovered"]
+        if results["phases"]
+        else 0
+    )
+
+    print()
+    print("Campaign Totals")
+    print("---------------")
+
+    print(f"Duration        : {human_time(total_duration)}")
+    print(f"New Passwords   : {total_new}")
+    print(f"Final Recovered : {final_recovered}")
 
     print()
