@@ -64,6 +64,18 @@ def compromised_admins(passwords, domain_admins):
 # Password Statistics
 # ---------------------------------------------------------------------------
 
+# def top_passwords(passwords, limit=5):
+    
+
+#     counts = Counter(record["password"] for record in passwords)
+#     results = []
+#     total = len(passwords)
+
+#     for password, count in counts.most_common(limit):
+#         results.append({"password": password, "count": count, "percentage": round(count / total * 100, 1)})
+
+#     return results
+
 def top_passwords(passwords, limit=5):
     """
     Identify the most frequently recovered passwords.
@@ -77,12 +89,22 @@ def top_passwords(passwords, limit=5):
     their occurrence counts, and percentages.
     """
 
-    counts = Counter(record["password"] for record in passwords)
-    results = []
+    frequency = password_frequency(passwords)
+
     total = len(passwords)
 
-    for password, count in counts.most_common(limit):
-        results.append({"password": password, "count": count, "percentage": round(count / total * 100, 1)})
+    results = []
+
+    for password, count in frequency[:limit]:
+
+        results.append({
+            "password": password,
+            "count": count,
+            "percentage": round(
+                count / total * 100,
+                1
+            ),
+        })
 
     return results
 
@@ -106,36 +128,25 @@ def password_reuse(passwords):
     return reuse
 
 
-# TODO:
-# This function overlaps with top_passwords() and may be
-# consolidated during future refactoring. Currently retained
-# because it provides raw password frequency data used by
-# multiple reporting components.
 def password_frequency(passwords):
     """
     Calculate the frequency of all recovered passwords.
-
+    
     Results are returned in descending order of occurrence.
 
+    This function provides the raw password frequency dataset
+    consumed by reporting and summary functions.
+    
     Returns:
-        list: Passwords and their associated occurrence
-    counts.
+        list: Passwords and their associated occurrence counts.
     """
 
-    counts = Counter(record["password"] for record in passwords)
+    counts = Counter(
+        record["password"]
+        for record in passwords
+    )
 
     return counts.most_common()
-
-
-# TODO:
-# This is a presentation helper rather than analysis logic.
-# Move to report.py or remove entirely.
-
-def top_passwords_summary(results, limit=10):
-
-    passwords = (results["password_frequency"]["passwords"])
-
-    return passwords[:limit]
 
 
 # ---------------------------------------------------------------------------
@@ -175,24 +186,16 @@ def password_length_failures(passwords,minimum_length):
     return failures
 
 
-# TODO:
-# password_lengths() and password_length_distribution()
-# derive the same underlying dataset. Consider consolidating
-# these functions once the monorepo refactor is complete.
 def password_length_distribution(passwords):
     """
     Calculate the frequency of each recovered password length.
 
-    Results are returned in descending order of occurrence.
-
     Returns:
         list: Password lengths and their associated
-    occurrence counts.
+        occurrence counts.
     """
 
-    lengths = Counter(len(record["password"]) for record in passwords)
-
-    return lengths.most_common()
+    return password_lengths(passwords).most_common()
 
 # ---------------------------------------------------------------------------
 # Organisation-Related Terms
@@ -402,35 +405,6 @@ def username_passwords(passwords):
 # Similar Account Analysis
 # ---------------------------------------------------------------------------
 
-# TODO:
-# Review whether reused_passwords() is still required.
-# Similar account reuse reporting currently relies on
-# similar_account_reuse().
-def reused_passwords(passwords):
-    """
-    Identify passwords reused across multiple accounts.
-
-    Accounts are grouped by password and only passwords used by
-    more than one account are returned.
-
-    Returns:
-        dict: Reused passwords and the associated usernames.
-    """
-
-    grouped = defaultdict(list)
-
-    for record in passwords:
-        grouped[record["password"]].append(record["username"])
-
-    reuse = {}
-
-    for password, users in grouped.items():
-        if len(users) > 1:
-            reuse[password] = users
-
-    return reuse
-
-
 def similar_account_reuse(passwords):
     """
     Identify password reuse between similarly named accounts.
@@ -446,7 +420,6 @@ def similar_account_reuse(passwords):
             - int: Total number of similarly named account pairs
             identified during analysis.
     """
-
 
     findings = []
     similar_pairs = 0

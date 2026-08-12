@@ -94,7 +94,7 @@ Analyses recovered passwords and generates Markdown report suitable for Active D
 A password audit using `password-audit` typically follows four stages:
 
 ```markdown
-Extract NTDS and Collect BloodHound Data (secretsdump)
+Extract NTDS (secretsdump) and Collect BloodHound Data (rusthound-ce)
     |
     +--> domain.ntds
     +--> bloodhound.zip
@@ -102,7 +102,6 @@ Extract NTDS and Collect BloodHound Data (secretsdump)
     v
 Parse NTDS and BloodHound data (password-audit organise)
     |
-    +--> ntlm-hashes.txt
     +--> domain-admins.txt
     +--> company-words.txt
     +--> domain-policy.txt

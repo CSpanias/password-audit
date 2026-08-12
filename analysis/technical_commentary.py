@@ -15,9 +15,10 @@ from common.utils import (
 )
 
 
-# TODO:
-# Consider creating reusable Markdown table helpers to reduce
-# duplicated table rendering logic throughout this module.
+# NOTE:
+# Table rendering is intentionally explicit for readability.
+# Consider abstracting this if additional report formats are
+# introduced in future.
 
 
 # ---------------------------------------------------------------------------

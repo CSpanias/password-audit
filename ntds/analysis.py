@@ -18,7 +18,6 @@ from ntds.constants import (
 )
 
 
-
 def extract_ntlm_hashes(entries):
     """
     Extract unique NTLM hashes from NTDS entries.
