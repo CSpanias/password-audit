@@ -1,5 +1,7 @@
 # Organise
 
+## Overview
+
 The `password-audit organise` module processes Active Directory (AD) datasets (NTDS dump, BloodHound ZIP) and generates artefacts used during password audits.
 
 ## Usage

@@ -1,5 +1,6 @@
 site_name: Password-Audit
 site_description: Active Directory Password Auditing Framework
+site_url: https://cspanias.github.io/password-audit/
 repo_url: https://github.com/CSpanias/password-audit
 
 theme:
@@ -13,7 +14,7 @@ markdown_extensions:
       permalink: true
 
 nav:
-  - Home: README.md
+  - Home: index.md
 
   - User Guides:
       - Installation: installation.md
