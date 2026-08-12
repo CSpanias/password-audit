@@ -6,9 +6,8 @@ datasets, generating analysis results, producing report
 content, and exporting the final Markdown report.
 """
 
-from common.constants import (
-    COLOR_GREEN,
-    COLOR_RESET,
+from common.console import (
+    ok,
 )
 
 from analysis.parsers import (
@@ -81,7 +80,5 @@ def run_password_analysis(args):
     write_markdown("report.md", render_markdown(report))
 
     print()
-    print(
-        f"{COLOR_GREEN}[+] Markdown report written to: report.md{COLOR_RESET}"
-    )
+    ok("Markdown report written to: report.md")
     print()

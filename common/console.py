@@ -67,7 +67,7 @@ def summary(label, value):
         None
     """
 
-    ok(f"{label:<20}: {value}")
+    print(f"    {label:<20}: {value}")
 
 
 def ok(message):

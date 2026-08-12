@@ -222,3 +222,45 @@ def normalise_password(password):
         password = password.replace(old, new)
 
     return password
+
+
+# ---------------------------------------------------------------------------
+# Statistics
+# ---------------------------------------------------------------------------
+
+def human_time(seconds):
+    """
+    Convert a duration in seconds to a human-readable format.
+
+    Durations are represented using the largest practical units,
+    such as hours, minutes, and seconds.
+
+    Examples:
+
+        0.25  -> 0.25s
+        42    -> 42s
+        125   -> 2m 5s
+        3661  -> 1h 1m 1s
+
+    Args:
+        seconds:
+            Duration in seconds.
+
+    Returns:
+        str:
+            Human-readable duration string.
+    """
+
+    if seconds < 1:
+            return f"{seconds:.2f}s"
+
+    minutes, seconds = divmod(int(seconds), 60)
+    hours, minutes = divmod(minutes, 60)
+
+    if hours:
+        return f"{hours}h {minutes}m {seconds}s"
+
+    if minutes:
+        return f"{minutes}m {seconds}s"
+
+    return f"{seconds}s"

@@ -6,9 +6,9 @@ dispatches execution to individual framework components.
 """
 
 import argparse
-
-from cli.analyse import run_password_analysis
 from cli.organise import run_ntds_organiser
+from cli.crack import run_cracking_campaign
+from cli.analyse import run_password_analysis
 
 
 def main():
@@ -73,6 +73,42 @@ def main():
 
     organise_parser.set_defaults(
         func=run_ntds_organiser
+    )
+
+    crack_parser = subparsers.add_parser(
+        "crack",
+        help="Execute Hashcat cracking campaigns",
+    )
+
+    crack_parser.add_argument(
+        "-C",
+        "--campaign",
+        required=True,
+        help="Campaign configuration file"
+    )
+
+    crack_parser.add_argument(
+        "-H",
+        "--hashes",
+        required=True,
+        help="Hash dataset"
+    )
+
+    crack_parser.add_argument(
+        "-N",
+        "--campaign-name",
+        required=True,
+        help="Campaign name"
+    )
+
+    crack_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Show Hashcat commands and verbose output"
+    )
+
+    crack_parser.set_defaults(
+        func=run_cracking_campaign
     )
 
     # Password Analysis
