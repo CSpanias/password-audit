@@ -94,17 +94,13 @@ Analyses recovered passwords and generates Markdown report suitable for Active D
 A password audit using `password-audit` typically follows four stages:
 
 ```markdown
-Extract the NTDS-dit
+Extract NTDS and Collect BloodHound Data (`secretsdump`)
     |
-    +--> domain.ntds   
+    +--> domain.ntds
+    +--> bloodhound.zip
     | 
     v
-Collect BloodHound Data
-    |
-    +--> bloodhound.zip  
-    | 
-    v
-Parse the NTDS dump
+Parse NTDS and BloodHound data (`password-audit organise`)
     |
     +--> ntlm-hashes.txt
     +--> domain-admins.txt
@@ -118,17 +114,17 @@ Parse the NTDS dump
     +--> ntlm-hashes.txt
     |
     v
-Crack NTLM hashes
+Crack NTLM hashes (`hashcat`)
     |
     +--> hashcat.potfile
     |
     v
-Map recovered passwords back to users
+Map recovered passwords back to users (`password-audit organise`)
     |
     +--> mapped-ntlm-passwords.txt
     |
     v
-Analyse the results & generate the report
+Analyse the results & generate the report (`password-audit analyse`)
     |
     v
     +--> report.md
@@ -136,7 +132,7 @@ Analyse the results & generate the report
 
 ### End-to-End Example
 
-1. Extract NTDS.dit using [`secretsdump.py`](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py):
+1. Extract NTDS using [`secretsdump.py`](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py):
 
 ```bash
 secretsdump.py <domain>/<username>:<password>@<dc-ip> -user-status -just-dc-ntlm -outputfile <domain>

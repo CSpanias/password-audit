@@ -7,7 +7,7 @@ dispatches execution to individual framework components.
 
 import argparse
 
-from cli.analysis import run_password_analysis
+from cli.analyse import run_password_analysis
 from cli.organise import run_ntds_organiser
 
 

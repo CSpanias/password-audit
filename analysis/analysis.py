@@ -13,7 +13,7 @@ should be handled elsewhere.
 from collections import Counter
 from collections import defaultdict
 
-from analysis.constants import (
+from analyse.constants import (
     COMMON_PASSWORDS,
     KEYBOARD_PATTERNS,
     MONTHS,
