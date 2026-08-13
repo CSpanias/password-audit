@@ -50,9 +50,17 @@ def commentary_admins(results):
 
     lines = []
 
-    lines.append(f"{num_to_word(count).capitalize()} Domain Administrator account{'s were' if count > 1 else ' was'} "
-            "successfully recovered during the password audit. Privileged accounts represent high-value targets and "
-            "their compromise significantly increases the potential impact of a successful attack.\n")
+    lines.append(
+        f"{num_to_word(count).capitalize()} Domain Administrator "
+        f"account{'s were' if count > 1 else ' was'} successfully "
+        "recovered during the password audit. Domain Administrator "
+        "accounts represent some of the most privileged identities "
+        "within Active Directory and typically provide broad access "
+        "to authentication services, directory data, and domain-joined "
+        "systems. Compromise of these credentials significantly increases "
+        "the potential impact of credential exposure and may facilitate "
+        "privilege escalation or wider compromise of the environment.\n"
+    )
 
     lines.append("| Username | Password |")
     lines.append("| ---------- | ---------- |")
@@ -133,9 +141,15 @@ def commentary_password_lengths(results):
         lines.append("")
 
     else:
-        lines.append("All recovered passwords complied with the configured minimum password length requirement "
-            f"of {minimum_length} characters. This indicates effective enforcement of the domain password "
-            f"policy. The most commonly observed password length was {most_common_length} characters.\n")
+        lines.append(
+            "All recovered passwords complied with the configured minimum "
+            f"password length requirement of {minimum_length} characters. "
+            "This suggests that the domain password policy is being "
+            "consistently enforced across the recovered credential "
+            "population. The most commonly observed password length was "
+            f"{most_common_length} characters, indicating that users "
+            "typically select passwords at or above the required minimum.\n"
+        )
 
     return "\n".join(lines)
 
@@ -174,9 +188,15 @@ def commentary_password_reuse(results):
 
     lines = []
 
-    lines.append("Analysis of the recovered credentials identified several passwords that were reused across multiple "
-        "accounts. Password reuse increases the impact of credential compromise, as a single recovered password "
-        "may provide access to multiple systems, services, or user accounts.\n")
+    lines.append(
+        "Password reuse was identified across multiple user accounts "
+        "within the recovered credential dataset. Reuse of credentials "
+        "reduces password diversity and increases the potential impact "
+        "of credential compromise, as a single recovered password may "
+        "provide access to multiple accounts. This behaviour can also "
+        "increase the effectiveness of password spraying and other "
+        "credential-based attacks.\n"
+    )
 
     lines.append("| Password | Times Seen | Percentage |")
     lines.append("| ---------- | ---------- | ---------- |")
@@ -191,6 +211,9 @@ def commentary_password_reuse(results):
 
     return "\n".join(lines)
 
+# ---------------------------------------------------------------------------
+# Similarly-Named Password Reuse
+# ---------------------------------------------------------------------------
 
 def commentary_similar_account_reuse(results):
     """
@@ -214,11 +237,7 @@ def commentary_similar_account_reuse(results):
 
     if similar_pairs == 0:
 
-        return (
-            "No similarly named account pairs were identified for analysis. "
-            "As a result, password reuse between standard and privileged "
-            "accounts could not be assessed.\n"
-        )
+        return ""
 
     if count == 0:
 
@@ -232,11 +251,15 @@ def commentary_similar_account_reuse(results):
     lines = []
 
     lines.append(
-        f"A total of {num_to_word(count)} account pair{'s were' if count > 1 else ' was'} "
-        "identified as sharing passwords between similarly named accounts. This behaviour is "
-        "commonly observed where standard and privileged accounts are operated by the same "
-        "individual or service. Password reuse increases the impact of credential compromise "
-        "and may facilitate privilege escalation or lateral movement.\n"
+        f"A total of {num_to_word(count)} account "
+        f"pair{'s were' if count > 1 else ' was'} identified as "
+        "sharing passwords between similarly named accounts. This "
+        "behaviour is commonly observed where users maintain separate "
+        "standard and privileged identities but reuse credentials "
+        "across both accounts. Such reuse may undermine administrative "
+        "account separation, increase the impact of credential "
+        "compromise, and facilitate privilege escalation or lateral "
+        "movement within the environment.\n"
     )
 
     lines.append("| Username | Password | Shared With |")
@@ -620,15 +643,24 @@ def technical_commentary(results):
             "stated, tables are intended to provide representative samples and may not contain all affected accounts identified during "
             "the assessment.\n")
 
+    # Privileged accounts
     lines.append(commentary_admins(results))
+
+    # Domain policy compliance
     lines.append(commentary_password_lengths(results))
+
+    # Password management practices
     lines.append(commentary_password_reuse(results))
     lines.append(commentary_similar_account_reuse(results))
+
+    # Predictable patterns
     lines.append(commentary_username_passwords(results))
     lines.append(commentary_company_words(results))
+    lines.append(commentary_common_passwords(results))
     lines.append(commentary_date_passwords(results))
     lines.append(commentary_keyboard_walks(results))
-    lines.append(commentary_common_passwords(results))
+
+    # Password complexity
     lines.append(commentary_character_classes(results))
 
     return "\n".join(lines)
