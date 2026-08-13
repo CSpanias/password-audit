@@ -7,15 +7,16 @@ results.
 """
 
 import os
+import sys
 
 from datetime import datetime
 
-from common.console import warn
+from common.console import warn, ok, summary
 from common.utils import human_time
 from cracking.constants import DEFAULT_HASHCAT_DIR
 from cracking.hashcat import run_phase, validate_file
 from cracking.loopback import generate_loopback_wordlist
-from cracking.results import write_results, archive_results
+from cracking.results import write_results, archive_results, load_results
 from cracking.validation import validate_campaign
 
 
@@ -65,6 +66,22 @@ def run_campaign(
     hash_mode = parameters["hashMode"]
     flags = parameters.get("flags", [])
 
+    existing_results = load_results(
+            hash_file=hash_file,
+            campaign_name=campaign_name,
+        )
+
+    if (existing_results and existing_results.get("state") == "running"):
+
+        warn("Previous campaign appears to have been interrupted")
+        summary("Phase", existing_results.get("currentPhase"))
+        summary("Session", existing_results.get("currentSession"))
+        summary("Restore Command", f"hashcat --restore --session {existing_results['currentSession']}")
+        print()
+
+        sys.exit("\nExisting interrupted campaign detected. "
+            "Restore the Hashcat session or remove the results file.\n")
+
     results = {
             "campaign": campaign_name,
             "hashMode": hash_mode,
@@ -72,6 +89,7 @@ def run_campaign(
             "started": datetime.now().isoformat(),
             "state": "running",
             "currentPhase": None,
+            "currentSession": None,
             "phases": [],
         }
 
@@ -116,19 +134,34 @@ def run_campaign(
             rule = os.path.join(rules_dir, phase["rule"])
             validate_file(rule)
 
-        result = run_phase(
-            phase_id=index,
-            total_phases=len(enabled_phases),
-            hashcat_binary=hashcat_binary,
-            hash_file=hash_file,
-            hash_mode=hash_mode,
-            hashcat_potfile=hashcat_potfile,
-            wordlist=wordlist,
-            rule=rule,
-            flags=flags,
-            session_name=session_name,
-            debug=debug
-        )
+        try:
+
+            result = run_phase(
+                phase_id=index,
+                total_phases=len(enabled_phases),
+                hashcat_binary=hashcat_binary,
+                hash_file=hash_file,
+                hash_mode=hash_mode,
+                hashcat_potfile=hashcat_potfile,
+                wordlist=wordlist,
+                rule=rule,
+                flags=flags,
+                session_name=session_name,
+                debug=debug
+            )
+
+        except KeyboardInterrupt:
+
+            print()
+
+            warn("Campaign interrupted")
+
+            summary("Current Phase", results["currentPhase"])
+            summary("Session", results["currentSession"])
+
+            write_results(results)
+
+            sys.exit(1)
 
         duration_minutes = result["duration"] / 60
 
@@ -160,7 +193,10 @@ def run_campaign(
     results["completed"] = datetime.now().isoformat()
     results["state"] = "completed"
 
-    write_results(results)
-    archive_results(results)
+    output_file = write_results(results)
+    archive_file = archive_results(results)
+
+    ok(f"Results written to: {output_file}")
+    ok(f"Results archived to: {archive_file}")
 
     return results

@@ -45,8 +45,6 @@ def write_results(results):
     with open(output_file, "w", encoding="utf-8") as handle:
         json.dump(results, handle, indent=4)
 
-    ok(f"Results written to: {output_file}")
-
     return output_file
 
 
@@ -83,3 +81,30 @@ def archive_results(results):
         json.dump(results, handle, indent=4)
 
     return archive_file
+
+def load_results(hash_file, campaign_name):
+    """
+    Load an existing campaign results file.
+
+    Args:
+        hash_file:
+            Target hash dataset.
+
+        campaign_name:
+            Campaign identifier.
+
+    Returns:
+        dict | None:
+            Existing results, if present.
+    """
+
+    output_file = (
+        Path(hash_file).parent
+        / f"{campaign_name}-results.json"
+    )
+
+    if not output_file.exists():
+        return None
+
+    with open(output_file, encoding="utf-8") as handle:
+        return json.load(handle)
