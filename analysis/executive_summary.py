@@ -183,7 +183,7 @@ def executive_summary(results):
         summary.append(
             "The assessment also identified recurring password selection "
             f"weaknesses including {natural_join(weaknesses)}. "
-            "These patterns reduce password entropy and increase susceptibility "
+            "These patterns reduce password entropy and increase exposure "
             "to password guessing, password spraying, and offline password-"
             "cracking attacks. Their presence indicates that users frequently "
             "rely on memorable and predictable password constructions, "
@@ -246,11 +246,8 @@ def executive_summary(results):
             f"{key_findings} demonstrate"
             f"{'s' if len(conclusion_findings) == 1 else ''} "
             "that password-related risks remain present. Addressing these "
-            "issues through strong password policies, improved password "
-            "selection practices, greater password diversity, and the use "
-            "of unique high-entropy credentials where appropriate will "
-            "improve resilience against credential-based attacks and "
-            "strengthen the organisation's overall security posture."
+            "issues will improve resilience against credential-based attacks "
+            "and strengthen the organisation's overall security posture."
         )
 
     else:
