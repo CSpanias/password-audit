@@ -39,6 +39,7 @@ def run_password_analysis(args):
         company_words=args.company_words,
         pass_policy=args.pass_policy,
         enabled_users=args.enabled_users,
+        lm_users=args.lm_users,
     )
 
     print()
