@@ -9,10 +9,7 @@ tables, observations, and contextual security guidance.
 
 from collections import Counter
 
-from common.utils import (
-    mask_password,
-    num_to_word,
-)
+from common.utils import mask_password, num_to_word
 
 
 # NOTE:
@@ -211,9 +208,9 @@ def commentary_similar_account_reuse(results):
             Markdown-formatted commentary.
     """
 
-    reuse_accounts = results["password_reuse"]["accounts"]
-    count = results["password_reuse"]["count"]
-    similar_pairs = results["password_reuse"]["similarPairs"]
+    reuse_accounts = results["similar_account_reuse"]["accounts"]
+    count = results["similar_account_reuse"]["count"]
+    similar_pairs = results["similar_account_reuse"]["similarPairs"]
 
     if similar_pairs == 0:
 

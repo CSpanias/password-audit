@@ -54,7 +54,7 @@ def remediation_guidance(results):
     # Privileged Accounts
     # ------------------------
 
-    if (results["admins"]["count"] or results["password_reuse"]["count"]):
+    if (results["admins"]["count"] or results["similar_account_reuse"]["count"]):
         lines.append(
             "Administrative and other highly privileged accounts should utilise unique, high-entropy passwords that "
             "are not shared with standard user accounts. Where possible, a separate password policy should be "
