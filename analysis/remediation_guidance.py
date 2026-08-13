@@ -196,13 +196,4 @@ def remediation_references(results):
             "https://www.ncsc.gov.uk/collection/passwords/user-passwords"
         )
 
-    lines = []
-
-    lines.append("### References\n")
-
-    for reference in sorted(references):
-        lines.append(f"{reference}")
-
-    lines.append("")
-
-    return "\n".join(lines)
+    return "\n".join(sorted(references))
