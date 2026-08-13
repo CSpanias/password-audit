@@ -45,11 +45,9 @@ def remediation_guidance(results):
     # ------------------------
 
     lines.append(
-        "The following recommendations are based on the findings "
-        "identified during the password audit. Remediation efforts "
-        "should be prioritised according to business risk and aligned "
-        "with the organisation's wider identity and access management "
-        "strategy:\n"
+        "Remediation efforts should be prioritised according to business "
+        "risk and aligned with the organisation's wider identity "
+        "and access management strategy:\n"
     )
 
     # ------------------------
@@ -174,6 +172,12 @@ def remediation_references(results):
         references.add(
             "https://learn.microsoft.com/security/privileged-access-workstations/privileged-access-access-model"
         )
+        references.add(
+            "https://learn.microsoft.com/en-us/microsoft-365/admin/misc/password-policy-recommendations?view=o365-worldwide#password-guidelines-for-administrators"
+        )
+        references.add(
+            "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/cc770394(v=ws.10)"
+        )
 
     # Password reuse
     if (
@@ -181,7 +185,7 @@ def remediation_references(results):
         or results["similar_account_reuse"]["count"]
     ):
         references.add(
-            "https://www.ncsc.gov.uk/collection/passwords/password-managers"
+            "https://specopssoft.com/blog/password-reuse-hidden-danger/"
         )
 
     # Predictable patterns
@@ -193,7 +197,7 @@ def remediation_references(results):
         or results["keyboard_walks"]["count"]
     ):
         references.add(
-            "https://www.ncsc.gov.uk/collection/passwords/user-passwords"
+            "https://www.ncsc.gov.uk/blog-post/the-logic-behind-three-random-words"
         )
 
     return "\n".join(f"- [{url}]({url})" for url in sorted(references))
