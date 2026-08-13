@@ -63,7 +63,7 @@ def remediation_guidance(results):
         count = results["admins"]["count"]
 
         lines.append(
-            f"{num_to_word(count).capitalize()} Domain Administrator "
+            f"- {num_to_word(count).capitalize()} Domain Administrator "
             f"credential{'s were' if count > 1 else ' was'} were recovered "
             "during the assessment. Affected privileged accounts should "
             "have their passwords reset immediately and reviewed to ensure "
@@ -79,7 +79,7 @@ def remediation_guidance(results):
 
     if results["password_length"]["count"]:
         lines.append(
-            f"{num_to_word(results['password_length']['count'])} recovered passwords did not comply with the configured minimum password length requirement. "
+            f"- {num_to_word(results['password_length']['count'])} recovered passwords did not comply with the configured minimum password length requirement. "
             "Password policy settings should be reviewed to ensure that all accounts meet the organisation's "
             "baseline security requirements and that legacy or non-compliant credentials are remediated. Longer passwords and "
             "passphrases generally provide greater resistance to offline password-cracking attacks and should be encouraged wherever possible.\n"
@@ -95,7 +95,7 @@ def remediation_guidance(results):
     if shared:
 
         lines.append(
-            f"Password reuse was identified across the recovered credential "
+            f"- Password reuse was identified across the recovered credential "
             f"dataset, with {num_to_word(shared)} shared "
             f"password{'s' if shared != 1 else ''} affecting "
             f"{num_to_word(affected)} user account{'s' if affected != 1 else ''}. "
@@ -112,7 +112,7 @@ def remediation_guidance(results):
     if results["similar_account_reuse"]["count"]:
 
         lines.append(
-            "Password reuse was identified between related accounts. "
+            "- Password reuse was identified between related accounts. "
             "Administrative and standard user accounts should maintain "
             "separate credentials to preserve account separation and "
             "reduce the likelihood of privilege escalation following "
@@ -142,7 +142,7 @@ def remediation_guidance(results):
 
     if patterns:
         lines.append(
-            f"Recovered passwords were identified as containing "
+            f"- Recovered passwords were identified as containing "
             f"{natural_join(patterns)}. Users should select passwords "
             "that are unrelated to personal information, organisational "
             "terminology, or other predictable patterns. Technical "
