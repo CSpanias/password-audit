@@ -40,8 +40,10 @@ def executive_summary(results):
     similar_account_reuse_count = results["similar_account_reuse"]["count"]
 
     summary = []
-    weaknesses = []
     positive_findings = []
+
+    # Collect predictable patterns findings
+    weaknesses = []
 
     if similar_account_reuse_count:
         weaknesses.append("password reuse between related accounts")
@@ -60,9 +62,6 @@ def executive_summary(results):
 
     if keyboard_count:
         weaknesses.append("keyboard sequences")
-
-    if general_reuse_passwords:
-        weaknesses.append("password reuse across multiple user accounts")
 
     # Introductory paragraph
     summary.append(
@@ -133,6 +132,7 @@ def executive_summary(results):
             "characters"
         )
 
+    # Password reuse
     if general_reuse_passwords:
 
         summary.append(
@@ -157,20 +157,21 @@ def executive_summary(results):
         )
 
     # Password reuse between similarly named accounts
-    if similar_account_reuse_pairs == 0:
+    if similar_account_reuse_count:
     
         summary.append(
-            "No similarly named account pairs were identified during the assessment. "
-            "As a result, password reuse between related standard and privileged "
-            "accounts could not be assessed. This may indicate that privileged "
-            "accounts follow a different naming convention or that separate "
-            "administrative identities have not been implemented using predictable "
-            "account naming patterns. Consequently, the assessment was unable to "
-            "determine whether administrative account separation is potentially "
-            "undermined through credential reuse."
+            "Password reuse was identified between "
+            f"{num_to_word(similar_account_reuse_count)} similarly named "
+            f"account pair{'s' if similar_account_reuse_count != 1 else ''}. "
+            "The reuse of credentials across related accounts may undermine "
+            "administrative account separation and increase the risk of "
+            "privilege escalation. Where users maintain separate standard "
+            "and privileged accounts, unique passwords should be used to "
+            "ensure that the compromise of one account does not immediately "
+            "provide access to another."
         )
     
-    elif similar_account_reuse_count == 0:
+    elif similar_account_reuse_pairs:
 
         positive_findings.append(
             "no password reuse was identified between similarly named accounts"
@@ -203,12 +204,11 @@ def executive_summary(results):
         summary.append(
             "The assessment also identified a number of positive security "
             f"outcomes, including {natural_join(positive_findings)}. "
-            "These findings indicate that several password security controls "
-            "and user practices are operating effectively. In particular, the "
-            "absence of privileged credential exposure and password reuse concerns, "
-            "together with strong compliance with established password policy "
-            "requirements, helps reduce the likelihood and potential impact of "
-            "credential-based attacks."
+            "These findings suggest that several password security controls "
+            "and user practices are operating effectively and help reduce the "
+            "likelihood and impact of credential compromise. While they do not "
+            "eliminate risk entirely, they provide a strong foundation for "
+            "continued improvement."
         )
 
     # Conclusion
