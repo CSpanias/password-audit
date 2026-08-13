@@ -92,8 +92,9 @@ def commentary_lm_hashes(results):
             Markdown-formatted commentary.
     """
 
-    accounts = results["lm_hashes"]["accounts"]
     count = results["lm_hashes"]["count"]
+    unique_hashes = results["lm_hashes"]["uniqueHashes"]
+    duplicate_hashes = results["lm_hashes"]["duplicateHashes"]
 
     if not count:
         return ""
@@ -101,21 +102,28 @@ def commentary_lm_hashes(results):
     lines = []
 
     lines.append(
-        f"LM password hashes were identified for "
-        f"{num_to_word(count)} account"
-        f"{'s' if count != 1 else ''}. "
-        "LM hashes utilise a legacy password hashing mechanism "
-        "that provides significantly weaker protection than NTLM "
-        "hashes and may permit rapid password recovery through "
+        f"LM password hashes were identified for {num_to_word(count)} account"
+        f"{'s' if count != 1 else ''}. The presence of LM hashes indicates that "
+        "legacy password storage mechanisms remain enabled for a subset of accounts "
+        "within the environment. LM hashes provide substantially weaker protection "
+        "than NTLM hashes and may facilitate rapid password recovery through "
         "offline cracking techniques.\n"
     )
 
-    lines.append("| Username |")
-    lines.append("| ---------- |")
+    lines.append(
+        f"The analysis identified {num_to_word(unique_hashes)} "
+        f"unique LM hash value{'s' if unique_hashes != 1 else ''} "
+        f"and {num_to_word(duplicate_hashes)} duplicate LM hash "
+        f"occurrence{'s' if duplicate_hashes != 1 else ''}. "
+        "This indicates that multiple accounts share identical LM hashes "
+        "and may therefore be using the same password.\n"
+    )
 
-    for account in accounts[:5]:
-        lines.append(f"| {account['username']} |")
-
+    lines.append("| Metric | Value |")
+    lines.append("| --- | ---: |")
+    lines.append(f"| Accounts with LM Hashes | {count} |")
+    lines.append(f"| Unique LM Hashes | {unique_hashes} |")
+    lines.append(f"| Duplicate LM Hashes | {duplicate_hashes} |")
     lines.append("")
 
     return "\n".join(lines)

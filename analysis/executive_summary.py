@@ -42,6 +42,9 @@ def executive_summary(results):
     # Presence of LM hashes
     lm_count = results["lm_hashes"]["count"]
 
+    # Presence of duplicate hashes
+    unique_hashes = results["lm_hashes"]["uniqueHashes"]
+
     summary = []
     positive_findings = []
 
@@ -113,15 +116,16 @@ def executive_summary(results):
 
     # Presence of LM hashes
     if lm_count:
+
         summary.append(
-            f"Legacy LM password hashes were identified for "
-            f"{num_to_word(lm_count)} account"
-            f"{'s' if lm_count != 1 else ''}. "
-            "LM hashes utilise a legacy password hashing mechanism "
-            "that provides significantly weaker protection than modern "
-            "NTLM hashes and may facilitate rapid password recovery "
-            "through offline cracking techniques."
-            )
+            "Legacy LM password hashes were identified for "
+            f"{num_to_word(lm_count)} account{'s' if lm_count != 1 else ''}. "
+            "Analysis identified only {num_to_word(unique_hashes)} unique LM hash "
+            f"value{'s' if unique_hashes != 1 else ''}, indicating that multiple "
+            "accounts share identical LM hashes. The presence of LM hashes represents "
+            "a legacy security weakness and may increase susceptibility to "
+            "offline password-cracking attacks."
+        )
 
     # Compliance with password policy
     if failure_count:

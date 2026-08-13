@@ -116,8 +116,14 @@ def build_results(
     # Password complexity
     char_classes = character_class_adoption(passwords)
 
-    # LM users
+    # Presence of LM hashes
     lm_findings = lm_hashes(lm_users)
+
+    # Duplicate LM hashes
+    unique_hashes = len({
+        account["lm_hash"]
+        for account in lm_findings["accounts"]
+    })
 
     results = {}
 
@@ -227,11 +233,14 @@ def build_results(
         "passwords": reused_passwords,
     }
 
-    # LM users
+    # Presence of LM hashes
     results["lm_hashes"] = {
         "count": lm_findings["count"],
         "accounts": lm_findings["accounts"],
+        "uniqueHashes": unique_hashes,
+        "duplicateHashes": (
+            lm_findings["count"] - unique_hashes
+        ),
     }
-
 
     return results
