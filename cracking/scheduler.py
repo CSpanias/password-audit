@@ -85,7 +85,16 @@ def run_campaign(
         warn("Previous campaign appears to have been interrupted")
         summary("Phase", existing_results.get("currentPhase"))
         summary("Session", existing_results.get("currentSession"))
-        summary("Recovery", "password-audit crack run --resume")
+        summary(
+            "Resume Command",
+            (
+                f"password-audit crack run "
+                f"-C config.json "
+                f"-H {hash_file} "
+                f"-G {campaign_name} "
+                f"--resume"
+            )
+        )
         print()
 
         warn("Restore the Hashcat session or remove the results file before starting a new campaign.")
