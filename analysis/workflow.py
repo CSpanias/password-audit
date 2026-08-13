@@ -5,33 +5,13 @@ This module provides reusable password analysis workflows
 for report generation and audit orchestration.
 """
 
-from analysis.parsers import (
-    load_passwords,
-    load_list,
-    load_domain_policy,
-    load_company_words,
-)
+from analysis.parsers import load_passwords, load_list, load_domain_policy, load_company_words
+from analysis.results import build_results
+from analysis.executive_summary import executive_summary
+from analysis.technical_commentary import technical_commentary
+from analysis.remediation_guidance import remediation_guidance, remediation_references
+from reports.markdown import render_markdown, write_markdown
 
-from analysis.results import (
-    build_results,
-)
-
-from analysis.executive_summary import (
-    executive_summary,
-)
-
-from analysis.technical_commentary import (
-    technical_commentary,
-)
-
-from analysis.remediation_guidance import (
-    remediation_guidance,
-)
-
-from reports.markdown import (
-    render_markdown,
-    write_markdown,
-)
 
 def analyse_passwords(
     mapped_passwords,
@@ -90,6 +70,7 @@ def analyse_passwords(
         "executive_summary": executive_summary(results),
         "technical_commentary": technical_commentary(results),
         "remediation_guidance": remediation_guidance(results),
+        "references": remediation_references(results),
     }
 
     write_markdown(

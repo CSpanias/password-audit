@@ -10,8 +10,6 @@ guidance based on identified findings. Analysis logic should
 remain within the analysis module.
 """
 
-from common.utils import natural_join, num_to_word
-
 def remediation_guidance(results):
     """
     Generate remediation guidance based on password audit findings.
@@ -60,8 +58,6 @@ def remediation_guidance(results):
 
     if results["admins"]["count"]:
 
-        count = results["admins"]["count"]
-
         lines.append(
             "- The affected privileged accounts should have their passwords "
             "reset immediately and reviewed to ensure they are protected by "
@@ -88,10 +84,7 @@ def remediation_guidance(results):
     # Password Reuse
     # ---------------
 
-    shared = results["password_reuse_general"]["sharedPasswords"]
-    affected = results["password_reuse_general"]["sharedAccounts"]
-
-    if shared:
+    if results["password_reuse_general"]["sharedPasswords"]:
 
         lines.append(
             "- Users should be encouraged to maintain unique passwords for all "
@@ -136,13 +129,12 @@ def remediation_guidance(results):
 
     if patterns:
         lines.append(
-            f"- Recovered passwords were identified as containing "
-            f"{natural_join(patterns)}. Users should select passwords "
-            "that are unrelated to personal information, organisational "
-            "terminology, or other predictable patterns. Technical "
-            "controls such as password filtering solutions should also "
-            "be considered to prevent the use of weak and commonly "
-            "observed password constructions.\n"
+            "- Users should select passwords that are unrelated "
+            "to personal information, organisational terminology, "
+            "or other predictable patterns. Technical controls such "
+            "as password filtering solutions should also be considered "
+            "to prevent the use of weak and commonly observed password "
+            "constructions.\n"
         )
 
     # ----------------------------
@@ -150,10 +142,67 @@ def remediation_guidance(results):
     # ----------------------------
 
     lines.append(
-        "Regardless of the specific weaknesses identified, multi-factor authentication (MFA) should be enforced for "
-        "all externally accessible services and privileged accounts wherever technically feasible. Whilst strong "
-        "passwords remain important, MFA provides additional protection against password-based attacks and reduces the "
-        "likelihood of account compromise following credential exposure.\n"
+        "- Multi-factor authentication (MFA) should be enforced for "
+        "all externally accessible services and privileged accounts "
+        "wherever technically feasible. Whilst strong passwords remain "
+        "important, MFA provides additional protection against password-"
+        "based attacks and reduces the likelihood of account compromise "
+        "following credential exposure.\n"
     )
+
+    return "\n".join(lines)
+
+
+def remediation_references(results):
+    """
+        Generate remediation reference links based on
+        identified findings.
+    
+        Returns:
+            str: Markdown-formatted references section.
+        """
+
+    references = set()
+
+    # Always include
+    references.add("https://www.ncsc.gov.uk/collection/passwords")
+    references.add("https://www.ncsc.gov.uk/guidance/multi-factor-authentication-online-services")
+    references.add("https://pages.nist.gov/800-63-4/sp800-63b.html")
+
+    # Privileged accounts
+    if results["admins"]["count"]:
+        references.add(
+            "https://learn.microsoft.com/security/privileged-access-workstations/privileged-access-access-model"
+        )
+
+    # Password reuse
+    if (
+        results["password_reuse_general"]["sharedPasswords"]
+        or results["similar_account_reuse"]["count"]
+    ):
+        references.add(
+            "https://www.ncsc.gov.uk/collection/passwords/password-managers"
+        )
+
+    # Predictable patterns
+    if (
+        results["username_passwords"]["count"]
+        or results["company_words"]["count"]
+        or results["common_passwords"]["count"]
+        or results["date_passwords"]["count"]
+        or results["keyboard_walks"]["count"]
+    ):
+        references.add(
+            "https://www.ncsc.gov.uk/collection/passwords/user-passwords"
+        )
+
+    lines = []
+
+    lines.append("### References\n")
+
+    for reference in sorted(references):
+        lines.append(f"{reference}")
+
+    lines.append("")
 
     return "\n".join(lines)

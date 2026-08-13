@@ -46,6 +46,11 @@ def render_markdown(report):
     lines.append(report["remediation_guidance"])
     lines.append("")
 
+    lines.append("### References")
+    lines.append("")
+    lines.append(report["references"])
+    lines.append("")
+
     return "\n".join(lines)
 
 
