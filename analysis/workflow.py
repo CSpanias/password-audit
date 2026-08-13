@@ -59,6 +59,8 @@ def analyse_passwords(
     enabled_users = load_list(enabled_users)
     lm_users = load_lm_users(lm_users)
 
+    print(f"LM Users Loaded: {len(lm_users)}")
+
     policy = load_domain_policy(pass_policy)
 
     results = build_results(
