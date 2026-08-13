@@ -202,8 +202,8 @@ def executive_summary(results):
     if positive_findings:
 
         summary.append(
-            "The assessment also identified a number of positive security "
-            f"outcomes, including {natural_join(positive_findings)}. "
+            "Several positive security outcomes were also observed, "
+            f"including {natural_join(positive_findings)}. "
             "These findings suggest that several password security controls "
             "and user practices are operating effectively and help reduce the "
             "likelihood and impact of credential compromise. While they do not "
@@ -212,31 +212,58 @@ def executive_summary(results):
         )
 
     # Conclusion
-    if has_findings:
+    conclusion_findings = []
+
+    if admin_count:
+        conclusion_findings.append(
+            "the compromise of a privileged account"
+        )
+
+    if general_reuse_passwords:
+        conclusion_findings.append(
+            "password reuse across multiple user accounts"
+        )
+
+    if weaknesses:
+        conclusion_findings.append(
+            "predictable password selection patterns"
+        )
+
+    if failure_count:
+        conclusion_findings.append(
+            "non-compliance with password policy requirements"
+        )
+
+    key_findings = natural_join(conclusion_findings)
+
+    if conclusion_findings:
 
         summary.append(
-            "Overall, the assessment identified opportunities to further improve "
-            "password security across the environment. While baseline password "
-            "controls appear to be functioning effectively in several areas, the "
-            "successful recovery of user credentials and the presence of "
-            "predictable password selection patterns demonstrate that password-"
-            "related risks remain present. Reducing the use of predictable "
-            "password constructions and ensuring privileged accounts utilise "
-            "unique, high-entropy passwords will improve resilience against "
-            "credential-based attacks and strengthen the organisation's overall "
-            "security posture."
+            "Overall, the assessment identified opportunities to further "
+            "strengthen password security across the environment. While "
+            "baseline password controls appear to be functioning "
+            "effectively in several areas, "
+            f"{key_findings} demonstrate"
+            f"{'s' if len(conclusion_findings) == 1 else ''} "
+            "that password-related risks remain present. Addressing these "
+            "issues through strong password policies, improved password "
+            "selection practices, greater password diversity, and the use "
+            "of unique high-entropy credentials where appropriate will "
+            "improve resilience against credential-based attacks and "
+            "strengthen the organisation's overall security posture."
         )
 
     else:
         summary.append(
             "Overall, the assessment did not identify any significant "
             "password-related weaknesses within the recovered credential "
-            "dataset. The findings indicate a generally mature approach to "
-            "password management, with no evidence of systemic weaknesses "
+            "dataset. The findings indicate a generally mature approach "
+            "to password management, with no evidence of systemic issues "
             "that would substantially increase the likelihood of successful "
             "credential-based attacks. Continued adherence to existing "
-            "password standards and periodic reassessment will help maintain "
-            "this security posture over time."
+            "password standards, together with periodic reassessment, will "
+            "help maintain and further strengthen this security posture "
+            "over time."
         )
 
     return "\n\n".join(summary)
