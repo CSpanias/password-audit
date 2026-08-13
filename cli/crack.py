@@ -32,6 +32,7 @@ def run_cracking_campaign(args):
         config=config,
         hash_file=args.hashes,
         campaign_name=args.campaign_name,
+        resume=args.resume,
         debug=args.debug,
     )
 

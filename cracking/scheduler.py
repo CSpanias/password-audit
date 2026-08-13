@@ -24,6 +24,7 @@ def run_campaign(
         config,
         hash_file,
         campaign_name,
+        resume=False,
         debug=False
     ):
     """
@@ -43,6 +44,10 @@ def run_campaign(
 
         campaign_name:
             Campaign identifier used for reporting.
+
+        resume:
+            Continue a previously interrupted campaign
+            from the last recorded checkpoint.
 
         debug:
             Display verbose execution information.
@@ -71,7 +76,11 @@ def run_campaign(
             campaign_name=campaign_name,
         )
 
-    if (existing_results and existing_results.get("state") == "running"):
+    if (
+        existing_results
+        and existing_results.get("state") == "running"
+        and not resume
+    ):
 
         warn("Previous campaign appears to have been interrupted")
         summary("Phase", existing_results.get("currentPhase"))
@@ -79,10 +88,41 @@ def run_campaign(
         summary("Restore Command", f"hashcat --restore --session {existing_results['currentSession']}")
         print()
 
-        sys.exit("\nExisting interrupted campaign detected. "
-            "Restore the Hashcat session or remove the results file.\n")
+        warn("Restore the Hashcat session or remove the results file before starting a new campaign.")
+        sys.exit(1)
 
-    results = {
+    validate_file(hash_file)
+    validate_file(hashcat_binary)
+
+    completed_phases = set()
+
+    if resume:
+
+        if not existing_results:
+            warn("No interrupted campaign found")
+            sys.exit(1)
+
+        if existing_results.get("state") != "running":
+            warn("Campaign is already completed")
+            sys.exit(1)
+
+        results = existing_results
+
+        completed_phases = {
+            phase["id"]
+            for phase in existing_results["phases"]
+        }
+
+        ok("Resuming interrupted campaign")
+
+        for phase in completed_phases:
+            summary("Skipping", phase)
+
+        print()
+
+    else:
+
+        results = {
             "campaign": campaign_name,
             "hashMode": hash_mode,
             "hashDataset": hash_file,
@@ -93,15 +133,15 @@ def run_campaign(
             "phases": [],
         }
 
-    validate_file(hash_file)
-    validate_file(hashcat_binary)
-
-    write_results(results)
+        write_results(results)
 
     enabled_phases = [
         phase
         for phase in config["phases"]
-        if phase.get("enabled", True)
+        if (
+            phase.get("enabled", True)
+            and phase["id"] not in completed_phases
+        )
     ]
 
     for index, phase in enumerate(enabled_phases, start=1):

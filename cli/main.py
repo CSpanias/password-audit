@@ -179,6 +179,12 @@ def main():
     )
 
     run_parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an interrupted campaign"
+    )
+
+    run_parser.add_argument(
         "-C",
         "--campaign",
         required=True,
