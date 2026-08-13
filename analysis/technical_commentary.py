@@ -73,6 +73,55 @@ def commentary_admins(results):
 
 
 # ---------------------------------------------------------------------------
+# Presence of LM hashes
+# ---------------------------------------------------------------------------
+
+def commentary_lm_hashes(results):
+    """
+    Generate commentary relating to LM hash exposure.
+
+    Accounts identified as storing LM password hashes are
+    summarised together with the associated security risks.
+
+    Args:
+        results (dict):
+            Password analysis results.
+
+    Returns:
+        str:
+            Markdown-formatted commentary.
+    """
+
+    accounts = results["lm_hashes"]["accounts"]
+    count = results["lm_hashes"]["count"]
+
+    if not count:
+        return ""
+
+    lines = []
+
+    lines.append(
+        f"LM password hashes were identified for "
+        f"{num_to_word(count)} account"
+        f"{'s' if count != 1 else ''}. "
+        "LM hashes utilise a legacy password hashing mechanism "
+        "that provides significantly weaker protection than NTLM "
+        "hashes and may permit rapid password recovery through "
+        "offline cracking techniques.\n"
+    )
+
+    lines.append("| Username |")
+    lines.append("| ---------- |")
+
+    for account in accounts[:5]:
+        lines.append(f"| {account['username']} |")
+
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # Password Length Analysis
 # ---------------------------------------------------------------------------
 
@@ -645,6 +694,9 @@ def technical_commentary(results):
 
     # Privileged accounts
     lines.append(commentary_admins(results))
+
+    # Presence of LM hashes
+    lines.append(commentary_lm_hashes(results))
 
     # Domain policy compliance
     lines.append(commentary_password_lengths(results))

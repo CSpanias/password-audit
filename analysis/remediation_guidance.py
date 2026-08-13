@@ -65,6 +65,20 @@ def remediation_guidance(results):
             "authentication.\n"
         )
 
+    # ------------------------
+    # # Presence of LM hashes
+    # ------------------------
+
+        if results["lm_hashes"]["count"]:
+    
+            lines.append(
+                "- LM hash storage should be disabled and affected users "
+                "should be required to change their passwords to ensure "
+                "that previously stored LM hashes are removed. Any legacy "
+                "systems requiring LM compatibility should be identified "
+                "and remediated where possible.\n"
+            )
+
     # -------------------------------
     # Password Length Compliance
     # -------------------------------
@@ -177,6 +191,12 @@ def remediation_references(results):
         )
         references.add(
             "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/cc770394(v=ws.10)"
+        )
+
+    # Presence of LM hashes
+    if results["lm_hashes"]["count"]:
+        references.add(
+            "https://learn.microsoft.com/windows/security/threat-protection/security-policy-settings/network-security-do-not-store-lan-manager-hash-value-on-next-password-change"
         )
 
     # Password reuse

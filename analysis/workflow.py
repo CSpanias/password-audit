@@ -72,8 +72,6 @@ def analyse_passwords(
         lm_users=lm_users
     )
 
-    print(results["lm_hashes"])
-
     report = {
         "executive_summary": executive_summary(results),
         "technical_commentary": technical_commentary(results),
