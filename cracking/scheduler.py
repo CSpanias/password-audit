@@ -85,7 +85,7 @@ def run_campaign(
         warn("Previous campaign appears to have been interrupted")
         summary("Phase", existing_results.get("currentPhase"))
         summary("Session", existing_results.get("currentSession"))
-        summary("Restore Command", f"hashcat --restore --session {existing_results['currentSession']}")
+        summary("Recovery", "password-audit crack run --resume")
         print()
 
         warn("Restore the Hashcat session or remove the results file before starting a new campaign.")
@@ -144,8 +144,16 @@ def run_campaign(
         )
     ]
 
-    for index, phase in enumerate(enabled_phases, start=1):
+    phase_numbers = {
+        phase["id"]: index
+        for index, phase in enumerate(config["phases"], start=1)
+        }
+    
+    total_phases=len(config["phases"])
 
+    for phase in enabled_phases:
+
+        phase_number = phase_numbers[phase["id"]]
         session_name = (f"{campaign_name}-{phase['id']}")
 
         results["currentPhase"] = phase["id"]
@@ -177,8 +185,8 @@ def run_campaign(
         try:
 
             result = run_phase(
-                phase_id=index,
-                total_phases=len(enabled_phases),
+                phase_id=phase_number,
+                total_phases=total_phases,
                 hashcat_binary=hashcat_binary,
                 hash_file=hash_file,
                 hash_mode=hash_mode,
