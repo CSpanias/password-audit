@@ -13,20 +13,9 @@ import time
 
 from pathlib import Path
 
-from common.console import (
-    info,
-    warn,
-    ok,
-    summary
-)
-
-from common.utils import (
-    human_time,
-)
-
-from cracking.parsers import (
-    parse_recovery_statistics,
-)
+from common.console import info, warn, ok, summary
+from common.utils import human_time
+from cracking.parsers import parse_recovery_statistics
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +143,7 @@ def run_phase(
         hashcat_potfile,
         wordlist,
         rule,
+        session_name,
         flags,
         debug=False
     ):
@@ -190,6 +180,10 @@ def run_phase(
         rule:
             Rule file applied to the attack.
 
+        session_name:
+            Hashcat session identifier used for attack
+            recovery and resume operations.
+
         flags:
             Additional Hashcat command-line arguments.
 
@@ -215,6 +209,7 @@ def run_phase(
         command.extend(["-r", windows_path(rule)])
 
     command.extend(flags)
+    command.extend(["--session", session_name])
 
     print()
 
