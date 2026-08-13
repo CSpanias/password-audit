@@ -196,4 +196,4 @@ def remediation_references(results):
             "https://www.ncsc.gov.uk/collection/passwords/user-passwords"
         )
 
-    return "\n".join(sorted(references))
+    return "\n".join(f"{url}" for url in sorted(references))
