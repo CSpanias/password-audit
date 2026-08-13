@@ -13,9 +13,7 @@ handled elsewhere.
 """
 
 import re
-from ntds.constants import (
-    LM_EMPTY,
-)
+from ntds.constants import LM_EMPTY
 
 
 def extract_ntlm_hashes(entries):

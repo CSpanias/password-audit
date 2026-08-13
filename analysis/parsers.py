@@ -127,3 +127,55 @@ def load_company_words(path):
             for line in f
             if line.strip()
         ]
+
+
+# ---------------------------------------------------------------------------
+# LM Users
+# ---------------------------------------------------------------------------
+
+def load_lm_users(path):
+    """
+    Load accounts identified as storing LM password hashes.
+
+    The input file is produced by NTDS Organiser and contains
+    NTDS records for accounts where an LM hash was present.
+    Username, RID, LM hash, and NTLM hash values are extracted
+    to provide a structured dataset suitable for reporting and
+    further analysis.
+
+    Args:
+        path (str):
+            Path to the lm-users.txt file.
+
+    Returns:
+        list:
+            List of dictionaries containing:
+
+            - username
+            - rid
+            - lm_hash
+            - nt_hash
+    """
+
+    if not path:
+        return []
+
+    users = []
+
+    with open(path, encoding="utf-8") as f:
+
+        for line in f:
+
+            fields = line.strip().split(":")
+
+            if len(fields) < 4:
+                continue
+
+            users.append({
+                "username": fields[0],
+                "rid": fields[1],
+                "lm_hash": fields[2],
+                "nt_hash": fields[3],
+            })
+
+    return users

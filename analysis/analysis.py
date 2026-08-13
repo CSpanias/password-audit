@@ -561,7 +561,7 @@ def date_stats(findings):
 
 
 # ---------------------------------------------------------------------------
-# Character Composition
+# Password Complexity
 # ---------------------------------------------------------------------------
 
 def character_class_adoption(passwords):
@@ -604,4 +604,40 @@ def character_class_adoption(passwords):
         "upper": round(upper / total * 100, 1),
         "numeric": round(numeric / total * 100, 1),
         "special": round(special / total * 100, 1),
+    }
+
+
+# ---------------------------------------------------------------------------
+# LM Users
+# ---------------------------------------------------------------------------
+
+def lm_hashes(accounts):
+    """
+    Analyse accounts storing LM password hashes.
+
+    LM hashes are a legacy password storage mechanism that
+    provides significantly weaker protection than modern NTLM
+    hashes. This function summarises the affected account
+    population for use within reporting and remediation
+    workflows.
+
+    Args:
+        accounts (list):
+            Accounts identified as storing LM password hashes.
+
+    Returns:
+        dict:
+            LM hash analysis results containing:
+
+            - count:
+                Number of affected accounts.
+
+            - accounts:
+                Account details associated with identified
+                LM hashes.
+    """
+
+    return {
+        "count": len(accounts),
+        "accounts": accounts,
     }
