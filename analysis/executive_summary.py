@@ -6,32 +6,44 @@ password audit findings, highlighting key strengths, weaknesses,
 and overall organisational exposure to password-related risks.
 """
 
-from common.utils import (
-    natural_join,
-    num_to_word,
-)
+from common.utils import natural_join, num_to_word
 
 def executive_summary(results):
 
+    # Crack rate
     total = results["total_passwords"]
     enabled_users = results["enabled_users"]
+    crack_rate = results["crack_rate"]
+
+    # Privileged accounts
     admin_count = results["admins"]["count"]
+
+    # Passwords non-compliant with domain policy
+    minimum_length = results["password_length"]["minimum_length"]
     failure_count = results["password_length"]["count"]
     percentage = results["password_length"]["percentage"]
-    minimum_length = results["password_length"]["minimum_length"]
+
+    # Predictable patterns
     company_count = results["company_words"]["count"]
     username_count = results["username_passwords"]["count"]
-    similar_pairs = results["password_reuse"]["similarPairs"]
-    reuse_count = results["password_reuse"]["count"]
     common_count = results["common_passwords"]["count"]
     date_count = results["date_passwords"]["count"]
     keyboard_count = results["keyboard_walks"]["count"]
-    crack_rate = results["crack_rate"]
+
+    # General password reuse
+    general_reuse_passwords = (results["password_reuse_general"]["sharedPasswords"])
+    general_reuse_accounts = (results["password_reuse_general"]["sharedAccounts"])
+    general_reuse_percentage = (results["password_reuse_general"]["percentage"])
+
+    # Password reuse between similarly-named accounts
+    similar_account_reuse_pairs = results["similar_account_reuse"]["similarPairs"]
+    similar_account_reuse_count = results["similar_account_reuse"]["count"]
 
     summary = []
     weaknesses = []
+    positive_findings = []
 
-    if reuse_count:
+    if similar_account_reuse_count:
         weaknesses.append("password reuse between related accounts")
 
     if username_count:
@@ -49,58 +61,182 @@ def executive_summary(results):
     if keyboard_count:
         weaknesses.append("keyboard sequences")
 
-    summary.append("A password audit was performed against extracted Active Directory password hashes to assess the "
-        "effectiveness of password selection practices and identify weaknesses that could increase the likelihood "
-        f"of credential compromise. Through password-cracking techniques, it was possible to recover {num_to_word(total)} plaintext passwords "
-        f"from {num_to_word(enabled_users)} enabled user accounts, representing approximately {crack_rate}% of the assessed population. "
-        "This demonstrates that a measurable proportion of user credentials remain susceptible to password-cracking "
-        "attacks following credential exposure.")
+    if general_reuse_passwords:
+        weaknesses.append("password reuse across multiple user accounts")
 
+    # Introductory paragraph
+    summary.append(
+        "A password audit was performed against extracted Active Directory "
+        "password hashes to assess the effectiveness of password selection "
+        "practices and identify weaknesses that could increase the likelihood "
+        "of credential compromise. The assessment simulated the techniques "
+        "available to an attacker with access to password hash material and "
+        "provides insight into the effectiveness of password policies, user "
+        "behaviour, and privileged account security controls."
+    )
+
+    # Crack-rate
+    summary.append(
+        f"Through password-cracking techniques, it was possible to recover "
+        f"{num_to_word(total)} plaintext passwords from "
+        f"{num_to_word(enabled_users)} enabled user accounts, representing "
+        f"approximately {crack_rate}% of the assessed population. "
+        "This demonstrates that a measurable proportion of user credentials "
+        "remain susceptible to offline password-cracking attacks following "
+        "credential exposure."
+    )
+
+    # Privileged accounts
     if admin_count:
-            summary.append(f"Password weaknesses were identified within privileged identities, resulting in the "
-                f"successful recovery of {num_to_word(admin_count)} Domain Administrator password{'s' if admin_count > 1 else ''}. "
-                "Such identities represent high-value targets due to the elevated level of access they provide "
-                "across the environment. Their compromise would substantially increase the potential impact of a successful attack.")
 
-    else:
-        summary.append("No Domain Administrator passwords were recovered during the assessment. This is a positive outcome as privileged "
-            "identities represent high-value targets and their compromise would significantly increase the potential impact of a successful attack.")
-
-    if similar_pairs == 0:
-    
-        summary.append("No similarly named account pairs were identified during the assessment. As a result, password reuse"
-            " between related standard and privileged accounts could not be assessed.")
-    
-    elif reuse_count == 0:
-
-        summary.append("No password reuse was identified between similarly named accounts, indicating that administrative "
-            "account separation does not appear to be undermined through credential reuse.")
-
-    if failure_count:
-    
-            summary.append(f"The domain enforced a minimum password length requirement of {num_to_word(minimum_length)} characters. "
-                f"However, analysis of the recovered credentials identified {num_to_word(failure_count)} passwords "
-                f"({percentage}% of recovered passwords) that did not comply with this requirement, "
-                "indicating that weak, legacy, or otherwise non-compliant credentials remain present within the environment.")
-
-    else:
-        summary.append("All recovered passwords complied with the domain's minimum password length requirement.")
-
-    if weaknesses:
         summary.append(
-            f"The assessment also identified recurring password selection weaknesses including {natural_join(weaknesses)}. "
-            "These patterns reduce password entropy and increase susceptibility to password guessing, password spraying, "
-            "and offline password-cracking attacks.")
-
-    has_findings = (admin_count or failure_count or weaknesses)
-
-    if has_findings:
-        summary.append("Overall, the results indicate that password complexity and selection practices could be further improved. "
-                "Strengthening password policy enforcement, reducing the use of predictable password patterns, and ensuring "
-                "privileged accounts utilise unique, high-entropy passwords will reduce the likelihood of successful "
-                "credential-based attacks and improve the overall resilience of the organisation's identity infrastructure.")
+            f"Password weaknesses were identified within privileged identities, "
+            f"resulting in the successful recovery of "
+            f"{num_to_word(admin_count)} Domain Administrator password"
+            f"{'s' if admin_count > 1 else ''}. "
+            "Domain Administrator accounts represent some of the most sensitive "
+            "identities within an Active Directory environment and typically "
+            "provide unrestricted access to directory services, authentication "
+            "infrastructure, and domain-joined systems. The successful recovery "
+            "of any privileged credential substantially increases the potential "
+            "impact of credential exposure and may facilitate rapid privilege "
+            "escalation and wider compromise of the environment."
+        )
 
     else:
-        summary.append("Overall, the assessment did not identify any significant password-related weaknesses within the recovered credential dataset.")
+
+        positive_findings.append(
+            "no Domain Administrator passwords were recovered"
+        )
+
+    # Compliance with password policy
+    if failure_count:
+
+        summary.append(
+            "The domain enforced a minimum password length requirement of "
+            f"{num_to_word(minimum_length)} characters. However, analysis "
+            f"of the recovered credentials identified {num_to_word(failure_count)} "
+            f"passwords ({percentage}% of recovered passwords) that did not "
+            "comply with this requirement. The presence of non-compliant "
+            "credentials suggests that some accounts may not be subject to "
+            "current password standards or that legacy passwords remain in use. "
+            "Such credentials generally provide less resistance to password-"
+            "cracking techniques and may disproportionately contribute to the "
+            "overall credential exposure identified during the assessment."
+        )
+
+    else:
+
+        positive_findings.append(
+            "all recovered passwords complied with the domain's minimum "
+            f"password length requirement of {num_to_word(minimum_length)} "
+            "characters"
+        )
+
+    if general_reuse_passwords:
+
+        summary.append(
+            "Password reuse was identified across the recovered credential "
+            f"dataset, with {num_to_word(general_reuse_passwords)} shared "
+            f"password{'s' if general_reuse_passwords != 1 else ''} affecting "
+            f"{num_to_word(general_reuse_accounts)} user account"
+            f"{'s' if general_reuse_accounts != 1 else ''} "
+            f"({general_reuse_percentage}% of recovered accounts). "
+            "The reuse of passwords across multiple users reduces password "
+            "diversity and increases the potential impact of credential "
+            "compromise, as a single recovered password may provide access "
+            "to multiple accounts. This can also increase susceptibility "
+            "to password spraying and other credential-based attacks."
+        )
+
+    else:
+
+        positive_findings.append(
+            "no evidence of password reuse was identified across the "
+            "recovered credential dataset"
+        )
+
+    # Password reuse between similarly named accounts
+    if similar_account_reuse_pairs == 0:
+    
+        summary.append(
+            "No similarly named account pairs were identified during the assessment. "
+            "As a result, password reuse between related standard and privileged "
+            "accounts could not be assessed. This may indicate that privileged "
+            "accounts follow a different naming convention or that separate "
+            "administrative identities have not been implemented using predictable "
+            "account naming patterns. Consequently, the assessment was unable to "
+            "determine whether administrative account separation is potentially "
+            "undermined through credential reuse."
+        )
+    
+    elif similar_account_reuse_count == 0:
+
+        positive_findings.append(
+            "no password reuse was identified between similarly named accounts"
+        )
+
+    # Predictable patterns
+    if weaknesses:
+
+        summary.append(
+            "The assessment also identified recurring password selection "
+            f"weaknesses including {natural_join(weaknesses)}. "
+            "These patterns reduce password entropy and increase susceptibility "
+            "to password guessing, password spraying, and offline password-"
+            "cracking attacks. Their presence indicates that users frequently "
+            "rely on memorable and predictable password constructions, "
+            "increasing the effectiveness of commonly used attack techniques "
+            "and publicly available password dictionaries."
+        )
+
+    has_findings = (
+        admin_count
+        or failure_count
+        or general_reuse_passwords
+        or weaknesses
+    )
+
+    # Positive security findings
+    if positive_findings:
+
+        summary.append(
+            "The assessment also identified a number of positive security "
+            f"outcomes, including {natural_join(positive_findings)}. "
+            "These findings indicate that several password security controls "
+            "and user practices are operating effectively. In particular, the "
+            "absence of privileged credential exposure and password reuse concerns, "
+            "together with strong compliance with established password policy "
+            "requirements, helps reduce the likelihood and potential impact of "
+            "credential-based attacks."
+        )
+
+    # Conclusion
+    if has_findings:
+
+        summary.append(
+            "Overall, the assessment identified opportunities to further improve "
+            "password security across the environment. While baseline password "
+            "controls appear to be functioning effectively in several areas, the "
+            "successful recovery of user credentials and the presence of "
+            "predictable password selection patterns demonstrate that password-"
+            "related risks remain present. Reducing the use of predictable "
+            "password constructions and ensuring privileged accounts utilise "
+            "unique, high-entropy passwords will improve resilience against "
+            "credential-based attacks and strengthen the organisation's overall "
+            "security posture."
+        )
+
+    else:
+        summary.append(
+            "Overall, the assessment did not identify any significant "
+            "password-related weaknesses within the recovered credential "
+            "dataset. The findings indicate a generally mature approach to "
+            "password management, with no evidence of systemic weaknesses "
+            "that would substantially increase the likelihood of successful "
+            "credential-based attacks. Continued adherence to existing "
+            "password standards and periodic reassessment will help maintain "
+            "this security posture over time."
+        )
 
     return "\n\n".join(summary)

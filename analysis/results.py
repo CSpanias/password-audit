@@ -47,25 +47,17 @@ def build_results(
 
     admins = compromised_admins(passwords, domain_admins)
 
-    length_failures = password_length_failures(
-        passwords,
-        minimum_length,
-    )
+    length_failures = password_length_failures(passwords, minimum_length)
 
     top_passes = top_passwords(passwords)
 
-    company_findings = company_name_passwords(
-        passwords,
-        company_words,
-    )
+    company_findings = company_name_passwords(passwords, company_words,)
 
     keyboard_findings = keyboard_walk_passwords(passwords)
 
     username_findings = username_passwords(passwords)
 
-    reuse_accounts, similar_pairs = (
-        similar_account_reuse(passwords)
-    )
+    reuse_accounts, similar_pairs = (similar_account_reuse(passwords))
 
     common_password_findings = common_passwords(passwords)
 
@@ -75,9 +67,9 @@ def build_results(
 
     char_classes = character_class_adoption(passwords)
 
-    length_distribution = (
-        password_length_distribution(passwords)
-    )
+    length_distribution = (password_length_distribution(passwords))
+
+    reused_passwords = [entry for entry in password_frequencies if entry["count"] > 1]
 
     results = {}
 
@@ -119,7 +111,7 @@ def build_results(
         "accounts": username_findings,
     }
 
-    results["password_reuse"] = {
+    results["similar_account_reuse"] = {
         "accounts": reuse_accounts,
         "count": len(reuse_accounts),
         "similarPairs": similar_pairs,
@@ -139,24 +131,19 @@ def build_results(
         "stats": date_stats(date_findings),
     }
 
-    results["password_frequency"] = {
-        "passwords": password_frequencies
-    }
+    results["password_frequency"] = {"passwords": password_frequencies}
 
     results["character_classes"] = char_classes
 
-    results["password_lengths"] = {
-        "lengths": length_distribution
-    }
+    results["password_lengths"] = {"lengths": length_distribution}
 
     results["total_passwords"] = len(passwords)
 
-    results["unique_passwords"] = len(
-        set(p["password"] for p in passwords)
-    )
+    results["unique_passwords"] = len(set(p["password"] for p in passwords))
 
     results["enabled_users"] = len(enabled_users)
 
+    # Crack rate
     results["crack_rate"] = (
         round(
             len(passwords) / len(enabled_users) * 100,
@@ -165,5 +152,25 @@ def build_results(
         if enabled_users
         else 0
     )
+
+    # Password reuse
+    results["password_reuse_general"] = {
+        "sharedPasswords": len(reused_passwords),
+        "sharedAccounts": sum(
+            entry["count"]
+            for entry in reused_passwords
+        ),
+        "percentage": round(
+            (
+                sum(entry["count"] for entry in reused_passwords)
+                / len(passwords)
+            ) * 100,
+            1
+        )
+        if passwords
+        else 0,
+        "passwords": reused_passwords,
+    }
+
 
     return results
