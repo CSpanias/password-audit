@@ -63,14 +63,12 @@ def remediation_guidance(results):
         count = results["admins"]["count"]
 
         lines.append(
-            f"- {num_to_word(count).capitalize()} Domain Administrator "
-            f"credential{'s were' if count > 1 else ' was'} were recovered "
-            "during the assessment. Affected privileged accounts should "
-            "have their passwords reset immediately and reviewed to ensure "
-            "they are protected by strong, unique credentials. Consider "
-            "applying enhanced controls to privileged identities, including "
-            "dedicated password policies, privileged access management "
-            "solutions, and multi-factor authentication.\n"
+            "- The affected privileged accounts should have their passwords "
+            "reset immediately and reviewed to ensure they are protected by "
+            "strong, unique credentials. Consider applying enhanced controls "
+            "to privileged identities, including dedicated password policies, "
+            "privileged access management solutions, and multi-factor "
+            "authentication.\n"
         )
 
     # -------------------------------
@@ -79,10 +77,11 @@ def remediation_guidance(results):
 
     if results["password_length"]["count"]:
         lines.append(
-            f"- {num_to_word(results['password_length']['count'])} recovered passwords did not comply with the configured minimum password length requirement. "
-            "Password policy settings should be reviewed to ensure that all accounts meet the organisation's "
-            "baseline security requirements and that legacy or non-compliant credentials are remediated. Longer passwords and "
-            "passphrases generally provide greater resistance to offline password-cracking attacks and should be encouraged wherever possible.\n"
+            "- Password policy settings should be reviewed to ensure that all accounts meet "
+            "the organisation's baseline security requirements and that legacy or "
+            "non-compliant credentials are remediated. Longer passwords and passphrases "
+            "generally provide greater resistance to offline password-cracking attacks "
+            "and should be encouraged wherever possible.\n"
         )
 
     # ---------------
@@ -95,11 +94,7 @@ def remediation_guidance(results):
     if shared:
 
         lines.append(
-            f"- Password reuse was identified across the recovered credential "
-            f"dataset, with {num_to_word(shared)} shared "
-            f"password{'s' if shared != 1 else ''} affecting "
-            f"{num_to_word(affected)} user account{'s' if affected != 1 else ''}. "
-            "Users should be encouraged to maintain unique passwords for all "
+            "- Users should be encouraged to maintain unique passwords for all "
             "accounts and services. Where appropriate, password managers should "
             "be implemented to support the adoption of unique credentials and reduce "
             "reliance on reused passwords.\n"
@@ -112,8 +107,7 @@ def remediation_guidance(results):
     if results["similar_account_reuse"]["count"]:
 
         lines.append(
-            "- Password reuse was identified between related accounts. "
-            "Administrative and standard user accounts should maintain "
+            "- Administrative and standard user accounts should maintain "
             "separate credentials to preserve account separation and "
             "reduce the likelihood of privilege escalation following "
             "credential compromise.\n"
