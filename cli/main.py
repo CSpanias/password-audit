@@ -264,7 +264,7 @@ def main():
         "-M",
         "--mapped-passwords",
         required=True,
-        help="Recovered username:password dataset"
+        help="Recovered NTLM passwords"
     )
 
     analyse_parser.add_argument(
@@ -294,6 +294,21 @@ def main():
         default="./ntds-organiser/enabled-users.txt",
         help="Enabled user accounts list"
     )
+
+    analyse_parser.add_argument(
+        "-U",
+        "--lm-users",
+        default="./ntds-organiser/lm-users.txt",
+        help="Accounts storing LM password hashes"
+    )
+
+    analyse_parser.add_argument(
+        "-R",
+        "--recovered-lm-passwords",
+        default="./ntds-organiser/mapped-lm-passwords.txt",
+        help="Recovered LM passwords"
+    )
+    
 
     analyse_parser.set_defaults(
         func=run_password_analysis
