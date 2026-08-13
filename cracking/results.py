@@ -45,10 +45,7 @@ def write_results(results):
     with open(output_file, "w", encoding="utf-8") as handle:
         json.dump(results, handle, indent=4)
 
-    archive_file = archive_results(results)
-
     ok(f"Results written to: {output_file}")
-    ok(f"Results archived to: {archive_file}")
 
     return output_file
 
