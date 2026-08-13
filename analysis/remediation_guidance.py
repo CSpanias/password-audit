@@ -10,6 +10,8 @@ guidance based on identified findings. Analysis logic should
 remain within the analysis module.
 """
 
+from common.utils import natural_join, num_to_word
+
 def remediation_guidance(results):
     """
     Generate remediation guidance based on password audit findings.
@@ -45,21 +47,30 @@ def remediation_guidance(results):
     # ------------------------
 
     lines.append(
-        "The password audit identified a number of conditions that increase susceptibility to "
-        "password guessing, password spraying, and offline password-cracking attacks. The recommendations "
-        "below should be considered as part of an ongoing programme of identity and access management improvement.\n"
+        "The following recommendations are based on the findings "
+        "identified during the password audit. Remediation efforts "
+        "should be prioritised according to business risk and aligned "
+        "with the organisation's wider identity and access management "
+        "strategy:\n"
     )
 
     # ------------------------
     # Privileged Accounts
     # ------------------------
 
-    if (results["admins"]["count"] or results["similar_account_reuse"]["count"]):
+    if results["admins"]["count"]:
+
+        count = results["admins"]["count"]
+
         lines.append(
-            "Administrative and other highly privileged accounts should utilise unique, high-entropy passwords that "
-            "are not shared with standard user accounts. Where possible, a separate password policy should be "
-            "applied to privileged identities, enforcing a minimum password length of at least 15 "
-            "characters and preventing password reuse between account types.\n"
+            f"{num_to_word(count).capitalize()} Domain Administrator "
+            f"credential{'s were' if count > 1 else ' was'} were recovered "
+            "during the assessment. Affected privileged accounts should "
+            "have their passwords reset immediately and reviewed to ensure "
+            "they are protected by strong, unique credentials. Consider "
+            "applying enhanced controls to privileged identities, including "
+            "dedicated password policies, privileged access management "
+            "solutions, and multi-factor authentication.\n"
         )
 
     # -------------------------------
@@ -68,7 +79,7 @@ def remediation_guidance(results):
 
     if results["password_length"]["count"]:
         lines.append(
-            "Several recovered passwords did not comply with the configured minimum password length requirement. "
+            f"{num_to_word(results['password_length']['count'])} recovered passwords did not comply with the configured minimum password length requirement. "
             "Password policy settings should be reviewed to ensure that all accounts meet the organisation's "
             "baseline security requirements and that legacy or non-compliant credentials are remediated. Longer passwords and "
             "passphrases generally provide greater resistance to offline password-cracking attacks and should be encouraged wherever possible.\n"
@@ -78,33 +89,66 @@ def remediation_guidance(results):
     # Password Reuse
     # ---------------
 
-    reused = any(count > 1 for _, count in results["password_frequency"]["passwords"])
+    shared = results["password_reuse_general"]["sharedPasswords"]
+    affected = results["password_reuse_general"]["sharedAccounts"]
 
-    if reused:
+    if shared:
+
         lines.append(
-            "Password reuse was identified across multiple accounts. Users should be encouraged to maintain "
-            "unique passwords for all accounts and services. Where appropriate, password managers should be "
-            "implemented to reduce credential reuse and support the adoption of unique passwords.\n"
+            f"Password reuse was identified across the recovered credential "
+            f"dataset, with {num_to_word(shared)} shared "
+            f"password{'s' if shared != 1 else ''} affecting "
+            f"{num_to_word(affected)} user account{'s' if affected != 1 else ''}. "
+            "Users should be encouraged to maintain unique passwords for all "
+            "accounts and services. Where appropriate, password managers should "
+            "be implemented to support the adoption of unique credentials and reduce "
+            "reliance on reused passwords.\n"
+        )
+
+    # ------------------------
+    # Similarly-named reuse
+    # ------------------------
+
+    if results["similar_account_reuse"]["count"]:
+
+        lines.append(
+            "Password reuse was identified between related accounts. "
+            "Administrative and standard user accounts should maintain "
+            "separate credentials to preserve account separation and "
+            "reduce the likelihood of privilege escalation following "
+            "credential compromise.\n"
         )
 
     # -------------------------------
     # Password Construction Practices
     # -------------------------------
 
-    if (
-        results["company_words"]["count"]
-        or results["username_passwords"]["count"]
-        or results["date_passwords"]["count"]
-        or results["common_passwords"]["count"]
-        or results["keyboard_walks"]["count"]
-    ):
+    patterns = []
 
+    if results["username_passwords"]["count"]:
+        patterns.append("username-derived content")
+
+    if results["company_words"]["count"]:
+        patterns.append("organisation-related terminology")
+
+    if results["common_passwords"]["count"]:
+        patterns.append("commonly used password terms")
+
+    if results["date_passwords"]["count"]:
+        patterns.append("date-related references")
+
+    if results["keyboard_walks"]["count"]:
+        patterns.append("keyboard sequences")
+
+    if patterns:
         lines.append(
-            "A number of recovered passwords were identified as containing predictable elements, including commonly "
-            "used password terms, organisation-related terminology, date-related references, keyboard sequences, and username-derived content. "
-            "Users should select passwords that are unrelated to personal information, organisational terminology, or other "
-            "predictable patterns. Technical controls such as password filtering solutions should also be considered to prevent the use of "
-            "insecure or commonly observed password constructions.\n"
+            f"Recovered passwords were identified as containing "
+            f"{natural_join(patterns)}. Users should select passwords "
+            "that are unrelated to personal information, organisational "
+            "terminology, or other predictable patterns. Technical "
+            "controls such as password filtering solutions should also "
+            "be considered to prevent the use of weak and commonly "
+            "observed password constructions.\n"
         )
 
     # ----------------------------
