@@ -165,7 +165,7 @@ def remediation_references(results):
     # Always include
     references.add("https://www.ncsc.gov.uk/collection/passwords")
     references.add("https://www.ncsc.gov.uk/guidance/multi-factor-authentication-online-services")
-    references.add("https://pages.nist.gov/800-63-4/sp800-63b.html")
+    references.add("https://pages.nist.gov/800-63-4/sp800-63b.html#appA")
 
     # Privileged accounts
     if results["admins"]["count"]:
