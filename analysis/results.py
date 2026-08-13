@@ -69,7 +69,11 @@ def build_results(
 
     length_distribution = (password_length_distribution(passwords))
 
-    reused_passwords = [entry for entry in password_frequencies if entry["count"] > 1]
+    reused_passwords = [
+        (password, count)
+        for password, count in password_frequencies
+        if count > 1
+    ]
 
     results = {}
 
@@ -157,20 +161,21 @@ def build_results(
     results["password_reuse_general"] = {
         "sharedPasswords": len(reused_passwords),
         "sharedAccounts": sum(
-            entry["count"]
-            for entry in reused_passwords
+            count
+            for _, count in reused_passwords
         ),
-        "percentage": round(
-            (
-                sum(entry["count"] for entry in reused_passwords)
-                / len(passwords)
-            ) * 100,
-            1
-        )
-        if passwords
-        else 0,
+        "percentage": (
+            round(
+                sum(entry[1] for entry in reused_passwords)
+                / len(passwords) * 100,
+                1
+            )
+            if passwords
+            else 0
+        ),
         "passwords": reused_passwords,
     }
+
 
 
     return results
