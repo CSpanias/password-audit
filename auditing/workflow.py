@@ -24,6 +24,7 @@ def run_audit(
     bloodhound_file,
     campaign_file,
     campaign_name,
+    username_filter=None,
     mapped_passwords=None,
     domain_admins=None,
     company_words=None,
@@ -46,6 +47,9 @@ def run_audit(
         campaign_name:
             Campaign identifier.
 
+        username_filter:
+            Usernames to exclude from processing.
+            
         mapped_passwords:
             Override mapped password dataset.
 
@@ -77,6 +81,7 @@ def run_audit(
 
     organise_dataset(
         ntds_file=ntds_file,
+        username_filter=username_filter,
         output_dir=output_dir,
         bloodhound_file=bloodhound_file,
     )
@@ -111,6 +116,7 @@ def run_audit(
         ntds_file=ntds_file,
         output_dir=output_dir,
         potfile=hashcat_potfile,
+        username_filter=username_filter
     )
 
     info("Stage 4/4 - Analysing Passwords")

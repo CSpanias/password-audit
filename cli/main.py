@@ -46,67 +46,82 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    audit_parser.add_argument(
+    # Group required and options arguments
+    required_audit_parser = audit_parser.add_argument_group(
+        "required arguments"
+    )
+
+    optional_audit_parser = audit_parser.add_argument_group(
+        "optional arguments"
+    )
+
+    required_audit_parser.add_argument(
         "-N",
         "--ntds",
         required=True,
         help="Secretsdump NTDS file"
     )
 
-    audit_parser.add_argument(
+    required_audit_parser.add_argument(
         "-B",
         "--bloodhound",
         required=True,
         help="BloodHound ZIP export"
     )
 
-    audit_parser.add_argument(
+    required_audit_parser.add_argument(
         "-C",
         "--campaign",
         required=True,
         help="Campaign configuration file"
     )
 
-    audit_parser.add_argument(
+    required_audit_parser.add_argument(
         "-G",
         "--campaign-name",
         required=True,
         help="Campaign identifier"
     )
 
-    audit_parser.add_argument(
+    optional_audit_parser.add_argument(
+        "-F",
+        "--filter",
+        help="Comma-separated usernames to exclude",
+    )
+
+    optional_audit_parser.add_argument(
         "-M",
         "--mapped-passwords",
         default="./ntds-organiser/mapped-ntlm-passwords.txt",
-        help="Recovered username:password dataset"
+        help="Recovered password dataset",
     )
 
-    audit_parser.add_argument(
+    optional_audit_parser.add_argument(
         "-A",
         "--domain-admins",
         default="./ntds-organiser/domain-admins.txt",
-        help="Domain Admin account list"
+        help="Domain Admin account list",
     )
 
-    audit_parser.add_argument(
+    optional_audit_parser.add_argument(
         "-P",
         "--pass-policy",
         default="./ntds-organiser/domain-policy.txt",
-        help="Domain password policy"
+        help="Domain password policy",
     )
 
-    audit_parser.add_argument(
+    optional_audit_parser.add_argument(
         "-W",
         "--company-words",
         default="./ntds-organiser/company-words.txt",
-        help="Organisation-specific password analysis terms"
+        help="Organisation-related strings",
     )
 
-    audit_parser.add_argument(
+    optional_audit_parser.add_argument(
         "-E",
         "--enabled-users",
         default="./ntds-organiser/enabled-users.txt",
-        help="Enabled user accounts list"
+        help="Enabled user accounts list",
     )
 
     audit_parser.set_defaults(
@@ -140,7 +155,7 @@ def main():
     organise_parser.add_argument(
         "-F",
         "--filter",
-        help="Comma-separated testing account filters"
+        help="Comma-separated usernames to exclude"
     )
 
     organise_parser.add_argument(
