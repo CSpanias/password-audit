@@ -52,14 +52,17 @@ def organise_dataset(
             load_bloodhound_zip(bloodhound_file)
         )
 
+    # NTLM hashes
     hash_lookup = None
-    lm_lookup = None
-
+    
     if potfile:
-        # NTLM
+        
         hash_lookup = load_potfile(potfile)
 
-        # LM
+    # LM hashes
+    lm_lookup = None
+
+    if lm_results:
         lm_lookup = load_lm_results(lm_results)
 
     results = build_results(

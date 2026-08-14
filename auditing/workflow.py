@@ -6,34 +6,17 @@ password auditing workflow by coordinating the organiser,
 cracking, and analysis modules.
 """
 
+
 import os
 
 from pathlib import Path
 
-from ntds.workflow import (
-    organise_dataset,
-)
-
-from analysis.workflow import (
-    analyse_passwords,
-)
-
-from cracking.parsers import (
-    load_campaign,
-)
-
-from cracking.scheduler import (
-    run_campaign,
-)
-
-from cracking.constants import (
-    DEFAULT_HASHCAT_DIR,
-)
-
-from common.console import (
-    info,
-    summary,
-)
+from ntds.workflow import organise_dataset
+from analysis.workflow import analyse_passwords
+from cracking.parsers import load_campaign
+from cracking.scheduler import run_campaign
+from cracking.constants import DEFAULT_HASHCAT_DIR
+from common.console import info, summary
 
 
 def run_audit(

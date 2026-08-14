@@ -2,19 +2,19 @@
 
 ## Overview
 
-The `password-audit audit` module performs automatically the [end-to-end process](index.md#end-to-end-example) by orchestrating all the other three modules (`organise`, `crack`, and `analyse`).
+The `audit` module performs automatically the [end-to-end process](index.md#end-to-end-example) by orchestrating all the other three modules (`organise`, `crack`, and `analyse`).
 
-It is intended as the primary workflow for most engagements and automates the full password auditing process from NTDS parsing through to report generation.
+It is intended as the primary workflow for most engagements and automates the full password auditing process from data parsing through to report generation.
 
 ```bash
 $ password-audit audit -h
-usage: password-audit audit [-h] -N NTDS [-B BLOODHOUND] -C CAMPAIGN -G CAMPAIGN_NAME [-M MAPPED_PASSWORDS] [-A DOMAIN_ADMINS] [-P PASS_POLICY] [-W COMPANY_WORDS] [-E ENABLED_USERS]
+usage: password-audit audit [-h] -N NTDS -B BLOODHOUND -C CAMPAIGN -G CAMPAIGN_NAME [-M MAPPED_PASSWORDS] [-A DOMAIN_ADMINS] [-P PASS_POLICY] [-W COMPANY_WORDS] [-E ENABLED_USERS]
 
 options:
   -h, --help            show this help message and exit
   -N, --ntds NTDS       Secretsdump NTDS file
   -B, --bloodhound BLOODHOUND
-                        BloodHound ZIP export (default: None)
+                        BloodHound ZIP export
   -C, --campaign CAMPAIGN
                         Campaign configuration file
   -G, --campaign-name CAMPAIGN_NAME
@@ -31,7 +31,15 @@ options:
                         Enabled user accounts list (default: ./ntds-organiser/enabled-users.txt)
 ```
 
-Example:
+## Usage
+
+For the `audit` module three files are required:
+
+- The NTDS dump
+- The domain data
+- A configuration file
+
+The campaign name flag is for
 
 ```bash
 password-audit audit \
@@ -41,13 +49,13 @@ password-audit audit \
     --campaign-name internal-password-audit
 ```
 
-Example output:
+This will sequentially run the `organise`, `crack`, and `analyse` modules and produce a Markdown-based report when completed:
 
-```text
-[*] Stage 1/4 - Organising Data
-[*] Stage 2/4 - Recovering Passwords
-[*] Stage 3/4 - Mapping Passwords
-[*] Stage 4/4 - Analysing Passwords
+```bash
+[*] Stage 1/4 - Organising Data # parsing data
+[*] Stage 2/4 - Recovering Passwords # cracking hashes
+[*] Stage 3/4 - Mapping Passwords # generating final dataset
+[*] Stage 4/4 - Analysing Passwords # analysing results and creating the report
 
 [*] Audit Complete
 
@@ -56,11 +64,7 @@ Example output:
     Recovered Passwords : 238
 ```
 
-## Custom Analysis Inputs
-
-By default, the audit workflow automatically uses artefacts generated during execution. However, analysis inputs can be overridden when required (e.g. incomplete BloodHound datasets).
-
-Available overrides:
+By default, the audit workflow automatically uses artefacts generated during execution. However, the following inputs can be overridden when required (e.g. incomplete BloodHound datasets):
 
 * `--mapped-passwords`
 * `--domain-admins`
@@ -68,7 +72,7 @@ Available overrides:
 * `--company-words`
 * `--enabled-users`
 
-Example overriding the password policy:
+For instance, the password policy could be overridden as follows:
 
 ```bash
 password-audit audit \

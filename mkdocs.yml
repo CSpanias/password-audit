@@ -33,14 +33,13 @@ nav:
 
   - User Guides:
       - Installation: installation.md
-      - Development Guide: development.md
-      - Future Ideas: ideas.md
+      - Development: development.md
+      - Roadmap: ideas.md
 
-  - Password Audit Modules:
+  - Modules:
       - Audit: audit.md
       - Organise: organise.md
       - Crack: crack.md
       - Analyse: analyse.md
-
-  - LM Hashes: lm.md
+      - LM: lm.md
       

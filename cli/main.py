@@ -56,6 +56,7 @@ def main():
     audit_parser.add_argument(
         "-B",
         "--bloodhound",
+        required=True,
         help="BloodHound ZIP export"
     )
 
