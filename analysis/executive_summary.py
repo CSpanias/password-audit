@@ -45,8 +45,8 @@ def executive_summary(results):
     # Presence of duplicate hashes
     unique_hashes = results["lm_hashes"]["uniqueHashes"]
 
-    summary = []
-    positive_findings = []
+    # Recovered LM passwords
+    lm_recovered = results["lm_passwords"]["count"]
 
     # Collect predictable patterns findings
     weaknesses = []
@@ -68,6 +68,9 @@ def executive_summary(results):
 
     if keyboard_count:
         weaknesses.append("keyboard sequences")
+
+    summary = []
+    positive_findings = []
 
     # Introductory paragraph
     summary.append(
@@ -120,11 +123,22 @@ def executive_summary(results):
         summary.append(
             "Legacy LM password hashes were identified for "
             f"{num_to_word(lm_count)} account{'s' if lm_count != 1 else ''}. "
-            "Analysis identified only {num_to_word(unique_hashes)} unique LM hash "
+            f"Analysis identified only {num_to_word(unique_hashes)} unique LM hash "
             f"value{'s' if unique_hashes != 1 else ''}, indicating that multiple "
             "accounts share identical LM hashes. The presence of LM hashes represents "
             "a legacy security weakness and may increase susceptibility to "
             "offline password-cracking attacks."
+        )
+
+    # Recovered LM passwords
+    if lm_recovered:
+
+        summary.append(
+            f"Passwords were recovered from {num_to_word(lm_recovered)} account"
+            f"{'s' if lm_recovered != 1 else ''} storing LM hashes, "
+            "demonstrating the practical weakness of legacy LM password "
+            "storage and the ease with which credentials may be recovered "
+            "through offline attacks."
         )
 
     # Compliance with password policy
@@ -250,6 +264,16 @@ def executive_summary(results):
     if failure_count:
         conclusion_findings.append(
             "non-compliance with password policy requirements"
+        )
+
+    if lm_count:
+        conclusion_findings.append(
+            "legacy LM password storage"
+        )
+
+    if lm_recovered:
+        conclusion_findings.append(
+            "successful recovery of passwords from LM hashes"
         )
 
     key_findings = natural_join(conclusion_findings)

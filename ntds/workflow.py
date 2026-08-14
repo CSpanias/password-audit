@@ -6,19 +6,9 @@ for dataset organisation, password mapping, and report
 generation pipelines.
 """
 
-from ntds.parsers import (
-    parse_ntds_file,
-    load_bloodhound_zip,
-    load_potfile,
-)
-
-from ntds.results import (
-    build_results,
-)
-
-from ntds.exports import (
-    export_results,
-)
+from ntds.parsers import parse_ntds_file, load_bloodhound_zip, load_potfile, load_lm_results
+from ntds.results import build_results
+from ntds.exports import export_results
 
 
 def organise_dataset(
@@ -27,6 +17,7 @@ def organise_dataset(
     bloodhound_file=None,
     potfile=None,
     username_filter=None,
+    lm_results=None
 ):
     """
     Process an NTDS dataset and export results.
@@ -62,9 +53,14 @@ def organise_dataset(
         )
 
     hash_lookup = None
+    lm_lookup = None
 
     if potfile:
+        # NTLM
         hash_lookup = load_potfile(potfile)
+
+        # LM
+        lm_lookup = load_lm_results(lm_results)
 
     results = build_results(
         entries=entries,
@@ -73,6 +69,7 @@ def organise_dataset(
         groups_json=groups_json,
         domains_json=domains_json,
         hash_lookup=hash_lookup,
+        lm_lookup=lm_lookup
     )
 
     export_results(results, output_dir)

@@ -153,6 +153,12 @@ def main():
         help="Hashcat potfile containing recovered passwords"
     )
 
+    organise_parser.add_argument(
+        "-L",
+        "--lm-results",
+        help="LM recovery results generated using hashcat --show",
+    )
+
     organise_parser.set_defaults(
         func=run_ntds_organiser
     )
@@ -195,7 +201,7 @@ def main():
         "-H",
         "--hashes",
         required=True,
-        help="File containing NTLM hashes to recover",
+        help="Hash file to crack",
     )
 
     run_parser.add_argument(
@@ -303,8 +309,8 @@ def main():
     )
 
     analyse_parser.add_argument(
-        "-R",
-        "--recovered-lm-passwords",
+        "-L",
+        "--mapped-lm-passwords",
         default="./ntds-organiser/mapped-lm-passwords.txt",
         help="Recovered LM passwords"
     )

@@ -105,18 +105,12 @@ def commentary_lm_hashes(results):
         f"LM password hashes were identified for {num_to_word(count)} account"
         f"{'s' if count != 1 else ''}. The presence of LM hashes indicates that "
         "legacy password storage mechanisms remain enabled for a subset of accounts "
-        "within the environment. LM hashes provide substantially weaker protection "
-        "than NTLM hashes and may facilitate rapid password recovery through "
-        "offline cracking techniques.\n"
-    )
-
-    lines.append(
-        f"The analysis identified {num_to_word(unique_hashes)} "
-        f"unique LM hash value{'s' if unique_hashes != 1 else ''} "
-        f"and {num_to_word(duplicate_hashes)} duplicate LM hash "
-        f"occurrence{'s' if duplicate_hashes != 1 else ''}. "
-        "This indicates that multiple accounts share identical LM hashes "
-        "and may therefore be using the same password.\n"
+        f"within the environment. The analysis identified {num_to_word(unique_hashes)} "
+        f"unique LM hash value{'s' if unique_hashes != 1 else ''} and "
+        f"{num_to_word(duplicate_hashes)} duplicate LM hash "
+        f"occurrence{'s' if duplicate_hashes != 1 else ''}. This indicates that multiple "
+        "accounts share identical LM hash values and are therefore likely to be "
+        "configured with the same password.\n"
     )
 
     lines.append("| Metric | Value |")
@@ -124,6 +118,64 @@ def commentary_lm_hashes(results):
     lines.append(f"| Accounts with LM Hashes | {count} |")
     lines.append(f"| Unique LM Hashes | {unique_hashes} |")
     lines.append(f"| Duplicate LM Hashes | {duplicate_hashes} |")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Recovered LM Passwords
+# ---------------------------------------------------------------------------
+
+def commentary_lm_passwords(results):
+    """
+    Generate technical commentary for recovered LM passwords.
+
+    Passwords recovered through LM hash analysis indicate
+    that legacy LM password storage remains enabled for a
+    portion of the environment and that affected credentials
+    are susceptible to efficient offline recovery attacks.
+
+    The commentary summarises the number of recovered LM
+    passwords and provides supporting context regarding the
+    inherent weaknesses of the LM hashing algorithm.
+
+    Args:
+        results (dict):
+            Standardised password analysis results
+            containing LM password recovery data.
+
+    Returns:
+        str:
+            Markdown-formatted narrative and supporting
+            metrics table describing recovered LM password
+            findings. Returns an empty string when no LM
+            passwords have been recovered.
+    """
+
+    lines = []
+
+    count = results["lm_passwords"]["count"]
+
+    if not count:
+        return ""
+
+    lines.append(
+        "Unlike NTLM password recovery, LM password recovery is "
+        "facilitated by the design of the LM hashing algorithm, "
+        "which processes passwords in two independent 7-character "
+        "halves. This significantly reduces the effective search "
+        "space and enables rapid password recovery using commonly "
+        "available password dictionaries and rule sets. In this "
+        f"instance, passwords were recovered from {num_to_word(count)} "
+        f"account{'s' if count != 1 else ''} which demonstrates the "
+        "practical weakness of LM password storage and the ease with "
+        "which credentials may be recovered through offline attacks.\n"
+    )
+
+    lines.append("| Metric | Value |")
+    lines.append("| --- | ---: |")
+    lines.append(f"| Recovered LM Passwords | {count} |")
     lines.append("")
 
     return "\n".join(lines)
@@ -705,6 +757,9 @@ def technical_commentary(results):
 
     # Presence of LM hashes
     lines.append(commentary_lm_hashes(results))
+
+    # Recovered LM passwords
+    lines.append(commentary_lm_passwords(results))
 
     # Domain policy compliance
     lines.append(commentary_password_lengths(results))

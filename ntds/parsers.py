@@ -180,3 +180,34 @@ def load_potfile(path):
         mapping[hash_value.lower()] = password
 
     return mapping
+
+
+def load_lm_results(path):
+    """
+    Load LM hash recovery results.
+
+    Args:
+        path (str | Path):
+            LM show output file.
+
+    Returns:
+        dict:
+            Full LM hash to recovered password mapping.
+    """
+
+    mapping = {}
+
+    with open(path, encoding="utf-8") as f:
+
+        for line in f:
+
+            line = line.rstrip()
+
+            if ":" not in line:
+                continue
+
+            hash_value, password = line.split(":", 1)
+
+            mapping[hash_value.lower()] = password
+
+    return mapping

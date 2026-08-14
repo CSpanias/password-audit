@@ -19,3 +19,5 @@ site/
 !README.md
 !docs/
 !docs/*.md
+docs/ideas.md
+docs/images/

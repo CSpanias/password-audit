@@ -37,7 +37,8 @@ def build_results(
     company_words,
     minimum_length,
     enabled_users,
-    lm_users,
+    lm_users=None,
+    lm_passwords=None,
 ):
     """
     Build the complete password analysis results dataset.
@@ -71,6 +72,9 @@ def build_results(
             Accounts identified as storing LM password
             hashes.
 
+        lm_passwords (list):
+            Recovered plaintext password mappings.
+
     Returns:
         dict:
             Standardised analysis results containing
@@ -92,16 +96,6 @@ def build_results(
         passwords, 
         minimum_length
     )
-    
-    # Predictable patterns
-    company_findings = company_name_passwords(
-        passwords, 
-        company_words
-    )
-    keyboard_findings = keyboard_walk_passwords(passwords)
-    username_findings = username_passwords(passwords)
-    common_password_findings = common_passwords(passwords)
-    date_findings = date_passwords(passwords)
 
     # Password reuse
     password_frequencies = password_frequency(passwords)
@@ -112,6 +106,16 @@ def build_results(
             if count > 1
         ]
     reuse_accounts, similar_pairs = similar_account_reuse(passwords)
+    
+    # Predictable patterns
+    company_findings = company_name_passwords(
+        passwords, 
+        company_words
+    )
+    keyboard_findings = keyboard_walk_passwords(passwords)
+    username_findings = username_passwords(passwords)
+    common_password_findings = common_passwords(passwords)
+    date_findings = date_passwords(passwords)
     
     # Password complexity
     char_classes = character_class_adoption(passwords)
@@ -147,6 +151,24 @@ def build_results(
     results["password_lengths"] = {"lengths": length_distribution}
 
     # Password reuse
+    results["password_reuse_general"] = {
+        "sharedPasswords": len(reused_passwords),
+        "sharedAccounts": sum(
+            count
+            for _, count in reused_passwords
+        ),
+        "percentage": (
+            round(
+                sum(entry[1] for entry in reused_passwords)
+                / len(passwords) * 100,
+                1
+            )
+            if passwords
+            else 0
+        ),
+        "passwords": reused_passwords,
+    }
+
     results["top_passwords"] = {
         "passwords": top_passes,
         "count": len(top_passes)
@@ -214,26 +236,9 @@ def build_results(
         else 0
     )
 
-    # Password reuse
-    results["password_reuse_general"] = {
-        "sharedPasswords": len(reused_passwords),
-        "sharedAccounts": sum(
-            count
-            for _, count in reused_passwords
-        ),
-        "percentage": (
-            round(
-                sum(entry[1] for entry in reused_passwords)
-                / len(passwords) * 100,
-                1
-            )
-            if passwords
-            else 0
-        ),
-        "passwords": reused_passwords,
-    }
-
     # Presence of LM hashes
+    lm_users = lm_users or []
+
     results["lm_hashes"] = {
         "count": lm_findings["count"],
         "accounts": lm_findings["accounts"],
@@ -241,6 +246,14 @@ def build_results(
         "duplicateHashes": (
             lm_findings["count"] - unique_hashes
         ),
+    }
+
+    # Recovered LM passwords
+    lm_passwords = lm_passwords or []
+    
+    results["lm_passwords"] = {
+        "count": len(lm_passwords),
+        "accounts": lm_passwords,
     }
 
     return results

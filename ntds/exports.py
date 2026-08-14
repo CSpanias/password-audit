@@ -9,10 +9,6 @@ avoid performing analysis or transformation operations.
 """
 
 
-# ---------------------------------------------------------------------------
-# File Export
-# ---------------------------------------------------------------------------
-
 def write_lines(path, lines):
     """
     Write a collection of lines to a text file.
@@ -33,10 +29,6 @@ def write_lines(path, lines):
         for line in lines:
             f.write(f"{line}\n")
 
-
-# ---------------------------------------------------------------------------
-# Results Export
-# ---------------------------------------------------------------------------
 
 def export_results(results, output_dir):
     """

@@ -90,14 +90,3 @@ analysis/
 cli/ 
 └── analyse.py
 ```
-
-## Future Development
-
-Planned areas of development include:
-
-* Add additional privileged groups (e.g. Account Operators) in the analysis (`analyse`)
-* Campaign resume support (`crack run`)
-* Wordlist and rule effectiveness metrics (`crack stats`)
-* Historical campaign comparisons (`crack stats`)
-* Advanced campaign effectiveness analytics (`crack stats`)
-* Additional report formats (`crack analyse`)

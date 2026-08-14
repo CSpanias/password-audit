@@ -32,6 +32,7 @@ def run_ntds_organiser(args):
         output_dir=output_dir,
         bloodhound_file=args.bloodhound,
         potfile=args.potfile,
+        lm_results=args.lm_results,
         username_filter=args.filter,
     )
 

@@ -203,6 +203,7 @@ def extract_domain_admins(users_data, groups_data):
 
     return sorted(set(domain_admins))
 
+
 def extract_domain_policy(domains_data):
     """
     Extract password policy information from BloodHound data.

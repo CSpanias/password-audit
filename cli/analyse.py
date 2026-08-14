@@ -6,14 +6,8 @@ datasets, generating analysis results, producing report
 content, and exporting the final Markdown report.
 """
 
-from common.console import (
-    ok,
-)
-
-from analysis.workflow import (
-    analyse_passwords,
-)
-
+from common.console import ok
+from analysis.workflow import analyse_passwords
 
 
 def run_password_analysis(args):
@@ -40,6 +34,7 @@ def run_password_analysis(args):
         pass_policy=args.pass_policy,
         enabled_users=args.enabled_users,
         lm_users=args.lm_users,
+        mapped_lm_passwords=args.mapped_lm_passwords
     )
 
     print()

@@ -8,10 +8,7 @@ Functions in this module should focus on hash-to-password
 mapping and avoid performing analysis or report generation.
 """
 
-
-from ntds.constants import (
-    LM_EMPTY,
-)
+from ntds.constants import LM_EMPTY
 
 
 def map_passwords(users, hash_lookup):

@@ -20,6 +20,7 @@ def analyse_passwords(
     pass_policy,
     enabled_users,
     lm_users=None,
+    mapped_lm_passwords=None,
     output_file="report.md",
 ):
     """
@@ -47,19 +48,40 @@ def analyse_passwords(
         output_file:
             Output report path.
 
+        mapped_lm_passwords:
+            Password dataset.
+
     Returns:
         dict:
             Password analysis results.
     """
 
+
+    # Enabled user objects
+    enabled_users = load_list(enabled_users)
+
+    # Domain admins
+    domain_admins = load_list(domain_admins)
+
+    # Domain password policy
+    policy = load_domain_policy(pass_policy)
+
+    # Domain-based generate company file
+    company_words = load_company_words(company_words)
+
+    # Recovered NTLM passwords
     passwords = load_passwords(mapped_passwords)
 
-    domain_admins = load_list(domain_admins)
-    company_words = load_company_words(company_words)
-    enabled_users = load_list(enabled_users)
+    # Presence of LM hashes
     lm_users = load_lm_users(lm_users)
 
-    policy = load_domain_policy(pass_policy)
+    # Recovered LM passwords
+    lm_passwords = []
+    
+    if mapped_lm_passwords:
+        lm_passwords = load_passwords(
+            mapped_lm_passwords
+        )
 
     results = build_results(
         passwords=passwords,
@@ -69,7 +91,8 @@ def analyse_passwords(
             policy["Minimum Password Length"]
         ),
         enabled_users=enabled_users,
-        lm_users=lm_users
+        lm_users=lm_users,
+        lm_passwords=lm_passwords,
     )
 
     report = {

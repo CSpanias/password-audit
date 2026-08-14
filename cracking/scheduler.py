@@ -155,10 +155,10 @@ def run_campaign(
 
     phase_numbers = {
         phase["id"]: index
-        for index, phase in enumerate(config["phases"], start=1)
-        }
-    
-    total_phases=len(config["phases"])
+        for index, phase in enumerate(enabled_phases, start=1)
+    }
+
+    total_phases = len(enabled_phases)
 
     for phase in enabled_phases:
 

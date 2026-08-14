@@ -24,16 +24,8 @@ from ntds.analysis import (
     extract_domain_policy,
 )
 
-from ntds.mapping import (
-    map_passwords,
-    map_lm_passwords,
-)
-
-from ntds.lm import (
-    build_lm_candidates,
-    build_lm_da_passwords,
-    extract_lm_da_users,
-)
+from ntds.mapping import map_passwords, map_lm_passwords
+from ntds.lm import build_lm_candidates, build_lm_da_passwords, extract_lm_da_users
 
 
 def build_results(
@@ -43,6 +35,7 @@ def build_results(
     groups_json=None,
     domains_json=None,
     hash_lookup=None,
+    lm_lookup=None,
 ):
     """
     Build the complete NTDS analysis results dataset.
@@ -107,18 +100,20 @@ def build_results(
 
     if hash_lookup:
         mapped_ntlm_passwords = map_passwords(users, hash_lookup)
-        mapped_lm_passwords = map_lm_passwords(lm_users, hash_lookup)
+
+    if lm_lookup:
+        mapped_lm_passwords = map_lm_passwords(lm_users, lm_lookup)
 
     mapped_lm_da_passwords = []
     lm_da_users = []
     lm_da_candidates = []
 
     if mapped_lm_passwords and domain_admins:
-        mapped_lm_da_passwords = (build_lm_da_passwords(mapped_lm_passwords,domain_admins,))
+        mapped_lm_da_passwords = build_lm_da_passwords(mapped_lm_passwords,domain_admins)
 
         if mapped_lm_da_passwords:
             lm_da_users = extract_lm_da_users(mapped_lm_da_passwords)
-            lm_da_candidates = (build_lm_candidates(mapped_lm_da_passwords))
+            lm_da_candidates = build_lm_candidates(mapped_lm_da_passwords)
 
     results = {
         "entries": entries,

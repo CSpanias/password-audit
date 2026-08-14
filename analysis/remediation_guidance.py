@@ -69,15 +69,26 @@ def remediation_guidance(results):
     # # Presence of LM hashes
     # ------------------------
 
-        if results["lm_hashes"]["count"]:
-    
-            lines.append(
-                "- LM hash storage should be disabled and affected users "
-                "should be required to change their passwords to ensure "
-                "that previously stored LM hashes are removed. Any legacy "
-                "systems requiring LM compatibility should be identified "
-                "and remediated where possible.\n"
-            )
+    if results["lm_hashes"]["count"]:
+
+        lines.append(
+            "- LM hash storage should be disabled and affected users "
+            "should be required to change their passwords to ensure "
+            "that previously stored LM hashes are removed. Any legacy "
+            "systems requiring LM compatibility should be identified "
+            "and remediated where possible.\n"
+        )
+
+    # ------------------------
+    # Recovered LM passwords
+    # ------------------------
+    if results["lm_passwords"]["count"]:
+
+        lines.append(
+            "- Accounts for which passwords were recovered from LM hashes "
+            "should be required to change their passwords to invalidate "
+            "previously recovered credentials.\n"
+        )
 
     # -------------------------------
     # Password Length Compliance

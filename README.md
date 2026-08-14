@@ -1,14 +1,18 @@
 # Password-Audit
 
-A Python-based framework designed to streamline Active Directory (AD) password audits.
+## Overview
 
-`password-audit` is a modular AD password auditing framework that combines dataset organisation, password recovery campaigns, and password analysis into a single toolkit.
+`password-audit` is a modular Python-based framework designed to streamline Active Directory password audits by combining dataset organisation, password recovery campaigns, and password analysis into a single toolkit.
 
-The framework currently includes:
+The core components include:
 
 * **NTDS Organiser**: Parses and enriches Active Directory hash datasets.
 * **Password Cracker**: Executes and tracks Hashcat recovery campaigns.
 * **Password Analyser**: Analyses recovered passwords and generates assessment reports.
+
+📖 **Documentation:** https://cspanias.github.io/password-audit/
+
+💡 **Future Ideas:** https://cspanias.github.io/password-audit/ideas/
 
 ## Installation
 
@@ -34,7 +38,7 @@ uv tool upgrade password-audit
 
 > Recommended for contributors and anyone modifying the source code.
 >
-> The editable installation (`-e`) links the installed package directly to the working directory, allowing code changes to take effect immediately without reinstalling the package.
+> The editable installation (`-e`) allows local code changes to take effect immediately without reinstalling the package.
 
 ```bash
 # Clone repository
@@ -52,59 +56,6 @@ uv pip install -e .
 # Verify installation
 password-audit -h
 ```
-
-## Components
-
-### NTDS Organiser
-
-Automates post-processing of the NTDS dump, BloodHound data, and Hashcat artefacts.
-
-* Parse NTDS dumps
-    * Separate enabled and disabled accounts
-    * Identify machine accounts
-    * Extract NTLM hashes
-    * Detect LM hashes
-* Parse BloodHound ZIP exports
-    * Extract Domain Administrators
-    * Extract domain password policy
-    * Generate organisation-specific wordlists
-* Map recovered passwords from Hashcat potfiles
-* Generate LM candidate datasets
-
-### Password Cracker
-
-Executes Hashcat recovery campaigns using configurable campaign definitions and tracks historical attack effectiveness.
-
-* Multi-phase password recovery campaigns
-* Loopback dictionary generation
-* Campaign validation
-* Campaign result tracking
-* Historical campaign statistics
-* Attack ROI analysis
-* Campaign duration estimation
-* Hashcat integration
-* JSON-based campaign definitions
-
-### Password Analyser
-
-Analyses recovered passwords and generates Markdown report suitable for AD password audits.
-
-* Statistics
-    * Password recovery statistics
-    * Crack-rate analysis
-    * Privileged account identification
-    * Password reuse detection
-    * Username-derived passwords
-    * Organisation-related passwords
-    * Common password analysis
-    * Date-based password analysis
-    * Keyboard-walk analysis
-    * Password length analysis
-    * Character-class analysis
-* Report generation
-    * Executive summary
-    * Technical commentary
-    * Remediation guidance
 
 ## Typical Workflow
 
@@ -148,81 +99,4 @@ Analyse the results & generate the report (password-audit analyse)
     +--> report.md
 ```
 
-### End-to-End Example
-
-1. Extract NTDS ([`secretsdump.py`](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py)) and BloodHound data ([`rusthound-ce`](https://github.com/g0h4n/RustHound-CE)):
-
-```bash
-# NTDS dump
-secretsdump.py \
-    <domain>/<username>:<password>@<dc-ip> \
-    -user-status \
-    -just-dc-ntlm \
-    -outputfile <domain>
-
-# BloodHound data
-rusthound-ce \
-    -u <username> \
-    -p <password> \
-    -d <domain> \
-    -i <dc-ip> -z
-```
-
-2. Process the generated `.ntds` and `.zip` files:
-
-```bash
-password-audit organise \
-    -n company.ntds \
-    -b bloodhound.zip
-```
-
-3. Recover passwords using the defined configuration:
-
-```bash
-password-audit crack run \
-    -C campaign.json \
-    -H ntds-organiser/ntlm-hashes.txt \
-    -N internal-audit
-```
-
-4. Map recovered passwords back to user accounts:
-
-```bash
-password-audit organise \
-    -n company.ntds \
-    -p hashcat.potfile
-```
-
-5. Analyse the dataset and generate the audit report:
-
-```bash
-password-audit analyse \
-    -M ntds-organiser/mapped-ntlm-passwords.txt
-```
-
----
-
-## Documentation 
-
-Additional documentation is available in the [`docs/README.md`](https://github.com/CSpanias/password-audit/blob/main/docs/README.md) directory. 
-
-## Requirements
-
-### Core
-
-* Python 3.10+
-
-### Optional
-
-* BloodHound ZIP exports
-* Hashcat potfiles
-* NTDS data obtained during authorised security assessments
-
-## Roadmap
-
-* Workflow automation 
-* Historical campaign comparison reports 
-* Advanced campaign effectiveness analytics 
-* Additional privileged group analysis 
-* Additional report formats 
-* Supporting audit utilities
+For a more detailed end-to-end example, see [End-to-End Example](https://cspanias.github.io/password-audit/#end-to-end-example).
