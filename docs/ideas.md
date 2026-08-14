@@ -9,6 +9,5 @@
 
 ## Password Analyser
 
-* LM hash-related analysis and reporting
 * Additional privileged group analysis
 * Additional report formats

@@ -3,8 +3,6 @@
 !!! tip
     The `audit` module performs the end-to-end process without the invidual use of the `crack` and `analyse` modules.
 
-## About
-
 [Password-Audit](https://github.com/CSpanias/password-audit) is a modular Active Directory (AD) password auditing framework that combines dataset organisation, password recovery campaigns, and password analysis into a single toolkit.
 
 It is a merge and subsequent improvement of the following standalone Proof of Concept (PoC) scripts:

@@ -23,7 +23,7 @@ $ grep '1bf3ece46b279e12' hashcat.potfile
 As a result, an additional `hashcat --show` step is required to reconstruct the full LM hash and map recovered passwords back to user accounts:
 
 !!! warning
-    Do this step via Bash; PowerShell breaks the potfile encoding format and needs extra steps to address it.
+    Perform this step from Bash. PowerShell may modify the potfile encoding and affect LM password reconstruction.
 
 ```bash
 # Validate that the full LM hash is shown
@@ -35,6 +35,8 @@ c23413a8a1e7665f1bf3ece46b279e12:WELCOME123!
 ```
 
 ## Workflow
+
+### Preparation
 
 If LM hashes are present within NTDS, `organise` identifies and extracts them:
 
@@ -54,7 +56,7 @@ If LM hashes are present within NTDS, `organise` identifies and extracts them:
     Output Directory    : ntds-organiser
 ```
 
-These can be cracked as normal using the `crack run` command:
+These can be cracked as normal using the `crack run` command using Hashcat's LM mode (`3000`):
 
 !!! info
     For an example JSON file see [Campaign Structure](crack.md#campaign-structure).
@@ -69,8 +71,7 @@ password-audit crack run \
 After cracking is complete, `organise` maps the recovered passwords back to their users:
 
 !!! note
-    The number of mapped LM passwords may exceed the number of recovered LM hashes due to the hash's structure and/or password reuse.
-  
+    Mapped LM passwords may outnumber recovered LM hashes due to password reuse and LM hash structure.
 
 ```bash
 # Write the LM dataset to a file
@@ -100,14 +101,14 @@ $ password-audit organise \
     Output Directory    : ntds-organiser
 ```
 
-The generated dataset will contain the record with the password in uppercase format:
+The generated dataset will contain the recovered passwords in uppercase form:
 
 ```bash
 $ grep 'WELCOME123!' ntds-organiser/mapped-lm-passwords.txt
 domain.local\mike:WELCOME123!
 ```
 
-## Reporting
+### Reporting
 
 The LM datasets can be analysed and have LM-related findings added to the final report (alongside the NTLM dataset):
 
@@ -125,13 +126,13 @@ The following LM findings are currently present:
 * LM password recovery statistics
 * LM Domain Administrator exposure
 
-## Domain Administrator Candidate Generation
+### Candidate Generation
 
 The LM dataset can be processed further using the `lm` module.
 
 Because LM hashes do not preserve character casing, recovered passwords are presented in uppercase form and may not reflect the user's original password. The `lm` module identifies recovered LM passwords belonging to Domain Administrator accounts and generates all possible capitalisation variants, enabling recovery of the original password casing through password spraying:
 
-!!! note
+!!! example
     The recovered password `WELCOME123!` contains nine alphabetic characters, each of which can be either uppercase or lowercase. As a result,
     `2^9 = 512` possible capitalisation variants are generated, one of which represents the user's original password.
 
