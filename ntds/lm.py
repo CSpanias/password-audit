@@ -43,13 +43,14 @@ def lm_variants(password):
         yield "".join(candidate)
 
 
-def build_lm_candidates(mapped_lm_passwords):
+def build_lm_candidates(lm_passwords):
     """
     Generate candidate passwords from recovered LM passwords.
 
     Args:
-        mapped_lm_passwords (list):
-            Recovered LM username:password mappings.
+        lm_passwords (list):
+            Recovered LM password records containing 
+            username and password fields.
 
     Returns:
         list:
@@ -58,12 +59,10 @@ def build_lm_candidates(mapped_lm_passwords):
 
     candidates = set()
 
-    for entry in mapped_lm_passwords:
+    for record in lm_passwords:
+        password = record["password"]
 
-        try:
-            _, password = entry.split(":", 1)
-
-        except ValueError:
+        if not password:
             continue
 
         for candidate in lm_variants(password):
@@ -76,24 +75,22 @@ def build_lm_candidates(mapped_lm_passwords):
 # Domain Administrator Analysis
 # ---------------------------------------------------------------------------
 
-def build_lm_da_passwords(
-    mapped_lm_passwords,
-    domain_admins,
-):
+def build_lm_da_passwords(lm_passwords, domain_admins):
     """
     Identify recovered LM passwords belonging to Domain
     Administrator accounts.
 
     Args:
-        mapped_lm_passwords (list):
-            Recovered LM username:password mappings.
+        lm_passwords (list):
+            Recovered LM password records containing 
+            username and password fields.
 
         domain_admins (list):
             Domain Administrator usernames.
 
     Returns:
         list:
-            LM password mappings associated with Domain
+            LM password records associated with Domain
             Administrator accounts.
     """
 
@@ -103,21 +100,21 @@ def build_lm_da_passwords(
     }
 
     return [
-        entry
-        for entry in mapped_lm_passwords
+        record
+        for record in lm_passwords
         if normalize_username(
-            entry.split(":", 1)[0]
+            record["username"]
         ) in da_set
     ]
 
 
-def extract_lm_da_users(mapped_lm_da_passwords):
+def extract_lm_da_users(lm_da_passwords):
     """
     Extract Domain Administrator usernames from recovered
     LM password mappings.
 
     Args:
-        mapped_lm_da_passwords (list):
+        lm_da_passwords (list):
             Domain Administrator LM password mappings.
 
     Returns:
@@ -127,7 +124,7 @@ def extract_lm_da_users(mapped_lm_da_passwords):
 
     return sorted({
         normalize_username(
-            entry.split(":", 1)[0]
+            record["username"]
         )
-        for entry in mapped_lm_da_passwords
+        for record in lm_da_passwords
     })

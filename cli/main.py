@@ -7,6 +7,7 @@ dispatches execution to individual framework components.
 
 import argparse
 
+from cli.lm import run_lm_candidates
 from cli.organise import run_ntds_organiser
 from cli.crack import run_cracking_campaign
 from cli.analyse import run_password_analysis
@@ -315,9 +316,40 @@ def main():
         help="Recovered LM passwords"
     )
     
-
     analyse_parser.set_defaults(
         func=run_password_analysis
+    )
+
+    #-----------------------------------------------
+    # LM candidate generation
+    #-----------------------------------------------
+
+    lm_parser = subparsers.add_parser(
+        "lm",
+        help="Generate LM Domain Admin candidates",
+    )
+
+    lm_parser.add_argument(
+        "-L",
+        "--mapped-lm-passwords",
+        required=True,
+    )
+
+    lm_parser.add_argument(
+        "-D",
+        "--domain-admins",
+        required=True,
+    )
+
+    lm_parser.add_argument(
+        "-O",
+        "--output-dir",
+        default="ntds-organiser",
+        help="Output directory",
+    )
+
+    lm_parser.set_defaults(
+        func=run_lm_candidates
     )
 
     args = parser.parse_args()

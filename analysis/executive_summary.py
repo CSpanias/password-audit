@@ -48,6 +48,9 @@ def executive_summary(results):
     # Recovered LM passwords
     lm_recovered = results["lm_passwords"]["count"]
 
+    # Domain Admins with LM hashes
+    lm_admin_count = results["lm_admins"]["count"]
+
     # Collect predictable patterns findings
     weaknesses = []
 
@@ -133,13 +136,24 @@ def executive_summary(results):
     # Recovered LM passwords
     if lm_recovered:
 
-        summary.append(
+        message = (
             f"Passwords were recovered from {num_to_word(lm_recovered)} account"
-            f"{'s' if lm_recovered != 1 else ''} storing LM hashes, "
-            "demonstrating the practical weakness of legacy LM password "
-            "storage and the ease with which credentials may be recovered "
-            "through offline attacks."
+            f"{'s' if lm_recovered != 1 else ''} storing LM hashes, demonstrating "
+            "the practical weakness of legacy LM password storage and the "
+            "ease with which credentials may be recovered through offline attacks."
         )
+
+        # Domain Admins with LM hashes
+        if lm_admin_count:
+
+            message += (
+                f" Recovered passwords included {num_to_word(lm_admin_count)} Domain "
+                f"Administrator account{'s' if lm_admin_count != 1 else ''}, "
+                "significantly increasing the potential impact of credential compromise "
+                "and the likelihood of privilege escalation."
+            )
+
+        summary.append(message)
 
     # Compliance with password policy
     if failure_count:

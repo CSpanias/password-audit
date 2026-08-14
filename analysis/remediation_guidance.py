@@ -62,7 +62,7 @@ def remediation_guidance(results):
             "strong, unique credentials. Consider applying enhanced controls "
             "to privileged identities, including dedicated password policies, "
             "privileged access management solutions, and multi-factor "
-            "authentication.\n"
+            "authentication."
         )
 
     # ------------------------
@@ -76,19 +76,33 @@ def remediation_guidance(results):
             "should be required to change their passwords to ensure "
             "that previously stored LM hashes are removed. Any legacy "
             "systems requiring LM compatibility should be identified "
-            "and remediated where possible.\n"
+            "and remediated where possible."
         )
 
     # ------------------------
     # Recovered LM passwords
     # ------------------------
+
     if results["lm_passwords"]["count"]:
 
-        lines.append(
+        recommendation = (
             "- Accounts for which passwords were recovered from LM hashes "
             "should be required to change their passwords to invalidate "
-            "previously recovered credentials.\n"
+            "previously recovered credentials."
         )
+
+        if results["lm_admins"]["count"] == 0:
+            recommendation += "\n"
+
+        # Domain Admins with LM hashes
+        elif results["lm_admins"]["count"]:
+
+            recommendation += (
+                " Privileged accounts should be prioritised for immediate "
+                "password reset and reviewed for potential credential exposure."
+            )
+
+        lines.append(recommendation)
 
     # -------------------------------
     # Password Length Compliance
@@ -100,7 +114,7 @@ def remediation_guidance(results):
             "the organisation's baseline security requirements and that legacy or "
             "non-compliant credentials are remediated. Longer passwords and passphrases "
             "generally provide greater resistance to offline password-cracking attacks "
-            "and should be encouraged wherever possible.\n"
+            "and should be encouraged wherever possible."
         )
 
     # ---------------
@@ -113,7 +127,7 @@ def remediation_guidance(results):
             "- Users should be encouraged to maintain unique passwords for all "
             "accounts and services. Where appropriate, password managers should "
             "be implemented to support the adoption of unique credentials and reduce "
-            "reliance on reused passwords.\n"
+            "reliance on reused passwords."
         )
 
     # ------------------------
@@ -126,7 +140,7 @@ def remediation_guidance(results):
             "- Administrative and standard user accounts should maintain "
             "separate credentials to preserve account separation and "
             "reduce the likelihood of privilege escalation following "
-            "credential compromise.\n"
+            "credential compromise."
         )
 
     # -------------------------------
@@ -157,7 +171,7 @@ def remediation_guidance(results):
             "or other predictable patterns. Technical controls such "
             "as password filtering solutions should also be considered "
             "to prevent the use of weak and commonly observed password "
-            "constructions.\n"
+            "constructions."
         )
 
     # ----------------------------
@@ -170,7 +184,7 @@ def remediation_guidance(results):
         "wherever technically feasible. Whilst strong passwords remain "
         "important, MFA provides additional protection against password-"
         "based attacks and reduces the likelihood of account compromise "
-        "following credential exposure.\n"
+        "following credential exposure."
     )
 
     return "\n".join(lines)

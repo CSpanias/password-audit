@@ -1,12 +1,12 @@
 # LM Hashes
 
-## Overview
+## Why the Extra Step?
 
 Unlike NTLM hashes, [LM passwords are processed in two independent 7-character halves](https://learn.microsoft.com/en-us/archive/blogs/miriamxyra/stop-using-lan-manager-and-ntlmv1#but-there-is-also-another-vulnerability-caused-by-the-first-implementation-of-this-protocol). Each half produces a separate LM hash value, resulting in a 32-character LM hash composed of two 16-character hash halves:
 
 ![](images/lm-hashing.jpg)
 
-Hashcat [stores recovered LM hash halves](https://hashcat.net/wiki/doku.php?id=example_hashes#:~:text=3000) in the potfile rather than the original 32-character LM hash values. Consequently, the potfile cannot be used directly to map recovered LM passwords back to user accounts:
+Hashcat [stores recovered LM hash (16-character) halves](https://hashcat.net/wiki/doku.php?id=example_hashes#:~:text=3000) in the potfile rather than the full 32-character values. Consequently, the potfile cannot be used directly to map recovered LM passwords back to user accounts:
 
 ```bash
 # Full 32-character hash within the LM dataset
@@ -22,7 +22,7 @@ $ grep '1bf3ece46b279e12' hashcat.potfile
 
 As a result, an additional `hashcat --show` step is required to reconstruct the full LM hash and map recovered passwords back to user accounts:
 
-!!! Warning
+!!! warning
     Do this step via Bash; PowerShell breaks the potfile encoding format and needs extra steps to address it.
 
 ```bash
@@ -47,7 +47,7 @@ If LM hashes are present within NTDS, `organise` identifies and extracts them:
     User Accounts       : 16327
     Machine Accounts    : 8391
     NTLM Hashes         : 15502
-    LM Hashes           : 147 # LM hashes extracted (lm-hashes.txt)
+    LM Hashes           : 147 # exported to lm-hashes.txt
     Company Words       : 22
     Domain Admins       : 11
 
@@ -56,6 +56,9 @@ If LM hashes are present within NTDS, `organise` identifies and extracts them:
 
 These can be cracked as normal using the `crack run` command:
 
+!!! info
+    For an example JSON file see [Campaign Structure](crack.md#campaign-structure).
+
 ```bash
 password-audit crack run \
     -C example-lm-config.json \
@@ -63,59 +66,10 @@ password-audit crack run \
     -G example-lm-test
 ```
 
-The JSON file could look like this:
-
-```json
-{
-"parameters": {
-    "hashcatDir": "/mnt/c/tools/hashcat",
-    "hashMode": "3000",
-    "flags": [
-      "-O",
-      "-w", "3",
-      "-d", "1",
-      "--status",
-      "--status-timer", "300"
-    ]
-  },
-
-  "phases": [
-    {
-      "id": "rockyou",
-      "type": "wordlist",
-      "wordlist": "rockyou.txt",
-      "rule": "",
-      "enabled": true
-    },
-    {
-      "id": "rockyou-rule",
-      "type": "wordlist",
-      "wordlist": "rockyou.txt",
-      "rule": "OneRuleToRuleThemStill.rule",
-      "enabled": true
-    },
-    {
-      "id": "hashmob-rule",
-      "type": "wordlist",
-      "wordlist": "hashmob.net_2026-06-07.combined.txt",
-      "rule": "OneRuleToRuleThemStill.rule",
-      "enabled": true
-    },
-    {
-      "id": "loopback-rule",
-      "type": "loopback",
-      "wordlist": "loopback.txt",
-      "rule": "OneRuleToRuleThemStill.rule",
-      "enabled": true
-    }
-  ]
-}
-```
-
 After cracking is complete, `organise` maps the recovered passwords back to their users:
 
 !!! note
-    The number of mapped LM passwords may exceed the number of recovered LM hashes. A single recovered LM hash can be shared across multiple users, resulting in multiple password mappings from a single recovered hash.
+    The number of mapped LM passwords may exceed the number of recovered LM hashes due to the hash's structure and/or password reuse.
   
 
 ```bash
@@ -125,7 +79,7 @@ $ hashcat -m3000 \
     --potfile-path hashcat.potfile \
     > lm-results.txt
 
-# Map recovered password back to their users
+# Map recovered passwords back to their users
 $ password-audit organise \
     -N example.ntds \
     -P hashcat.potfile \
@@ -141,7 +95,7 @@ $ password-audit organise \
     LM Hashes           : 132
     Company Words       : 17
     Mapped Passwords    : 4026
-    Mapped LM Passwords : 242 # LM passwords mapped (mapped-lm-passwords.txt)
+    Mapped LM Passwords : 242 # exported to mapped-lm-passwords.txt
 
     Output Directory    : ntds-organiser
 ```
@@ -152,9 +106,6 @@ The generated dataset will contain the record with the password in uppercase for
 $ grep 'WELCOME123!' ntds-organiser/mapped-lm-passwords.txt
 domain.local\mike:WELCOME123!
 ```
-
-!!! warning
-    LM password analysis and reporting functionality is currently under development and is not yet available.
 
 ## Reporting
 
@@ -171,21 +122,45 @@ The following LM findings are currently present:
 
 * LM hash exposure
 * Unique and duplicate LM hash analysis
-* LM password recovery
+* LM password recovery statistics
 * LM Domain Administrator exposure
 
-### Password Spraying
+## Domain Administrator Candidate Generation
 
-The LM dataset can be also processed further along with the BloodHound ZIP file. This will check if a record belongs to a Domain Admin and if it does, it will generate password candidates (all capitalisation variations): `lm-da-hashes.txt`, `lm-da-users.txt`, and `lm-da-candidates.txt`.
+The LM dataset can be processed further using the `lm` module.
+
+Because LM hashes do not preserve character casing, recovered passwords are presented in uppercase form and may not reflect the user's original password. The `lm` module identifies recovered LM passwords belonging to Domain Administrator accounts and generates all possible capitalisation variants, enabling recovery of the original password casing through password spraying:
+
+!!! note
+    The recovered password `WELCOME123!` contains nine alphabetic characters, each of which can be either uppercase or lowercase. As a result,
+    `2^9 = 512` possible capitalisation variants are generated, one of which represents the user's original password.
 
 ```bash
-$ password-audit organise \
-    -N domain.ntds \
-    -P hashcat.potfile \
-    -B bloodhound.zip
+$ password-audit lm \
+    -L ntds-organiser/mapped-lm-passwords.txt \
+    -D ntds-organiser/domain-admins.txt
+
+[*] LM Candidate Generation
+
+    Domain Admins    : 14
+    LM DA Passwords  : 1
+    LM DA Users      : 1
+    LM DA Candidates : 512
+
+# Recovered LM passwords belonging to Domain Administrators
+$ head lm-da-passwords.txt
+domain.local\mike:WELCOME123!
+
+# Generated capitalisation variants
+$ head -n5 lm-da-candidates.txt
+WELCOME123!
+WELCOMe123!
+WELCOmE123!
+WELCoME123!
+WELcOME123!
 ```
 
-The users and candidates files can be then used for password spraying (e.g. with [`conpass`](https://github.com/login-securite/conpass)) in order to enumerate the valid capitalisation:
+The generated user and candidate files can then be used directly for password spraying (e.g. [`conpass`](https://github.com/login-securite/conpass)) to determine the original password capitalisation:
 
 ```bash
 conpass -d <domain> \

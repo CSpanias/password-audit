@@ -8,26 +8,7 @@ Functions in this module should focus on data export and
 avoid performing analysis or transformation operations.
 """
 
-
-def write_lines(path, lines):
-    """
-    Write a collection of lines to a text file.
-
-    Args:
-        path (str | Path):
-            Output file path.
-
-        lines (iterable):
-            Collection of values to write.
-
-    Returns:
-        None
-    """
-
-    with open(path, "w", encoding="utf-8") as f:
-
-        for line in lines:
-            f.write(f"{line}\n")
+from common.utils import write_lines
 
 
 def export_results(results, output_dir):

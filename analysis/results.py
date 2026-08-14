@@ -8,6 +8,7 @@ reporting components.
 
 from analysis.analysis import (
     compromised_admins,
+    compromised_lm_admins,
     password_length_failures,
     top_passwords,
     company_name_passwords,
@@ -129,12 +130,21 @@ def build_results(
         for account in lm_findings["accounts"]
     })
 
+    # Domain Admins with LM
+    lm_admins = compromised_lm_admins(lm_passwords, domain_admins)
+
     results = {}
 
     # Privileged accounts
     results["admins"] = {
         "accounts": admins,
         "count": len(admins)
+    }
+
+    # Domain Admins with LM
+    results["lm_admins"] = {
+        "count": len(lm_admins),
+        "accounts": lm_admins,
     }
 
     # Password compliance

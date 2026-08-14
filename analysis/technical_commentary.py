@@ -127,6 +127,10 @@ def commentary_lm_hashes(results):
 # Recovered LM Passwords
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Recovered LM Passwords
+# ---------------------------------------------------------------------------
+
 def commentary_lm_passwords(results):
     """
     Generate technical commentary for recovered LM passwords.
@@ -136,14 +140,15 @@ def commentary_lm_passwords(results):
     portion of the environment and that affected credentials
     are susceptible to efficient offline recovery attacks.
 
-    The commentary summarises the number of recovered LM
-    passwords and provides supporting context regarding the
-    inherent weaknesses of the LM hashing algorithm.
+    Where privileged accounts are affected, additional
+    commentary is included to highlight the elevated risk
+    associated with the recovery of Domain Administrator
+    credentials.
 
     Args:
         results (dict):
             Standardised password analysis results
-            containing LM password recovery data.
+            containing LM password recovery findings.
 
     Returns:
         str:
@@ -156,6 +161,7 @@ def commentary_lm_passwords(results):
     lines = []
 
     count = results["lm_passwords"]["count"]
+    da_count = results["lm_admins"]["count"]
 
     if not count:
         return ""
@@ -168,14 +174,32 @@ def commentary_lm_passwords(results):
         "space and enables rapid password recovery using commonly "
         "available password dictionaries and rule sets. In this "
         f"instance, passwords were recovered from {num_to_word(count)} "
-        f"account{'s' if count != 1 else ''} which demonstrates the "
-        "practical weakness of LM password storage and the ease with "
-        "which credentials may be recovered through offline attacks.\n"
+        f"account{'s' if count != 1 else ''}, demonstrating the "
+        "practical weakness of LM password storage and the ease "
+        "with which credentials may be recovered through offline "
+        "attacks."
     )
 
+    # Domain Admins with LM hashes
+    if da_count:
+
+        lines.append(
+            f"\nRecovered LM passwords included {num_to_word(da_count)} Domain "
+            f"Administrator account{'s' if da_count != 1 else ''}. The recovery "
+            "of privileged credentials significantly increases the potential "
+            "impact of credential compromise and may facilitate rapid privilege escalation."
+        )
+
+    lines.append("")
     lines.append("| Metric | Value |")
     lines.append("| --- | ---: |")
     lines.append(f"| Recovered LM Passwords | {count} |")
+
+    if da_count:
+        lines.append(
+            f"| LM Domain Administrator Accounts | {da_count} |"
+        )
+
     lines.append("")
 
     return "\n".join(lines)

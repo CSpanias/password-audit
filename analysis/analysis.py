@@ -11,7 +11,6 @@ should be handled elsewhere.
 """
 
 from collections import Counter
-from collections import defaultdict
 
 from analysis.constants import (
     COMMON_PASSWORDS,
@@ -25,6 +24,7 @@ from common.utils import (
     normalise_password,
     normalise_text,
     username_base,
+    normalize_username
 )
 
 
@@ -60,21 +60,41 @@ def compromised_admins(passwords, domain_admins):
     return admins
 
 
+def compromised_lm_admins(lm_passwords, domain_admins):
+    """
+    Identify recovered LM passwords belonging to
+    Domain Administrator accounts.
+
+    Args:
+        lm_passwords (list):
+            Recovered LM username/password mappings.
+
+        domain_admins (list):
+            Domain Administrator usernames.
+
+    Returns:
+        list:
+            Recovered LM credentials associated with
+            Domain Administrator accounts.
+    """
+
+    da_set = {
+        normalize_username(user)
+        for user in domain_admins
+    }
+
+    return [
+        record
+        for record in lm_passwords
+        if normalize_username(
+            record["username"]
+        ) in da_set
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Password Statistics
 # ---------------------------------------------------------------------------
-
-# def top_passwords(passwords, limit=5):
-    
-
-#     counts = Counter(record["password"] for record in passwords)
-#     results = []
-#     total = len(passwords)
-
-#     for password, count in counts.most_common(limit):
-#         results.append({"password": password, "count": count, "percentage": round(count / total * 100, 1)})
-
-#     return results
 
 def top_passwords(passwords, limit=5):
     """
