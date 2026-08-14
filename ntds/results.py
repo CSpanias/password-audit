@@ -115,10 +115,6 @@ def build_results(
             lm_da_users = extract_lm_da_users(mapped_lm_da_passwords)
             lm_da_candidates = build_lm_candidates(mapped_lm_da_passwords)
 
-    print(f"Domain Admins       : {len(domain_admins)}")
-    print(f"Mapped LM Passwords : {len(mapped_lm_passwords)}")
-    print(f"LM DA Passwords     : {len(mapped_lm_da_passwords)}")
-
     results = {
         "entries": entries,
         "enabled": enabled,
