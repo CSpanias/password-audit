@@ -22,3 +22,9 @@ include = [
     "cracking",
     "auditing"
 ]
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs-material",
+    "mkdocs-glightbox",
+]
