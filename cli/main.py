@@ -230,12 +230,67 @@ def main():
     crack_parser = subparsers.add_parser(
         "crack",
         help="Password recovery campaigns",
-        formatter_class=CustomFormatter
+        description=(
+            "Execute Hashcat password recovery campaigns, "
+            "estimate campaign duration using historical "
+            "statistics, and review past campaign performance."
+        ),
+        epilog="""
+    Examples:
+
+        password-audit crack estimate \\
+            -C config.json
+
+        password-audit crack run \\
+            -H ntds-organiser/ntlm-hashes.txt \\
+            -C config.json \\
+            -G internal-audit
+
+        password-audit crack stats
+    """,
+        formatter_class=CustomFormatter,
     )
 
     crack_subparsers = crack_parser.add_subparsers(
         dest="crack_command",
         required=True,
+    )
+
+    #-----------------------------------------------
+    # Crack estimate submodule
+    #-----------------------------------------------
+
+    estimate_parser = crack_subparsers.add_parser(
+        "estimate",
+        help="Estimate campaign duration",
+        description=(
+            "Estimate the duration of a cracking campaign "
+            "before execution using the supplied configuration "
+            "file and historical data."
+        ),
+        formatter_class=CustomFormatter,
+        epilog=dedent("""
+        Example:
+
+            password-audit crack estimate \\
+                -C config.json
+        """)
+    )
+
+    # Group required and options arguments
+    required_estimate_parser = estimate_parser.add_argument_group(
+        "required arguments"
+    )
+
+    required_estimate_parser.add_argument(
+        "-C",
+        "--campaign",
+        required=True,
+        help="Campaign configuration file",
+    )
+
+    estimate_parser.set_defaults(
+        func=print_campaign_estimate,
     )
 
     #-----------------------------------------------
@@ -245,7 +300,20 @@ def main():
     run_parser = crack_subparsers.add_parser(
         "run",
         help="Execute a cracking campaign",
-        formatter_class=CustomFormatter
+        description=(
+            "Execute a Hashcat password recovery campaign "
+            "using the supplied hash dataset and campaign "
+            "configuration file."
+        ),
+        epilog="""
+    Example:
+
+        password-audit crack run \\
+            -H ntds-organiser/ntlm-hashes.txt \\
+            -C config.json \\
+            -G internal-audit
+    """,
+        formatter_class=CustomFormatter,
     )
 
     # Group required and options arguments
@@ -318,43 +386,6 @@ def main():
 
     stats_parser.set_defaults(
         func=print_phase_statistics,
-    )
-
-    #-----------------------------------------------
-    # Crack estimate submodule
-    #-----------------------------------------------
-
-    estimate_parser = crack_subparsers.add_parser(
-        "estimate",
-        help="Estimate campaign duration",
-        description=(
-            "Estimate the duration of a cracking campaign "
-            "before execution using the supplied configuration "
-            "file and historical data."
-        ),
-        formatter_class=CustomFormatter,
-        epilog=dedent("""
-        Example:
-
-            password-audit crack estimate \\
-                -C config.json
-        """)
-    )
-
-    # Group required and options arguments
-    required_estimate_parser = estimate_parser.add_argument_group(
-        "required arguments"
-    )
-
-    required_estimate_parser.add_argument(
-        "-C",
-        "--campaign",
-        required=True,
-        help="Campaign configuration file",
-    )
-
-    estimate_parser.set_defaults(
-        func=print_campaign_estimate,
     )
 
     #-----------------------------------------------

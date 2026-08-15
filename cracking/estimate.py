@@ -5,17 +5,10 @@ This module estimates campaign duration based on
 historical execution statistics.
 """
 
-from common.utils import (
-    human_time,
-)
-
-from cracking.parsers import (
-    load_campaign,
-)
-
-from cracking.statistics import (
-    calculate_phase_statistics,
-)
+from common.console import info, summary
+from common.utils import human_time
+from cracking.parsers import load_campaign
+from cracking.statistics import calculate_phase_statistics
 
 
 def estimate_campaign(path):
@@ -92,7 +85,9 @@ def print_campaign_estimate(args):
         estimate_campaign(args.campaign)
     )
 
-    print("\n## Campaign Estimate\n")
+    print()
+    info("Campaign Estimate")
+    print()
 
     for phase in estimates:
 
@@ -112,10 +107,11 @@ def print_campaign_estimate(args):
 
     print()
 
-    if incomplete:
-        print(f"Estimated Total   : {human_time(total_duration)} (partial estimate)")
+    suffix = " (partial estimate)" if incomplete else ""
 
-    else:
-        print(f"Estimated Total   : {human_time(total_duration)}")
+    print(
+        f"{'Estimated Total':<20}: "
+        f"{human_time(total_duration)}{suffix}"
+    )
 
     print()

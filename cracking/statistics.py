@@ -9,7 +9,7 @@ import json
 
 from cracking.constants import HISTORY_DIR
 from common.utils import human_time
-from common.console import summary
+from common.console import summary, info
 
 
 def load_history():
@@ -125,7 +125,9 @@ def print_phase_statistics(_args=None):
         print("No campaign history available.")
         return
 
-    print("\n## Attack Statistics\n")
+    print()
+    info("Attack Statistics")
+    print()
 
     for phase_id, data in sorted(stats.items()):
 

@@ -3,46 +3,46 @@
 !!! tip
     Use `password-audit crack estimate` before executing large campaigns.
 
-The `password-audit crack` module executes password recovery campaigns using Hashcat and tracks historical campaign performance. It has three submodules:
+The `crack` module is used to:
+
+- Estimate campaign duration using historical statistics (`estimate`)
+- Execute password recovery campaigns with Hashcat (`run`)
+- Review historical attack performance and recovery metrics (`stats`)
 
 ```bash
 $ password-audit crack -h
-usage: password-audit crack [-h] {run,stats,estimate} ...
+usage: main.py crack [-h] {estimate,run,stats} ...
+
+Execute Hashcat password recovery campaigns, estimate campaign duration 
+using historical statistics, and review past campaign performance.
 
 positional arguments:
-  {run,stats,estimate}
+  {estimate,run,stats}
+    estimate            Estimate campaign duration
     run                 Execute a cracking campaign
     stats               Display historical cracking statistics
-    estimate            Estimate campaign duration
 
 options:
   -h, --help            show this help message and exit
+
+    Examples:
+
+        password-audit crack estimate \
+            -C config.json
+
+        password-audit crack run \
+            -H ntds-organiser/ntlm-hashes.txt \
+            -C config.json \
+            -G internal-audit
+
+        password-audit crack stats
 ```
 
-## Campaign Structure
+## Campaigns
 
-Campaigns define how password recovery attacks are executed. A campaign consists of:
+Campaigns define the sequence of password recovery attacks executed by Hashcat. They consist of global `parameters` (apply to all phases) and one or more attack `phases` executed sequentially. 
 
-* Global parameters
-* One or more attack phases
-
-Campaigns are written in JSON and supplied to the `crack run` subcommand using the `-C` / `--campaign` flag:
-
-```bash
-$ password-audit crack run -h
-usage: password-audit crack run [-h] -C CAMPAIGN -H HASHES -G CAMPAIGN_NAME [--debug]
-
-options:
-  -h, --help            show this help message and exit
-  -C, --campaign CAMPAIGN
-                        Campaign configuration file
-  -H, --hashes HASHES   File containing NTLM hashes to recover
-  -G, --campaign-name CAMPAIGN_NAME
-                        Campaign identifier
-  --debug               Display verbose Hashcat output (default: False)
-```
-
-A campaign contains two top-level sections:
+Campaigns are written in JSON and contain the following sections:
 
 * `parameters`
     * `hashMode`: Specifies the Hashcat hash mode.
@@ -52,13 +52,11 @@ A campaign contains two top-level sections:
 * `phases`
     * `id`: Unique identifier for the phase.
     * `enabled`: Enable or disable a phase.
-    * `type`: Dictionary (`wordlist`) or loopback (`loopback`) attack.
-    * `wordlist`: Wordlist file used by the phase. (required only if `"type": "wordlist"`)
+    * `type`: Attack type (`wordlist` or `loopback`).
+    * `wordlist`: Input wordlist used by the phase.
     * `rule`: Rule file to be used by the phase.
 
-Phases are executed sequentially in the order they are defined.
-
-An example `config.json` file consisting of five phases is shown below:
+An example JSON file consisting of three phases is shown below:
 
 ```json
 {
@@ -90,20 +88,6 @@ An example `config.json` file consisting of five phases is shown below:
             "enabled": true
         },
         {
-            "id": "weakpass-rule",
-            "type": "wordlist",
-            "wordlist": "weakpass_4a.txt",
-            "rule": "OneRuleToRuleThemStill.rule",
-            "enabled": true
-        },
-        {
-            "id": "rockyou2024-rule",
-            "type": "wordlist",
-            "wordlist": "rockyou2024.txt",
-            "rule": "OneRuleToRuleThemStill.rule",
-            "enabled": true
-        },
-        {
             "id": "loopback-rule",
             "type": "loopback",
             "wordlist": "loopback.txt",
@@ -114,9 +98,8 @@ An example `config.json` file consisting of five phases is shown below:
 }
 ```
 
-Loopback phases generate a temporary dictionary from passwords recovered during previous phases. This allows recovered passwords to be transformed with Hashcat rules and reused in subsequent attack phases. If no passwords have been recovered, loopback phases are skipped automatically.
-
-## Campaign Validation
+!!! tip
+    **Loopback phases** generate a temporary dictionary from passwords recovered during previous phases (`loopback.txt`). This allows recovered passwords to be transformed with Hashcat rules and reused in subsequent attack phases. If no passwords have been recovered, loopback phases are skipped automatically.
 
 Campaigns are validated before execution. Validation includes:
 
@@ -128,30 +111,102 @@ Campaigns are validated before execution. Validation includes:
 
 Invalid configurations will be rejected before Hashcat execution begins.
 
-## Usage
+## Estimate
 
-### Campaign Duration Estimation
+The `estimate` command predicts the duration of each campaign phase and the overall campaign based on historical execution data. This helps operators estimate runtime and optimise cracking strategies before launching large campaigns.
 
-Once we have a configuration file ready, we can use the `crack estimate` option to produce a per phase and a total duration based on historical data:
+```bash
+$ password-audit crack estimate -h
+usage: main.py crack estimate [-h] -C CAMPAIGN
+
+Estimate the duration of a cracking campaign before execution using 
+the supplied configuration file and historical data.
+
+options:
+  -h, --help            show this help message and exit
+
+required arguments:
+  -C, --campaign CAMPAIGN
+                        Campaign configuration file
+
+Example:
+
+    password-audit crack estimate \
+        -C config.json
+```
+
+Each `run` generates a JSON history file under `~/.password-audit/history` containing performance metrics used by the estimation engine:
+
+```json
+{
+...
+        {
+            "id": "rockyou-rule",
+            "session": "test-lm-rockyou-rule",
+            "wordlist": "rockyou.txt",
+            "rule": "OneRuleToRuleThemStill.rule",
+            "duration": 817.54,
+            "durationHuman": "13m 37s",
+            "newRecovered": 43,
+            "totalRecovered": 192,
+            "returnCode": 1,
+            "passwordsPerMinute": 0.0
+        },
+...
+}                                     
+```
+
+The estimate is calculated by matching campaign phases against historical execution data:
 
 ```bash
 $ password-audit crack estimate --campaign config.json
 
-## Campaign Estimate
+[*] Campaign Estimate
 
-rockyou             : 3s (10 runs)
-rockyou-rule        : 12s (10 runs)
-hashmob-rule        : Unknown (0 runs)
-weakpass-rule       : Unknown (0 runs)
-rockyou2024-rule    : Unknown (0 runs)
-loopback-rule       : 2s (10 runs)
+rockyou             : 3s (16 runs)
+rockyou-rule        : 1m 0s (16 runs)
+loopback-rule       : 3s (12 runs)
 
-Estimated Total   : 18s (partial estimate)
+Estimated Total     : 1m 6s
 ```
 
-### Running the Campaign
+## Run
 
-We can adjust the JSON file accordingly (e.g. via the `enabled` flag) and then re-estimate the campaign's duration. When satisfied, we can `run` the campaign:
+Running a campaign requires:
+
+- A hash dataset
+- A campaign configuration file
+- A campaign identifier used for result tracking and statistics collection
+
+```bash
+$ password-audit crack run -h
+usage: main.py crack run [-h] -H HASHES -C CAMPAIGN -G CAMPAIGN_NAME [--resume] [--debug]
+
+Execute a Hashcat password recovery campaign using the supplied hash dataset and campaign configuration file.
+
+options:
+  -h, --help            show this help message and exit
+
+required arguments:
+  -H, --hashes HASHES   Hash file to crack
+  -C, --campaign CAMPAIGN
+                        Campaign configuration file
+  -G, --campaign-name CAMPAIGN_NAME
+                        Campaign identifier
+
+optional arguments:
+  --resume              Resume an interrupted campaign (default: False)
+  --debug               Display verbose Hashcat output (default: False)
+
+    Example:
+
+        password-audit crack run \
+            -H ntds-organiser/ntlm-hashes.txt \
+            -C config.json \
+            -G internal-audit
+```
+
+Once a campaign configuration has been validated and estimated, it can be executed using the `run` command:
 
 ```bash
 password-audit crack run \
@@ -160,56 +215,28 @@ password-audit crack run \
     --campaign-name internal-password-audit
 ```
 
-### Campaign Statistics
+Campaign execution generates a results file named after the campaign identifier (e.g. `internal-password-audit-results.json`) containing statistics for every executed phase.
 
-Campaign execution produces a results file containing recovery statistics for each phase (`./ntds-organiser/test-run-results.json`):
+## Stats
 
-```json
-{
-    "campaign": "test-run",
-    "hashMode": "1000",
-    "hashDataset": "/home/test/ntds-organiser/ntlm-hashes.txt",
-    "started": "2026-08-12T12:23:21.551835",
-    "phases": [
-        {
-            "id": "rockyou",
-            "wordlist": "rockyou.txt",
-            "rule": "",
-            "duration": 3.13,
-            "durationHuman": "3s",
-            "newRecovered": 0,
-            "totalRecovered": 1,
-            "returnCode": 1,
-            "passwordsPerMinute": 0.0
-        },
-        {
-            "id": "rockyou-rule",
-            "wordlist": "rockyou.txt",
-            "rule": "best66.rule",
-            "duration": 2.73,
-            "durationHuman": "2s",
-            "newRecovered": 0,
-            "totalRecovered": 1,
-            "returnCode": 1,
-            "passwordsPerMinute": 0.0
-        },
-        {
-            "id": "loopback-rule",
-            "wordlist": "loopback.txt",
-            "rule": "OneRuleToRuleThemStill.rule",
-            "duration": 2.7,
-            "durationHuman": "2s",
-            "newRecovered": 0,
-            "totalRecovered": 1,
-            "returnCode": 1,
-            "passwordsPerMinute": 0.0
-        }
-    ],
-    "completed": "2026-08-12T12:23:30.197514"
-}
+The `stats` command displays historical performance data gathered from previous campaigns.
+
+```bash
+$ password-audit crack stats -h
+usage: main.py crack stats [-h]
+
+Display statistics for previously executed cracking campaigns, 
+including password recovery counts, attack performance, and campaign history.
+
+options:
+  -h, --help  show this help message and exit
+
+Example:
+
+    password-audit crack stats
 ```
 
-In addition, campaign results are archived automatically and used to provide:
+Historical campaign data is archived automatically and used to provide:
 
 * Historical attack statistics
 * Recovery metrics
@@ -221,42 +248,98 @@ For example:
 ```bash
 $ password-audit crack stats
 
-## Attack Statistics
+[*] Attack Statistics
 
 loopback-rule
 -------------
-    Runs                : 10
-    Average Duration    : 2s
-    Average Recovery    : 0.0
-    Average ROI         : 0.0 passwords/min
-    Best Recovery       : 0
-    Best ROI            : 0 passwords/min
-
-rockyou
--------
-    Runs                : 10
+    Runs                : 12
     Average Duration    : 3s
-    Average Recovery    : 0.1
-    Average ROI         : 1.9 passwords/min
-    Best Recovery       : 1
-    Best ROI            : 18.97 passwords/min
+    Average Recovery    : 1.92
+    Average ROI         : 24.7 passwords/min
+    Best Recovery       : 23
+    Best ROI            : 296.35 passwords/min
 
 rockyou-rule
 ------------
-    Runs                : 10
-    Average Duration    : 12s
-    Average Recovery    : 0.0
-    Average ROI         : 0.0 passwords/min
-    Best Recovery       : 0
-    Best ROI            : 0 passwords/min
+    Runs                : 16
+    Average Duration    : 1m 0s
+    Average Recovery    : 1.44
+    Average ROI         : 21.57 passwords/min
+    Best Recovery       : 23
+    Best ROI            : 345.08 passwords/min
 ```
 
-## Output Files
+## Additional Flags
 
-Campaign execution generates the following artefacts:
+### Resume
 
-| File | Description |
-|--------|--------|
-| `campaign-results.json` | Campaign execution results |
-| `loopback.txt` | Generated loopback dictionary |
-| `hashcat.potfile` | Hashcat recovered password database |
+The `--resume` flag resumes an interrupted campaign and skips phases that completed successfully during the previous execution.
+
+!!! note 
+    The resume workflow is currently being refined and may change in future releases.
+
+```bash
+$ password-audit crack run -H ntds-organiser/ntlm-hashes.txt -C config.json -G test-resume
+[*] Hashcat Scheduler
+
+[*] Phase 1/3
+    Wordlist : rockyou.txt
+
+    ---------------------------------------------------------------------------
+    Status    : Exhausted
+    Recovered : 34/164 (20.73%) Digests (total), 0/164 (0.00%) Digests (new)
+    Progress  : 14344384/14344384 (100.00%)
+    Speed     : 19759.7 kH/s (0.62ms) @ Accel:320 Loops:1 Thr:256 Vec:1
+    ETA       : Sat Aug 15 16:59:38 2026 (0 secs)
+    ---------------------------------------------------------------------------
+
+[+] Phase Complete
+    Duration            : 3s
+    New Passwords       : 0
+    Total Passwords     : 34
+
+
+[*] Phase 2/3
+    Wordlist : rockyou.txt
+    Rule     : OneRuleToRuleThemStill.rule
+
+^C
+[!] Campaign interrupted
+    Current Phase       : rockyou-rule
+    Session             : test-resume-rockyou-rule
+```
+
+The campaign can then be resumed:
+
+```bash
+$ password-audit crack run -H ntds-organiser/ntlm-hashes.txt -C config.json -G test-resume --resume
+
+[*] Hashcat Scheduler
+
+[+] Resuming interrupted campaign
+    Skipping            : rockyou
+
+
+[*] Phase 1/2
+    Wordlist : rockyou.txt
+    Rule     : OneRuleToRuleThemStill.rule
+...
+```
+
+Previously completed phases are skipped automatically.
+
+### Debug
+
+The `--debug` flag displays the full Hashcat commands used during campaign execution. This can be useful for troubleshooting, validating file paths, and verifying Hashcat arguments:
+
+```bash
+$ password-audit crack run -H ntds-organiser/ntlm-hashes.txt -C config.json -G test-debug --debug
+[*] Hashcat Scheduler
+
+[*] Phase 1/3
+    Wordlist : rockyou.txt
+
+[+] Executing:
+/mnt/c/pentest/tools/hashcat/hashcat.exe -m 1000 C:\pentest\GitHub\password-audit\ntds-organiser\ntlm-hashes.txt C:\pentest\tools\hashcat\wordlists\rockyou.txt --potfile-path C:\pentest\tools\hashcat\hashcat.potfile -O -w 3 -d 1 --status --status-timer 300 --session test-debug-rockyou
+...
+```

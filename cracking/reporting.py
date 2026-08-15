@@ -6,6 +6,7 @@ operator-facing output.
 """
 
 from common.utils import human_time
+from common.console import info
 
 def print_summary(results):
     """
@@ -23,7 +24,7 @@ def print_summary(results):
         None
     """
 
-    print("\n## Campaign Summary\n")
+    info("Campaign Summary")
 
     print("| Phase         | Duration | New Passwords | Total Passwords | ROI/min |")
     print("|---------------|----------|---------------|-----------------|---------|")
@@ -55,7 +56,7 @@ def print_summary(results):
     )
 
     print()
-    print("Campaign Totals")
+    info("Campaign Totals")
     print("---------------")
 
     print(f"Duration        : {human_time(total_duration)}")

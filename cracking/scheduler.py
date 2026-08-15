@@ -210,8 +210,8 @@ def run_campaign(
         except KeyboardInterrupt:
 
             print()
-
             warn("Campaign interrupted")
+            print()
 
             summary("Current Phase", results["currentPhase"])
             summary("Session", results["currentSession"])

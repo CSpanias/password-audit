@@ -225,7 +225,8 @@ def run_phase(
     if debug:
 
         print()
-        print("[+] Executing:")
+        info("Executing")
+        print()
         print(" ".join(command))
         print()
 
@@ -271,8 +272,8 @@ def run_phase(
     duration = time.time() - start
 
     print()
-
     ok("Phase Complete")
+    print()
 
     summary("Duration", human_time(duration))
     summary("New Passwords", new_recovered)

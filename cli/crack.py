@@ -24,6 +24,7 @@ def run_cracking_campaign(args):
         None
     """
 
+    print()
     info("Hashcat Scheduler")
 
     config = load_campaign(args.campaign)
