@@ -7,13 +7,16 @@ dispatches execution to individual framework components.
 
 import argparse
 
-from cli.lm import run_lm_candidates
-from cli.organise import run_ntds_organiser
-from cli.crack import run_cracking_campaign
+from textwrap import dedent
+
 from cli.analyse import run_password_analysis
 from cli.audit import run_audit_workflow
+from cli.crack import run_cracking_campaign
+from cli.lm import run_lm_mapping, run_lm_candidates
+from cli.organise import run_ntds_organiser
 from cracking.statistics import print_phase_statistics
 from cracking.estimate import print_campaign_estimate
+
 
 def main():
     """
@@ -26,6 +29,13 @@ def main():
         None
     """
 
+    # Parsers configuration
+    class CustomFormatter(
+        argparse.ArgumentDefaultsHelpFormatter,
+        argparse.RawDescriptionHelpFormatter,
+    ):
+        pass
+
     parser = argparse.ArgumentParser(
         description="Password Audit Framework",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -37,13 +47,27 @@ def main():
     )
 
     #-----------------------------------------------
-    # Audit
+    # Audit module
     #-----------------------------------------------
 
     audit_parser = subparsers.add_parser(
         "audit",
         help="Execute an end-to-end password audit",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description=(
+            "Perform an end-to-end password audit by "
+            "orchestrating the organise, crack, and "
+            "analyse modules."
+        ),
+        formatter_class=CustomFormatter,
+        epilog=dedent("""
+        Example:
+
+            password-audit audit \\
+                -N company.ntds \\
+                -B bloodhound.zip \\
+                -C config.json \\
+                -G internal-password-audit
+        """)
     )
 
     # Group required and options arguments
@@ -55,6 +79,7 @@ def main():
         "optional arguments"
     )
 
+    # Required arguments
     required_audit_parser.add_argument(
         "-N",
         "--ntds",
@@ -83,6 +108,7 @@ def main():
         help="Campaign identifier"
     )
 
+    # Optional arguments
     optional_audit_parser.add_argument(
         "-F",
         "--filter",
@@ -97,7 +123,7 @@ def main():
     )
 
     optional_audit_parser.add_argument(
-        "-A",
+        "-D",
         "--domain-admins",
         default="./ntds-organiser/domain-admins.txt",
         help="Domain Admin account list",
@@ -129,51 +155,68 @@ def main():
     )
 
     #-----------------------------------------------
-    # NTDS Organiser
+    # Organise module
     #-----------------------------------------------
 
     organise_parser = subparsers.add_parser(
         "organise",
         help="Process NTDS, BloodHound, and Hashcat data",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=(
+            "Parse NTDS, BloodHound, and Hashcat datasets and "
+            "generate analysis artefacts."
+        ),
+        formatter_class=CustomFormatter,
+        epilog=dedent("""
+        Example:
+
+            password-audit organise \\
+                -N company.ntds \\
+                -B bloodhound.zip
+        """)
     )
 
-    organise_parser.add_argument(
+    # Group required and options arguments
+    required_organise_parser = organise_parser.add_argument_group(
+        "required arguments"
+    )
+
+    optional_organise_parser = organise_parser.add_argument_group(
+        "optional arguments"
+    )
+
+    # Required arguments
+    required_organise_parser.add_argument(
         "-N",
         "--ntds",
         required=True,
         help="Secretsdump NTDS file"
     )
 
-    organise_parser.add_argument(
+    required_organise_parser.add_argument(
+        "-B",
+        "--bloodhound",
+        required=True,
+        help="BloodHound ZIP export"
+    )
+
+    # Optional arguments
+    optional_organise_parser.add_argument(
+        "-F",
+        "--filter",
+        help="Comma-separated usernames to exclude"
+    )
+
+    optional_organise_parser.add_argument(
         "-O",
         "--output",
         default="ntds-organiser",
         help="Output directory"
     )
 
-    organise_parser.add_argument(
-        "-F",
-        "--filter",
-        help="Comma-separated usernames to exclude"
-    )
-
-    organise_parser.add_argument(
-        "-B",
-        "--bloodhound",
-        help="BloodHound ZIP export"
-    )
-
-    organise_parser.add_argument(
+    optional_organise_parser.add_argument(
         "-P",
         "--potfile",
         help="Hashcat potfile containing recovered passwords"
-    )
-
-    organise_parser.add_argument(
-        "-L",
-        "--lm-results",
-        help="LM recovery results generated using hashcat --show",
     )
 
     organise_parser.set_defaults(
@@ -181,13 +224,13 @@ def main():
     )
 
     #-----------------------------------------------
-    # Hashcat Scheduler
+    # Crack module
     #-----------------------------------------------
 
     crack_parser = subparsers.add_parser(
         "crack",
         help="Password recovery campaigns",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=CustomFormatter
     )
 
     crack_subparsers = crack_parser.add_subparsers(
@@ -195,40 +238,55 @@ def main():
         required=True,
     )
 
+    #-----------------------------------------------
+    # Crack run submodule
+    #-----------------------------------------------
+
     run_parser = crack_subparsers.add_parser(
         "run",
         help="Execute a cracking campaign",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=CustomFormatter
     )
 
-    run_parser.add_argument(
-        "--resume",
-        action="store_true",
-        help="Resume an interrupted campaign"
+    # Group required and options arguments
+    required_run_parser = run_parser.add_argument_group(
+        "required arguments"
     )
 
-    run_parser.add_argument(
-        "-C",
-        "--campaign",
-        required=True,
-        help="Campaign configuration file"
+    optional_run_parser = run_parser.add_argument_group(
+        "optional arguments"
     )
 
-    run_parser.add_argument(
+    # Required arguments
+    required_run_parser.add_argument(
         "-H",
         "--hashes",
         required=True,
         help="Hash file to crack",
     )
 
-    run_parser.add_argument(
+    required_run_parser.add_argument(
+        "-C",
+        "--campaign",
+        required=True,
+        help="Campaign configuration file"
+    )
+
+    required_run_parser.add_argument(
         "-G",
         "--campaign-name",
         required=True,
         help="Campaign identifier"
     )
 
-    run_parser.add_argument(
+    # Optional arguments
+    optional_run_parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an interrupted campaign"
+    )
+
+    optional_run_parser.add_argument(
         "--debug",
         action="store_true",
         help="Display verbose Hashcat output",
@@ -239,13 +297,23 @@ def main():
     )
 
     #-----------------------------------------------
-    # Hashcat Scheduler stats subcommand
+    # Crack stats submodule
     #-----------------------------------------------
 
     stats_parser = crack_subparsers.add_parser(
         "stats",
         help="Display historical cracking statistics",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description=(
+            "Display statistics for previously executed "
+            "cracking campaigns, including password recovery "
+            "counts, attack performance, and campaign history."
+        ),
+        formatter_class=CustomFormatter,
+        epilog=dedent("""
+        Example:
+
+            password-audit crack stats
+        """)
     )
 
     stats_parser.set_defaults(
@@ -253,16 +321,32 @@ def main():
     )
 
     #-----------------------------------------------
-    # Hashcat Scheduler estimate subcommand
+    # Crack estimate submodule
     #-----------------------------------------------
 
     estimate_parser = crack_subparsers.add_parser(
         "estimate",
         help="Estimate campaign duration",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description=(
+            "Estimate the duration of a cracking campaign "
+            "before execution using the supplied configuration "
+            "file and historical data."
+        ),
+        formatter_class=CustomFormatter,
+        epilog=dedent("""
+        Example:
+
+            password-audit crack estimate \\
+                -C config.json
+        """)
     )
 
-    estimate_parser.add_argument(
+    # Group required and options arguments
+    required_estimate_parser = estimate_parser.add_argument_group(
+        "required arguments"
+    )
+
+    required_estimate_parser.add_argument(
         "-C",
         "--campaign",
         required=True,
@@ -274,58 +358,81 @@ def main():
     )
 
     #-----------------------------------------------
-    # Password Analysis
+    # Analyse module
     #-----------------------------------------------
 
     analyse_parser = subparsers.add_parser(
         "analyse",
         help="Analyse recovered passwords and generate reports",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=(
+            "Analyse recovered NTLM and LM passwords, "
+            "identify common weaknesses, and generate "
+            "a Markdown report with findings and "
+            "remediation guidance."
+        ),
+        formatter_class=CustomFormatter,
+        epilog=dedent("""
+        Example:
+
+            password-audit analyse \\
+                -M ntds-organiser/mapped-ntlm-passwords.txt
+        """)
     )
 
-    analyse_parser.add_argument(
+    # Group required and options arguments
+    required_analyse_parser = analyse_parser.add_argument_group(
+        "required arguments"
+    )
+
+    optional_analyse_parser = analyse_parser.add_argument_group(
+        "optional arguments"
+    )
+
+    # Required arguments
+    required_analyse_parser.add_argument(
         "-M",
         "--mapped-passwords",
         required=True,
         help="Recovered NTLM passwords"
     )
 
-    analyse_parser.add_argument(
-        "-A",
+    # Optional arguments
+    optional_analyse_parser.add_argument(
+        "-D",
         "--domain-admins",
         default="./ntds-organiser/domain-admins.txt",
         help="Domain Admin account list"
     )
 
-    analyse_parser.add_argument(
+    optional_analyse_parser.add_argument(
         "-P",
         "--pass-policy",
         default="./ntds-organiser/domain-policy.txt",
         help="Domain password policy"
     )
 
-    analyse_parser.add_argument(
+    optional_analyse_parser.add_argument(
         "-G",
         "--company-words",
         default="./ntds-organiser/company-words.txt",
         help="Organisation-specific password analysis terms"
     )
 
-    analyse_parser.add_argument(
+    optional_analyse_parser.add_argument(
         "-E",
         "--enabled-users",
         default="./ntds-organiser/enabled-users.txt",
         help="Enabled user accounts list"
     )
 
-    analyse_parser.add_argument(
+    optional_analyse_parser.add_argument(
         "-U",
         "--lm-users",
         default="./ntds-organiser/lm-users.txt",
         help="Accounts storing LM password hashes"
     )
 
-    analyse_parser.add_argument(
+    optional_analyse_parser.add_argument(
         "-L",
         "--mapped-lm-passwords",
         default="./ntds-organiser/mapped-lm-passwords.txt",
@@ -337,36 +444,161 @@ def main():
     )
 
     #-----------------------------------------------
-    # LM candidate generation
+    # LM module
     #-----------------------------------------------
 
     lm_parser = subparsers.add_parser(
         "lm",
-        help="Generate LM Domain Admin candidates",
+        help="LM password recovery and candidate generation",
+        description=(
+            "LM password processing utilities used to "
+            "reconstruct recovered LM passwords, map them "
+            "to user accounts, and generate candidate "
+            "password variants for privileged accounts."
+        ),
+        formatter_class=CustomFormatter,
+        epilog=dedent("""
+        Examples:
+
+            password-audit lm map \\
+                -N company.ntds \\
+                -P hashcat.potfile \\
+                -R lm-results.txt
+
+            password-audit lm generate \\
+                -L ntds-organiser/mapped-lm-passwords.txt
+        """)
     )
 
-    lm_parser.add_argument(
-        "-L",
-        "--mapped-lm-passwords",
+    lm_subparsers = lm_parser.add_subparsers(
+        dest="lm_command",
         required=True,
     )
 
-    lm_parser.add_argument(
-        "-D",
-        "--domain-admins",
-        required=True,
+    #-----------------------------------------------
+    # LM map submodule
+    #-----------------------------------------------
+
+    lm_map_parser = lm_subparsers.add_parser(
+        "map",
+        help="Map recovered LM passwords to user accounts",
+        description=(
+            "Reconstruct recovered LM passwords using "
+            "Hashcat show results and map them back to "
+            "user accounts within the NTDS dataset."
+        ),
+        formatter_class=CustomFormatter,
+        epilog=dedent("""
+        Example:
+
+            password-audit lm map \\
+                -N company.ntds \\
+                -P hashcat.potfile \\
+                -R lm-results.txt
+        """)
     )
 
-    lm_parser.add_argument(
+    required_lm_map_parser = lm_map_parser.add_argument_group(
+        "required arguments"
+    )
+
+    optional_lm_map_parser = lm_map_parser.add_argument_group(
+        "optional arguments"
+    )
+
+    # Required arguments
+    required_lm_map_parser.add_argument(
+        "-N",
+        "--ntds",
+        required=True,
+        help="SecretsDump NTDS file",
+    )
+
+    required_lm_map_parser.add_argument(
+        "-P",
+        "--potfile",
+        required=True,
+        help="Hashcat potfile containing recovered passwords",
+    )
+
+    required_lm_map_parser.add_argument(
+        "-R",
+        "--lm-results",
+        required=True,
+        help="LM recovery results generated using hashcat --show",
+    )
+
+    # Optional arguments
+    optional_lm_map_parser.add_argument(
         "-O",
         "--output-dir",
         default="ntds-organiser",
         help="Output directory",
     )
 
-    lm_parser.set_defaults(
-        func=run_lm_candidates
+    lm_map_parser.set_defaults(
+        func=run_lm_mapping,
     )
+
+    #-----------------------------------------------
+    # LM generate submodule
+    #-----------------------------------------------
+
+    lm_generate_parser = lm_subparsers.add_parser(
+        "generate",
+        help="Generate LM Domain Admin candidates",
+        description=(
+            "Identify recovered LM passwords belonging "
+            "to Domain Administrators and generate all "
+            "possible password capitalisation variants."
+        ),
+        formatter_class=CustomFormatter,
+        epilog=dedent("""
+        Example:
+
+            password-audit lm generate \\
+                -L ntds-organiser/mapped-lm-passwords.txt
+        """)
+    )
+
+    required_lm_generate_parser = lm_generate_parser.add_argument_group(
+        "required arguments"
+    )
+
+    optional_lm_generate_parser = lm_generate_parser.add_argument_group(
+        "optional arguments"
+    )
+
+    # Required arguments
+    required_lm_generate_parser.add_argument(
+        "-L",
+        "--mapped-lm-passwords",
+        required=True,
+        help="Recovered LM passwords",
+    )
+
+    # Optional arguments
+    optional_lm_generate_parser.add_argument(
+        "-D",
+        "--domain-admins",
+        default="./ntds-organiser/domain-admins.txt",
+        help="Domain Admin account list",
+    )
+
+    optional_lm_generate_parser.add_argument(
+        "-O",
+        "--output-dir",
+        default="ntds-organiser",
+        help="Output directory",
+    )
+
+    lm_generate_parser.set_defaults(
+        func=run_lm_candidates,
+    )
+
+    #-----------------------------------------------
+    # Assembly parsers
+    #-----------------------------------------------
 
     args = parser.parse_args()
 

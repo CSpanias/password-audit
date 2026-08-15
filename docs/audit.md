@@ -8,9 +8,9 @@ It is intended as the primary workflow for most engagements and automates the fu
 
 ```bash
 $ password-audit audit -h
-usage: password-audit audit [-h] -N NTDS -B BLOODHOUND -C CAMPAIGN -G CAMPAIGN_NAME [-F FILTER]
-                     [-M MAPPED_PASSWORDS] [-A DOMAIN_ADMINS] [-P PASS_POLICY] [-W COMPANY_WORDS]
-                     [-E ENABLED_USERS]
+usage: password-audit audit [-h] -N NTDS -B BLOODHOUND -C CAMPAIGN -G CAMPAIGN_NAME [-F FILTER] [-M MAPPED_PASSWORDS] [-D DOMAIN_ADMINS] [-P PASS_POLICY] [-W COMPANY_WORDS] [-E ENABLED_USERS]
+
+Perform an end-to-end password audit by orchestrating the organise, crack, and analyse modules.
 
 options:
   -h, --help            show this help message and exit
@@ -27,9 +27,8 @@ required arguments:
 optional arguments:
   -F, --filter FILTER   Comma-separated usernames to exclude (default: None)
   -M, --mapped-passwords MAPPED_PASSWORDS
-                        Recovered password dataset (default: ./ntds-organiser/mapped-ntlm-
-                        passwords.txt)
-  -A, --domain-admins DOMAIN_ADMINS
+                        Recovered password dataset (default: ./ntds-organiser/mapped-ntlm-passwords.txt)
+  -D, --domain-admins DOMAIN_ADMINS
                         Domain Admin account list (default: ./ntds-organiser/domain-admins.txt)
   -P, --pass-policy PASS_POLICY
                         Domain password policy (default: ./ntds-organiser/domain-policy.txt)
@@ -37,6 +36,14 @@ optional arguments:
                         Organisation-related strings (default: ./ntds-organiser/company-words.txt)
   -E, --enabled-users ENABLED_USERS
                         Enabled user accounts list (default: ./ntds-organiser/enabled-users.txt)
+
+Example:
+
+    password-audit audit \
+        -N company.ntds \
+        -B bloodhound.zip \
+        -C config.json \
+        -G internal-password-audi
 ```
 
 ## Usage

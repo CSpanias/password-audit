@@ -13,17 +13,31 @@ The `organise` module is used for two things:
 
 ```bash
 $ password-audit organise -h
-usage: password-audit organise [-h] -N NTDS [-O OUTPUT] [-F FILTER] [-B BLOODHOUND] [-P POTFILE]
+usage: main.py organise [-h] -N NTDS -B BLOODHOUND [-F FILTER] [-O OUTPUT] [-P POTFILE] [-R LM_RESULTS]
+
+Parse NTDS, BloodHound, and Hashcat datasets and generate the files required for password analysis, including recovered password mappings, domain data, and reporting artefacts.
 
 options:
   -h, --help            show this help message and exit
+
+required arguments:
   -N, --ntds NTDS       Secretsdump NTDS file
-  -O, --output OUTPUT   Output directory (default: ntds-organiser)
-  -F, --filter FILTER   Comma-separated testing account filters (default: None)
   -B, --bloodhound BLOODHOUND
-                        BloodHound ZIP export (default: None)
+                        BloodHound ZIP export
+
+optional arguments:
+  -F, --filter FILTER   Comma-separated usernames to exclude (default: None)
+  -O, --output OUTPUT   Output directory (default: ntds-organiser)
   -P, --potfile POTFILE
                         Hashcat potfile containing recovered passwords (default: None)
+  -R, --lm-results LM_RESULTS
+                        LM recovery results generated using hashcat --show (default: None)
+
+Example:
+
+    password-audit organise \
+        -N company.ntds \
+        -B bloodhound.zip
 ```
 
 ### NTDS and BloodHound Parsing
