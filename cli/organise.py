@@ -25,6 +25,7 @@ def run_ntds_organiser(args):
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    print()
     info("NTDS Organiser")
 
     results = organise_dataset(
@@ -32,10 +33,10 @@ def run_ntds_organiser(args):
         output_dir=output_dir,
         bloodhound_file=args.bloodhound,
         potfile=args.potfile,
-        lm_results=args.lm_results,
         username_filter=args.filter,
     )
 
+    # Print testing accounts to stdout
     filtered_users = results["filtered_users"]
 
     if filtered_users:
@@ -54,26 +55,24 @@ def run_ntds_organiser(args):
     summary("User Accounts", len(results["enabled_users"]))
     summary("Machine Accounts", len(results["machines"]))
     summary("NTLM Hashes", len(results["ntlm_hashes"]))
-    summary("LM Hashes", len(results["lm_hashes"]))
 
-    if results["company_words"]:
-        summary("Company Words", len(results["company_words"]))
+    if results["lm_hashes"]:
+        summary("LM Hashes", len(results["lm_hashes"]))
 
-    if results["domain_admins"]:
-        summary("Domain Admins", len(results["domain_admins"]))
-
+    summary("Domain Admins", len(results["domain_admins"]))
+    summary("Company Words", len(results["company_words"]))
+    
     if results["mapped_ntlm_passwords"]:
         summary("Mapped Passwords", len(results["mapped_ntlm_passwords"]))
 
-    if results["mapped_lm_passwords"]:
-        summary("Mapped LM Passwords", len(results["mapped_lm_passwords"]))
+    # if results["mapped_lm_passwords"]:
+    #     summary("Mapped LM Passwords", len(results["mapped_lm_passwords"]))
 
-    if results["mapped_lm_da_passwords"]:
-        summary("LM Domain Admins", len(results["mapped_lm_da_passwords"]))
+    # if results["mapped_lm_da_passwords"]:
+    #     summary("LM Domain Admins", len(results["mapped_lm_da_passwords"]))
 
-    if results["lm_da_candidates"]:
-        summary("LM DA Candidates", len(results["lm_da_candidates"]))
+    # if results["lm_da_candidates"]:
+    #     summary("LM DA Candidates", len(results["lm_da_candidates"]))
 
     print()
-
     summary("Output Directory", output_dir)

@@ -69,11 +69,17 @@ def build_results(
             Standardised NTDS analysis results.
     """
 
+    # Split enabled accounts into users and machines.
     enabled = get_enabled(entries)
     disabled = get_disabled(entries)
     machines = get_machines(enabled)
     users = get_users(enabled)
-    users, filtered = apply_filter(users, username_filter,)
+    
+    # Exclude testing accounts from the user dataset.
+    users, filtered = apply_filter(users, username_filter)
+
+    # Recalculate enabled account totals after filtering.
+    enabled = users + machines
 
     ntlm_hashes = extract_ntlm_hashes(users)
     lm_users, lm_hashes = extract_lm(users)

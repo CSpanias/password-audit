@@ -43,7 +43,7 @@ def run_lm_mapping(args):
     print()
 
     summary("Mapped LM Passwords", len(results["mapped_lm_passwords"]))
-    
+
     print()
     summary("Output Directory", args.output_dir)
 
