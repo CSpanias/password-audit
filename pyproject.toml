@@ -20,7 +20,8 @@ include = [
     "analysis",
     "reports",
     "cracking",
-    "auditing"
+    "auditing",
+    "lm"
 ]
 
 [project.optional-dependencies]
