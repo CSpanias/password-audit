@@ -2,17 +2,24 @@
 
 ## Overview
 
-`password-audit` is a modular Python-based framework designed to streamline Active Directory password audits by combining dataset organisation, password recovery campaigns, and password analysis into a single toolkit.
+`password-audit` is a modular Active Directory password auditing framework that combines dataset organisation, password recovery campaigns, and password analysis into a single toolkit.
 
-The core components include:
+It combines and extends the functionality of the following standalone projects:
 
-* **NTDS Organiser**: Parses and enriches Active Directory hash datasets.
-* **Password Cracker**: Executes and tracks Hashcat recovery campaigns.
-* **Password Analyser**: Analyses recovered passwords and generates assessment reports.
+* [`ntds-organiser`](https://github.com/CSpanias/ntds-organiser): Parses and enriches Active Directory hash datasets.
+* [`hashcat-scheduler`](https://github.com/CSpanias/hashcat-scheduler): Executes and tracks Hashcat recovery campaigns.
+* [`password-analyser`](https://github.com/CSpanias/password-analyser): Analyses recovered passwords and generates assessment reports.
 
 📖 **Documentation:** https://cspanias.github.io/password-audit/
 
-💡 **Future Ideas:** https://cspanias.github.io/password-audit/ideas/
+## Key Features
+
+* End-to-end password auditing workflow (`audit`)
+* NTDS and BloodHound dataset processing (`organise`)
+* Hashcat campaign execution and tracking (`crack`)
+* LM password recovery support and candidate generation (`lm`)
+* Password analysis and report generation (`analyse`)
+* Campaign statistics and duration estimation (`crack`)
 
 ## Installation
 
@@ -57,9 +64,21 @@ uv pip install -e .
 password-audit -h
 ```
 
+## Quick Start
+
+The recommended workflow is the `audit` module, which automatically orchestrates dataset organisation, password recovery, password mapping, and report generation:
+
+```bash
+password-audit audit \
+    --ntds company.ntds \
+    --bloodhound bloodhound.zip \
+    --campaign config.json \
+    --campaign-name internal-audit
+```
+
 ## Typical Workflow
 
-A password audit using `password-audit` typically follows the following stages:
+A password audit using `password-audit` consists of the following stages:
 
 ```markdown
 Extract NTDS (secretsdump) and Collect BloodHound Data (rusthound-ce)
@@ -88,7 +107,7 @@ Crack hashes (password-audit crack run)
     +--> loopback.txt
     |
     v
-Map recovered passwords back to users (password-audit organise)
+Map recovered NTLM passwords back to user accounts (password-audit organise)
     |
     +--> mapped-ntlm-passwords.txt
     |
@@ -99,4 +118,6 @@ Analyse the results & generate the report (password-audit analyse)
     +--> report.md
 ```
 
-For a more detailed end-to-end example, see [End-to-End Example](https://cspanias.github.io/password-audit/#end-to-end-example).
+For detailed examples and module-specific documentation, see:
+
+📖 https://cspanias.github.io/password-audit/

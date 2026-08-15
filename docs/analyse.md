@@ -2,11 +2,6 @@
 
 The `analyse` module identifies password security weaknesses and generates a Markdown-formatted report from recovered password datasets.
 
-The only required argument is `--mapped-passwords` / `-M`, which should reference a dataset in the `domain\username:password` format. All other datasets are loaded automatically from the default `./ntds-organiser` directory, but can be overridden manually if required.
-
-!!! info
-    If LM hashes are present in the NTDS, these can be included in the analysis via the `-L` / `--mapped-lm-passwords` flag. See [LM](lm.md) for more.
-
 ```bash
 $ password-audit analyse -h
 usage: password-audit analyse [-h] -M MAPPED_PASSWORDS [-D DOMAIN_ADMINS] [-P PASS_POLICY] [-G COMPANY_WORDS] [-E ENABLED_USERS] [-U LM_USERS] [-L MAPPED_LM_PASSWORDS]
@@ -42,19 +37,20 @@ Example:
 
 The current analysis includes:
 
-* Password recovery rates
-* Privileged account exposure (currently Domain Administrators)
-* Password reuse analysis
-* Common password identification
-* Username-derived passwords
-* Organisation-related passwords
-* Date-based passwords
-* Keyboard-walk passwords
-* Character-class analysis
+* **Password recovery rates** - Proportion of accounts whose passwords were successfully recovered.
+* **Privileged account exposure** - Recovered passwords associated with privileged accounts (currently Domain Administrators).
+* **Password reuse analysis** - General password reuse across unrelated accounts and shared password reuse across similarly named accounts.
+* **Predictable password patterns** - Dictionary-based, username-derived, organisation-related, date-based, and keyboard-walk passwords.
+* **Character-class analysis** - Password composition, i.e. use of uppercase, lowercase, numeric, and special characters.
 
 ## Usage
 
-The `analyse` module combines recovered password datasets with supporting artefacts generated during the organise stage, such as Domain Administrator lists, password policy information, organisation-specific terminology, and enabled user accounts. The only required argument is the final dataset:
+The `analyse` module combines the recovered password dataset(s) with supporting artefacts generated during the organise stage. The latter are loaded automatically from the default `./ntds-organiser` directory. 
+
+!!! info
+    If LM hashes are present in the NTDS, these can be included in the analysis via the `-L` / `--mapped-lm-passwords` flag. See [LM](lm.md) for more.
+
+The only required argument is the final NTLM dataset:
 
 ```bash
 # NTLM hashes only
