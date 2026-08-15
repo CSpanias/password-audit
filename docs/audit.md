@@ -1,8 +1,6 @@
 # Audit
 
-The `audit` module automates the [end-to-end](index.md#end-to-end-example) workflow by orchestrating the `organise`, `crack`, and `analyse` modules.
-
-It is intended as the primary workflow for most engagements and automates the full password auditing process from data collection through to report generation.
+The `audit` module automates the [end-to-end](index.md#manual-workflow) workflow by orchestrating the `organise`, `crack`, and `analyse` modules. It is intended as **the primary workflow** for most engagements and automates the full password auditing process from data collection through to report generation.
 
 ```bash
 $ password-audit audit -h

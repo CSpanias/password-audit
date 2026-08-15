@@ -1,5 +1,8 @@
 # Development
 
+!!! info
+    Portions of this project were implemented with the assistance of Microsoft Copilot (Basic) (19.2608.34011.0).
+
 This document provides an overview of the project structure and development practices used by the framework.
 
 ## Installation
