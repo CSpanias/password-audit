@@ -279,7 +279,11 @@ The `--resume` flag resumes an interrupted campaign and skips phases that comple
     The resume workflow is currently being refined and may change in future releases.
 
 ```bash
-$ password-audit crack run -H ntds-organiser/ntlm-hashes.txt -C config.json -G test-resume
+$ password-audit crack run \
+    -H ntds-organiser/ntlm-hashes.txt \
+    -C config.json \
+    -G test-resume
+
 [*] Hashcat Scheduler
 
 [*] Phase 1/3
@@ -312,7 +316,11 @@ $ password-audit crack run -H ntds-organiser/ntlm-hashes.txt -C config.json -G t
 The campaign can then be resumed:
 
 ```bash
-$ password-audit crack run -H ntds-organiser/ntlm-hashes.txt -C config.json -G test-resume --resume
+$ password-audit crack run \
+    -H ntds-organiser/ntlm-hashes.txt \
+    -C config.json \
+    -G test-resume \
+    --resume
 
 [*] Hashcat Scheduler
 
@@ -333,13 +341,24 @@ Previously completed phases are skipped automatically.
 The `--debug` flag displays the full Hashcat commands used during campaign execution. This can be useful for troubleshooting, validating file paths, and verifying Hashcat arguments:
 
 ```bash
-$ password-audit crack run -H ntds-organiser/ntlm-hashes.txt -C config.json -G test-debug --debug
+$ password-audit crack run \
+    -H ntds-organiser/ntlm-hashes.txt \
+    -C config.json \
+    -G test-debug \
+    --debug
+
 [*] Hashcat Scheduler
 
 [*] Phase 1/3
     Wordlist : rockyou.txt
 
 [+] Executing:
-/mnt/c/pentest/tools/hashcat/hashcat.exe -m 1000 C:\pentest\GitHub\password-audit\ntds-organiser\ntlm-hashes.txt C:\pentest\tools\hashcat\wordlists\rockyou.txt --potfile-path C:\pentest\tools\hashcat\hashcat.potfile -O -w 3 -d 1 --status --status-timer 300 --session test-debug-rockyou
+/mnt/c/tools/hashcat/hashcat.exe -m 1000 \
+    C:\ntds-organiser\ntlm-hashes.txt \
+    C:\tools\hashcat\wordlists\rockyou.txt \
+    --potfile-path C:\tools\hashcat\hashcat.potfile \
+    -O -w 3 -d 1 \
+    --status --status-timer 300 \
+    --session test-debug-rockyou
 ...
 ```

@@ -16,7 +16,8 @@ from analysis.workflow import analyse_passwords
 from cracking.parsers import load_campaign
 from cracking.scheduler import run_campaign
 from cracking.constants import DEFAULT_HASHCAT_DIR
-from common.console import info, summary
+from common.console import info, summary, warn
+from cracking.reporting import print_summary
 
 
 def run_audit(
@@ -77,31 +78,51 @@ def run_audit(
         exist_ok=True,
     )
 
+    # Organising
     info("Stage 1/4 - Organising Data")
 
-    organise_dataset(
-        ntds_file=ntds_file,
-        username_filter=username_filter,
-        output_dir=output_dir,
-        bloodhound_file=bloodhound_file,
-    )
+    organise_results = organise_dataset(
+            ntds_file=ntds_file,
+            username_filter=username_filter,
+            output_dir=output_dir,
+            bloodhound_file=bloodhound_file,
+        )
 
     campaign = load_campaign(campaign_file)
-
     parameters = campaign["parameters"]
-
     hashcat_dir = parameters.get(
         "hashcatDir",
         DEFAULT_HASHCAT_DIR,
     )
-
     hashcat_potfile = os.path.join(
         hashcat_dir,
         "hashcat.potfile",
     )
-
     hash_file = output_dir / "ntlm-hashes.txt"
 
+    # Summary output
+    filtered_users = organise_results["filtered_users"]
+    
+    if filtered_users:
+        print()
+        warn(f"Filtered Accounts ({len(filtered_users)})")
+
+        for account in filtered_users:
+            print(f" - {account['username']}")
+
+    print()
+
+    summary("User Accounts", len(organise_results["enabled_users"]))
+    summary("NTLM Hashes", len(organise_results["ntlm_hashes"]))
+
+    if organise_results["lm_hashes"]:
+        summary("LM Hashes", len(organise_results["lm_hashes"]))
+
+    summary("Domain Admins", len(organise_results["domain_admins"]))
+
+    print()
+
+    # Cracking
     info("Stage 2/4 - Recovering Passwords")
 
     campaign_results = run_campaign(
@@ -110,7 +131,11 @@ def run_audit(
         campaign_name=campaign_name,
     )
 
+    print_summary(campaign_results)
+
+    # Mapping NTLM passwords back to their users
     info("Stage 3/4 - Mapping Passwords")
+    print()
 
     organise_dataset(
         ntds_file=ntds_file,
@@ -119,7 +144,19 @@ def run_audit(
         username_filter=username_filter
     )
 
+    mapping_results = organise_dataset(
+        ntds_file=ntds_file,
+        output_dir=output_dir,
+        potfile=hashcat_potfile,
+        username_filter=username_filter,
+    )
+
+    if mapping_results["mapped_ntlm_passwords"]:
+            summary("Mapped Passwords", len(mapping_results["mapped_ntlm_passwords"]))
+            print()
+
     info("Stage 4/4 - Analysing Passwords")
+    print()
 
     mapped_passwords = (
         mapped_passwords
@@ -163,12 +200,8 @@ def run_audit(
 
 
     info("Audit Complete")
-
-    summary("Report", report_file)
-    summary("Mapped Passwords", mapped_passwords)
-    summary("Recovered Passwords", total_recovered)
-
     print()
+    summary("Report", report_file)
 
     return {
         "campaign": campaign_results,

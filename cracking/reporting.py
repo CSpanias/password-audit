@@ -24,8 +24,9 @@ def print_summary(results):
         None
     """
 
+    print()
     info("Campaign Summary")
-
+    print()
     print("| Phase         | Duration | New Passwords | Total Passwords | ROI/min |")
     print("|---------------|----------|---------------|-----------------|---------|")
 
@@ -57,7 +58,7 @@ def print_summary(results):
 
     print()
     info("Campaign Totals")
-    print("---------------")
+    print("-------------------")
 
     print(f"Duration        : {human_time(total_duration)}")
     print(f"New Passwords   : {total_new}")

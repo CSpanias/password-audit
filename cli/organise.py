@@ -65,14 +65,5 @@ def run_ntds_organiser(args):
     if results["mapped_ntlm_passwords"]:
         summary("Mapped Passwords", len(results["mapped_ntlm_passwords"]))
 
-    # if results["mapped_lm_passwords"]:
-    #     summary("Mapped LM Passwords", len(results["mapped_lm_passwords"]))
-
-    # if results["mapped_lm_da_passwords"]:
-    #     summary("LM Domain Admins", len(results["mapped_lm_da_passwords"]))
-
-    # if results["lm_da_candidates"]:
-    #     summary("LM DA Candidates", len(results["lm_da_candidates"]))
-
     print()
     summary("Output Directory", output_dir)

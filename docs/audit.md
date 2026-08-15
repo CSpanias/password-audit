@@ -1,10 +1,8 @@
 # Audit
 
-## Overview
+The `audit` module automates the [end-to-end](index.md#end-to-end-example) workflow by orchestrating the `organise`, `crack`, and `analyse` modules.
 
-The `audit` module automates the [end-to-end process](index.md#end-to-end-example) process by orchestrating the `organise`, `crack`, and `analyse` modules.
-
-It is intended as the primary workflow for most engagements and automates the full password auditing process from data parsing through to report generation.
+It is intended as the primary workflow for most engagements and automates the full password auditing process from data collection through to report generation.
 
 ```bash
 $ password-audit audit -h
@@ -43,12 +41,10 @@ Example:
         -N company.ntds \
         -B bloodhound.zip \
         -C config.json \
-        -G internal-password-audi
+        -G internal-password-audit
 ```
 
-## Usage
-
-For the `audit` module, the following inputs are required:
+The following inputs are required:
 
 * An NTDS dataset exported with SecretsDump
 * Domain data exported from a BloodHound collector
@@ -72,23 +68,37 @@ This will sequentially run the `organise`, `crack`, and `analyse` modules and pr
 
 1. Organising Data: Parses the NTDS dataset and extracts supporting artefacts.
 2. Recovering Passwords: Executes the configured cracking campaign.
-3. Mapping Passwords: Maps recovered hashes back to user accounts.
+3. Mapping Passwords: Maps recovered NTLM passwords back to user accounts.
 4. Analysing Passwords: Performs the dataset analysis and generates the report.
 
 ```bash
 [*] Stage 1/4 - Organising Data
+
+    User Accounts       : 271
+    NTLM Hashes         : 162
+    LM Hashes           : 88
+    Domain Admins       : 22
+
 [*] Stage 2/4 - Recovering Passwords
+...
+[*] Campaign Totals
+-------------------
+Duration        : 6s
+New Passwords   : 15
+Final Recovered : 95
+
 [*] Stage 3/4 - Mapping Passwords
+
+    Mapped Passwords    : 181
+
 [*] Stage 4/4 - Analysing Passwords
 
 [*] Audit Complete
 
     Report              : report.md
-    Mapped Passwords    : ntds-organiser/mapped-ntlm-passwords.txt
-    Recovered Passwords : 238
 ```
 
-The workflow also generates the intermediate artefacts produced by the underlying modules, including:
+The workflow also generates artefacts produced by the underlying modules, including:
 
 * `ntds-organiser/mapped-ntlm-passwords.txt`
 * `ntds-organiser/domain-admins.txt`
@@ -97,9 +107,9 @@ The workflow also generates the intermediate artefacts produced by the underlyin
 * `ntds-organiser/enabled-users.txt`
 * `report.md`
 
-If LM hashes are present and processed, additional LM-related artefacts may also be generated. See the [LM](lm.md) module for details.
+Additional artefacts may be generated depending on the supplied inputs and recovered data. For example, if LM hashes are present, additional LM-related artefacts will be generated. See the [LM](lm.md) module for details.
 
-By default, the audit workflow automatically uses artefacts generated during execution. The following inputs can be overridden when custom datasets are required:
+By default, the audit workflow automatically uses artefacts generated during earlier stages of the workflow, but they can be overridden:
 
 * `--mapped-passwords`
 * `--domain-admins`

@@ -1,15 +1,17 @@
 # LM Hashes
 
-The `lm` module does two things:
+The `lm` module is used after LM password recovery to:
 
-- `map` &rarr; maps recovered LM passwords back to their users
-- `generate` &rarr; generates password candidates if Domain Admins exist within the recovered dataset
+- Map recovered LM passwords back to user accounts (`map`)
+- Generate password capitalisation candidates for recovered Domain Administrator passwords (`generate`)
 
 ```bash
 -h
 usage: main.py lm [-h] {map,generate} ...
 
-LM password processing utilities used to reconstruct recovered LM passwords, map them to user accounts, and generate candidate password variants for privileged accounts.
+LM password processing utilities used to reconstruct recovered LM passwords, 
+map them to user accounts, and generate candidate password variants for 
+privileged accounts.
 
 positional arguments:
   {map,generate}
@@ -36,7 +38,8 @@ Examples:
 $ password-audit lm map -h
 usage: main.py lm map [-h] -N NTDS -P POTFILE -R LM_RESULTS [-O OUTPUT_DIR]
 
-Reconstruct recovered LM passwords using Hashcat show results and map them back to user accounts within the NTDS dataset.
+Reconstruct recovered LM passwords using Hashcat show results 
+and map them back to user accounts within the NTDS dataset.
 
 options:
   -h, --help            show this help message and exit
@@ -63,7 +66,10 @@ Example:
 If LM hashes are present within NTDS, `organise` identifies and extracts them:
 
 ```bash
- $ password-audit organise -N example.ntds -B bloodhound.zip
+ $ password-audit organise \
+    -N example.ntds \
+    -B bloodhound.zip
+
 [*] NTDS Organiser
 
     Enabled Accounts    : 24718
@@ -122,7 +128,7 @@ domain.local\mike:WELCOME123!
 
 The LM dataset can now be analysed and integrated within the final report and/or used to generate password candidates if a Domain Admin exists within it.
 
-### Reporting
+## Reporting
 
 The LM dataset can be analysed to add LM-related findings to the final report (alongside the NTLM dataset):
 
@@ -150,7 +156,8 @@ The LM dataset can be processed further using the `generate` module.
 $ password-audit lm generate -h
 usage: main.py lm generate [-h] -L MAPPED_LM_PASSWORDS [-D DOMAIN_ADMINS] [-O OUTPUT_DIR]
 
-Identify recovered LM passwords belonging to Domain Administrators and generate all possible password capitalisation variants.
+Identify recovered LM passwords belonging to Domain Administrators 
+and generate all possible password capitalisation variants.
 
 options:
   -h, --help            show this help message and exit

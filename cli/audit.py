@@ -5,9 +5,7 @@ This module provides the command-line entry point for the
 end-to-end password audit workflow.
 """
 
-from auditing.workflow import (
-    run_audit,
-)
+from auditing.workflow import run_audit
 
 
 def run_audit_workflow(args):
@@ -32,5 +30,5 @@ def run_audit_workflow(args):
         company_words=args.company_words,
         enabled_users=args.enabled_users,
         pass_policy=args.pass_policy,
-        username_filter=args.username_filter
+        username_filter=args.filter
     )
