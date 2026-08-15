@@ -1,15 +1,11 @@
 # Organise
 
-## Overview
-
 The `organise` module processes Active Directory datasets (NTDS dumps and BloodHound exports) and generates the artefacts required for password auditing and analysis. Recovered NTLM passwords can also be mapped to user accounts using a Hashcat potfile.
 
-## Usage
+It performs two primary functions:
 
-The `organise` module performs two primary functions:
-
-1. Parse NTDS and BloodHound data and generate audit artefacts
-2. Map recovered NTLM passwords back to user accounts using a Hashcat potfile
+1. Parses NTDS and BloodHound data and generate audit artefacts
+2. Maps recovered NTLM passwords back to user accounts using a Hashcat potfile
 
 ```bash
 $ password-audit organise -h
@@ -38,7 +34,7 @@ Example:
         -B bloodhound.zip
 ```
 
-### Domain Data Parsing
+## Domain Data Parsing
 
 After collecting the NTDS dump and BloodHound data, the first step is to parse both datasets and extract the information required for password auditing:
 
@@ -100,7 +96,7 @@ ntds-organiser
 └── ntlm-hashes.txt
 ```
 
-### Recovered Passwords Mapping
+## Password Mapping
 
 Providing a Hashcat potfile allows `organise` to map recovered NTLM passwords back to user accounts:
 

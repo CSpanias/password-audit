@@ -91,11 +91,8 @@ def remediation_guidance(results):
             "previously recovered credentials."
         )
 
-        if results["lm_admins"]["count"] == 0:
-            recommendation += "\n"
-
         # Domain Admins with LM hashes
-        elif results["lm_admins"]["count"]:
+        if results["lm_admins"]["count"]:
 
             recommendation += (
                 " Privileged accounts should be prioritised for immediate "

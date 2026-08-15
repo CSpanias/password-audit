@@ -466,7 +466,7 @@ def main():
     optional_analyse_parser.add_argument(
         "-L",
         "--mapped-lm-passwords",
-        default="./ntds-organiser/mapped-lm-passwords.txt",
+        #default="./ntds-organiser/mapped-lm-passwords.txt",
         help="Recovered LM passwords"
     )
     
