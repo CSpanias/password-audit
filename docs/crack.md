@@ -56,6 +56,9 @@ Campaigns are written in JSON and contain the following sections:
     * `wordlist`: Input wordlist used by the phase.
     * `rule`: Rule file to be used by the phase.
 
+!!! tip
+    Example configuration files for both [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json) and [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json) can be found on the GitHub root directory.
+
 An example JSON file consisting of three phases is shown below:
 
 ```json
