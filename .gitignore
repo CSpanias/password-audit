@@ -20,3 +20,5 @@ site/
 !docs/
 !docs/*.md
 !docs/images/
+!example-lm-config.json
+!example-ntlm-config.json

@@ -1,0 +1,58 @@
+{
+"parameters": {
+    "hashcatDir": "/mnt/c/tools/hashcat",
+    "hashMode": "3000",
+    "flags": [
+      "-O",
+      "-w", "3",
+      "-d", "1",
+      "--status",
+      "--status-timer", "300"
+    ]
+  },
+
+  "phases": [
+    {
+      "id": "rockyou",
+      "type": "wordlist",
+      "wordlist": "rockyou.txt",
+      "rule": "",
+      "enabled": true
+    },
+    {
+      "id": "rockyou-rule",
+      "type": "wordlist",
+      "wordlist": "rockyou.txt",
+      "rule": "best66.rule",
+      "enabled": true
+    },
+    {
+      "id": "hashmob-rule",
+      "type": "wordlist",
+      "wordlist": "hashmob.net_2026-06-07.combined.txt",
+      "rule": "OneRuleToRuleThemStill.rule",
+      "enabled": true
+    },
+    {
+      "id": "weakpass-rule",
+      "type": "wordlist",
+      "wordlist": "weakpass_4a.txt",
+      "rule": "OneRuleToRuleThemStill.rule",
+      "enabled": false
+    },
+    {
+      "id": "rockyou2024-rule",
+      "type": "wordlist",
+      "wordlist": "rockyou2024.txt",
+      "rule": "OneRuleToRuleThemStill.rule",
+      "enabled": false
+    },
+    {
+      "id": "loopback-rule",
+      "type": "loopback",
+      "wordlist": "loopback.txt",
+      "rule": "OneRuleToRuleThemStill.rule",
+      "enabled": true
+    }
+  ]
+}
