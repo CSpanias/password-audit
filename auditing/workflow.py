@@ -192,6 +192,7 @@ def run_audit(
     )
 
     report_file = Path("report.md")
+    findings_file = Path("findings.json")
     
     total_recovered = 0
 
@@ -202,6 +203,7 @@ def run_audit(
     info("Audit Complete")
     print()
     summary("Report", report_file)
+    summary("Findings", findings_file)
 
     return {
         "campaign": campaign_results,
