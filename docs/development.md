@@ -9,25 +9,21 @@ This document provides an overview of the project structure and development prac
 
 For the development installation, see [Installation](installation.md#development-installation).
 
-## Design Principles
-
-The project follows a modular design:
-
-* One responsibility per module.
-* Shared functionality belongs in `common`.
-* CLI handlers belong in `cli`.
-* Business logic belongs in feature packages.
-* Documentation is maintained alongside the source code.
-
 ## Project Structure
 
-* `analysis` &rarr; Password audit reporting and analysis functionality.
-* `auditing` &rarr; End-to-end audit workflow orchestration.
-* `cli` &rarr;  Command-line interface entry points.
-* `common` &rarr; Shared utilities, constants, and console helpers.
-* `cracking` &rarr;  Password recovery campaigns, Hashcat integration, statistics, and estimation.
-* `docs`  &rarr; Project documentation.
-* `ntds` &rarr; NTDS, BloodHound, and Hashcat artefact processing.
+The framework is organised into a number of top-level packages:
+
+| Package | Responsibility |
+|----------|-------------|
+| `analysis` | Password analysis and report generation |
+| `auditing` | End-to-end workflow orchestration |
+| `cli` | Command-line interface entry points |
+| `common` | Shared utilities, constants, and helpers |
+| `cracking` | Hashcat integration, campaign execution, estimation, and statistics |
+| `docs` | Project documentation |
+| `lm` | LM password mapping and candidate generation |
+| `ntds` | NTDS, BloodHound, and password dataset processing |
+
 
 ```text
 password-audit/
@@ -37,20 +33,54 @@ password-audit/
 ├── common/
 ├── cracking/
 ├── docs/
+├── lm/
 └── ntds/
 ```
 
-## Architecture 
+Each package is intended to remain largely self-contained, with shared functionality placed in `common` where appropriate.
 
-Framework components are separated into: 
+## Design Philosophy
 
-* CLI handlers
-* Business logic
-* Reporting and export helpers 
+The project is designed around a simple principle: command-line modules should remain thin wrappers around reusable workflow functions. In general:
 
-CLI handlers should remain thin wrappers around reusable workflow functions. Business logic should not be implemented directly within CLI modules.
+* CLI modules are responsible for argument parsing and user interaction.
+* Workflow modules coordinate the execution of features.
+* Supporting modules implement the business logic.
+* Export and reporting modules write results to disk.
+* Shared functionality belongs in `common`.
 
-Example `organise` workflow: 
+This separation makes features easier to test, reuse, and maintain.
+
+## Workflow Architecture
+
+Most user-facing functionality follows the same pattern:
+
+```text
+CLI
+ ↓
+Workflow
+ ↓
+Business Logic
+ ↓
+Results / Exports
+```
+
+### Audit
+
+Coordinates the full password auditing workflow:
+
+```text
+cli/audit.py
+        ↓
+auditing/workflow.py
+        ├── ntds/workflow.py
+        ├── cracking/scheduler.py
+        └── analysis/workflow.py
+```
+
+### Organise
+
+Processes NTDS, BloodHound, and Hashcat artefacts:
 
 ```text
 cli/organise.py 
@@ -62,27 +92,57 @@ ntds/results.py
 ntds/exports.py
 ```
 
-Example `audit` workflow: 
+### Crack
+
+Executes Hashcat campaigns and records statistics:
 
 ```text
-cli/audit.py
-↓
-auditing/workflow.py
-├── ntds/workflow.py
-├── cracking/scheduler.py
-└── analysis/workflow.py
+cli/crack.py
+        ↓
+cracking/scheduler.py
+        ├── cracking/phases.py
+        ├── cracking/hashcat.py
+        ├── cracking/history.py
+        └── cracking/reporting.py
 ```
 
-## Adding New Functionality 
+### Analyse
 
-New functionality should generally follow the pattern:
+Performs password analysis and generates reports:
 
-1. Implement business logic in the relevant module.
-2. Expose functionality through a workflow. 
-3. Add a CLI entry point. 
-4. Update documentation.
+```text
+cli/analyse.py
+        ↓
+analysis/workflow.py
+        ├── analysis/parsers.py
+        ├── analysis/patterns.py
+        ├── analysis/results.py
+        └── analysis/reports.py
+```
 
-Example: 
+### LM
+
+Processes recovered LM passwords and generates candidate datasets:
+
+```text
+cli/lm.py
+        ↓
+lm/workflow.py
+        ├── lm/mapping.py
+        ├── lm/candidates.py
+        └── ntds/exports.py
+```
+
+## Contributing New Features
+
+When adding new functionality, try to follow the existing architecture:
+
+* Implement the business logic in the appropriate package.
+* Add or extend a workflow function.
+* Expose the functionality through the CLI.
+* Document the feature and update command examples.
+
+For example, adding a new analysis feature might involve:
 
 ```text
 analysis/ 

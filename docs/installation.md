@@ -45,12 +45,12 @@ password-audit -h
 
 ## Requirements
 
-### Core
+### Core Requirements
 
 * Python 3.10+
 * Hashcat (for password recovery campaigns)
 
-### Optional
+### Inputs
 
-* BloodHound ZIP exports
 * NTDS datasets
+* BloodHound ZIP exports
