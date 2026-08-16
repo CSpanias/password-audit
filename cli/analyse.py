@@ -39,4 +39,5 @@ def run_password_analysis(args):
 
     print()
     ok("Markdown report written to: report.md")
+    ok("Findings written to: findings.json")
     print()

@@ -122,3 +122,21 @@ Any legacy systems requiring LM compatibility should be identified and
 remediated where possible.
 ...
 ```
+
+## Findings Export
+
+In addition to the Markdown report, the analysis workflow generates a machine-readable findings export (`findings.json`):
+
+```json
+{
+    "findings": [
+        {
+            "id": "password-audit",
+            "title": "Password Audit",
+            "description": "79 plaintext passwords were recovered from 273 enabled accounts (28.9%)."
+        }
+    ]
+}
+```
+
+This file can be used to integrate analysis results with external reporting systems and custom workflows.

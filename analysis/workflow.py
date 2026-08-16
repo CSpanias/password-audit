@@ -10,6 +10,8 @@ from analysis.results import build_results
 from analysis.executive_summary import executive_summary
 from analysis.technical_commentary import technical_commentary
 from analysis.remediation_guidance import remediation_guidance, remediation_references
+from analysis.findings import build_findings
+from reports.json import write_findings
 from reports.markdown import render_markdown, write_markdown
 
 
@@ -95,6 +97,7 @@ def analyse_passwords(
         lm_passwords=lm_passwords,
     )
 
+    # Markdown report export
     report = {
         "executive_summary": executive_summary(results),
         "technical_commentary": technical_commentary(results),
@@ -102,9 +105,11 @@ def analyse_passwords(
         "references": remediation_references(results),
     }
 
-    write_markdown(
-        output_file,
-        render_markdown(report),
-    )
+    # Findings JSON export
+    findings = build_findings(results)
+
+    # Export files to disc
+    write_markdown(output_file, render_markdown(report))
+    write_findings("findings.json", findings)
 
     return results
