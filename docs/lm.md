@@ -70,18 +70,23 @@ If LM hashes are present within NTDS, `organise` identifies and extracts them:
     -N example.ntds \
     -B bloodhound.zip
 
-[*] NTDS Organiser
+[*] Password Audit Organise
 
-    Enabled Accounts    : 24718
-    Disabled Accounts   : 18943
-    User Accounts       : 16327
-    Machine Accounts    : 8391
-    NTLM Hashes         : 15502
-    LM Hashes           : 147 # exported to lm-hashes.txt
-    Company Words       : 22
-    Domain Admins       : 11
+        NTDS Summary
+┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ Object            ┃ Value ┃
+┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ Enabled Accounts  │   481 │
+│ Disabled Accounts │    42 │
+│ User Accounts     │   273 │
+│ Machine Accounts  │   208 │
+│ NTLM Hashes       │   164 │
+│ LM Hashes         │    88 │
+│ Domain Admins     │    23 │
+│ Company Words     │     3 │
+└───────────────────┴───────┘
 
-    Output Directory    : ntds-organiser
+[+] Output written to: ntds-organiser
 ```
 
 These can be cracked as normal using the `crack run` command using Hashcat's LM mode (`3000`):
@@ -114,9 +119,14 @@ $ password-audit lm map \
     -P hashcat.potfile \
     -R ntds-organiser/lm-results.txt
 
-[*] LM Password Mapping
-    Mapped LM Passwords : 243 # exported to mapped-lm-passwords.txt
-    Output Directory    : ntds-organiser
+      LM Password Mapping
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ Object              ┃ Value ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ Mapped LM Passwords │    15 │
+└─────────────────────┴───────┘
+
+[+] Output Directory: ntds-organiser
 ```
 
 The generated dataset will contain the recovered passwords in uppercase form:
@@ -135,10 +145,10 @@ The LM dataset can be analysed to add LM-related findings to the final report (a
 ```bash
 $ password-audit analyse \
     -M ntds-organiser/mapped-ntlm-passwords.txt \
-    -U ntds-organiser/lm-users.txt \
     -L ntds-organiser/mapped-lm-passwords.txt
 
-[+] Markdown report written to: report.md
+[+] Report written to: report.md
+[+] Findings written to: findings.json
 ```
 
 The following LM findings are currently present:
@@ -188,12 +198,15 @@ Because LM hashes do not preserve character casing, recovered passwords are pres
 $ password-audit lm generate \
     -L ntds-organiser/mapped-lm-passwords.txt
 
-[*] LM Candidate Generation
+  LM Candidate Generation
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ Object           ┃ Value ┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ LM DA Users      │     0 │
+│ LM DA Candidates │     0 │
+└──────────────────┴───────┘
 
-    LM DA Users      : 1
-    LM DA Candidates : 128
-
-    Output Directory : ntds-organiser
+[+] Output Directory: ntds-organiser
 
 # Recovered LM passwords belonging to Domain Administrators
 $ head lm-da-passwords.txt

@@ -57,14 +57,16 @@ The only required argument is the final NTLM dataset:
 $ password-audit analyse \
     -M ntds-organiser/mapped-ntlm-passwords.txt
 
-[+] Markdown report written to: report.md
+[+] Report written to: report.md
+[+] Findings written to: findings.json
 
 # NTLM + LM hashes
 $ password-audit analyse \
     -M ntds-organiser/mapped-ntlm-passwords.txt \
     -L ntds-organiser/mapped-lm-passwords.txt
 
-[+] Markdown report written to: report.md
+[+] Report written to: report.md
+[+] Findings written to: findings.json
 ```
 
 The generated report is divided into three sections:

@@ -72,28 +72,43 @@ This will sequentially run the `organise`, `crack`, and `analyse` modules and pr
 ```bash
 [*] Stage 1/4 - Organising Data
 
-    User Accounts       : 271
-    NTLM Hashes         : 162
-    LM Hashes           : 88
-    Domain Admins       : 22
+      NTDS Summary
+┏━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ Object        ┃ Count ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ User Accounts │   273 │
+│ NTLM Hashes   │   164 │
+│ LM Hashes     │    88 │
+│ Domain Admins │    23 │
+└───────────────┴───────┘
 
 [*] Stage 2/4 - Recovering Passwords
 ...
-[*] Campaign Totals
--------------------
-Duration        : 6s
-New Passwords   : 15
-Final Recovered : 95
+                            Campaign Summary
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
+┃ Phase         ┃ Duration ┃ New Passwords ┃ Total Passwords ┃ ROI/min ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩
+│ rockyou       │ 2s       │             0 │              87 │    0.00 │
+│ loopback-rule │ 2s       │             0 │              87 │    0.00 │
+├───────────────┼──────────┼───────────────┼─────────────────┼─────────┤
+│ Total         │ 4s       │             0 │              87 │       - │
+└───────────────┴──────────┴───────────────┴─────────────────┴─────────┘
 
 [*] Stage 3/4 - Mapping Passwords
 
-    Mapped Passwords    : 181
+  Password Mapping Summary
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ Object           ┃ Count ┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ Mapped Passwords │   191 │
+└──────────────────┴───────┘
 
 [*] Stage 4/4 - Analysing Passwords
 
-[*] Audit Complete
+[+] Audit Complete
 
-    Report              : report.md
+[+] Report written to: report.md
+[+] Findings written to: findings.json
 ```
 
 The workflow also generates artefacts produced by the underlying modules, including:
@@ -104,6 +119,7 @@ The workflow also generates artefacts produced by the underlying modules, includ
 * `ntds-organiser/domain-policy.txt`
 * `ntds-organiser/enabled-users.txt`
 * `report.md`
+* `findings.json`
 
 Additional artefacts may be generated depending on the supplied inputs and recovered data. For example, if LM hashes are present, additional LM-related artefacts will be generated. See the [LM](lm.md) module for details.
 

@@ -122,6 +122,7 @@ def run_campaign(
             for phase in existing_results["phases"]
         }
 
+        print()
         ok("Resuming interrupted campaign")
 
         for phase in completed_phases:

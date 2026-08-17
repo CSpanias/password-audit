@@ -164,13 +164,15 @@ The estimate is calculated by matching campaign phases against historical execut
 ```bash
 $ password-audit crack estimate --campaign config.json
 
-[*] Campaign Estimate
-
-rockyou             : 3s (16 runs)
-rockyou-rule        : 1m 0s (16 runs)
-loopback-rule       : 3s (12 runs)
-
-Estimated Total     : 1m 6s
+               Campaign Estimate
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
+┃ Phase           ┃ Duration ┃ Historical Runs ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
+│ rockyou         │ 3s       │              62 │
+│ loopback-rule   │ 3s       │              58 │
+├─────────────────┼──────────┼─────────────────┤
+│ Estimated Total │ 6s       │               - │
+└─────────────────┴──────────┴─────────────────┘
 ```
 
 ## Run
@@ -251,25 +253,15 @@ For example:
 ```bash
 $ password-audit crack stats
 
-[*] Attack Statistics
-
-loopback-rule
--------------
-    Runs                : 12
-    Average Duration    : 3s
-    Average Recovery    : 1.92
-    Average ROI         : 24.7 passwords/min
-    Best Recovery       : 23
-    Best ROI            : 296.35 passwords/min
-
-rockyou-rule
-------------
-    Runs                : 16
-    Average Duration    : 1m 0s
-    Average Recovery    : 1.44
-    Average ROI         : 21.57 passwords/min
-    Best Recovery       : 23
-    Best ROI            : 345.08 passwords/min
+                                           Attack Statistics
+┏━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
+┃ Phase         ┃ Runs ┃ Avg Duration ┃ Avg Recovery ┃       Avg ROI ┃ Best Recovery ┃       Best ROI ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩
+│ hashmob-rule  │    2 │   26h 8m 52s │         13.0 │  0.01 pwd/min │            24 │   0.02 pwd/min │
+│ loopback-rule │   58 │           3s │         0.55 │  7.77 pwd/min │            23 │ 296.35 pwd/min │
+│ rockyou       │   62 │           3s │         1.24 │ 15.87 pwd/min │            65 │ 739.78 pwd/min │
+│ rockyou-rule  │   20 │        1m 3s │          3.1 │ 42.56 pwd/min │            34 │ 503.28 pwd/min │
+└───────────────┴──────┴──────────────┴──────────────┴───────────────┴───────────────┴────────────────┘
 ```
 
 ## Additional Flags
@@ -287,33 +279,28 @@ $ password-audit crack run \
     -C config.json \
     -G test-resume
 
-[*] Hashcat Scheduler
+[*] Password Audit Crack
 
 [*] Phase 1/3
     Wordlist : rockyou.txt
 
     ---------------------------------------------------------------------------
     Status    : Exhausted
-    Recovered : 34/164 (20.73%) Digests (total), 0/164 (0.00%) Digests (new)
+    Recovered : 87/164 (53.05%) Digests (total), 0/164 (0.00%) Digests (new)
     Progress  : 14344384/14344384 (100.00%)
-    Speed     : 19759.7 kH/s (0.62ms) @ Accel:320 Loops:1 Thr:256 Vec:1
-    ETA       : Sat Aug 15 16:59:38 2026 (0 secs)
+    Speed     : 22301.5 kH/s (0.62ms) @ Accel:320 Loops:1 Thr:256 Vec:1
+    ETA       : Mon Aug 17 10:21:57 2026 (0 secs)
     ---------------------------------------------------------------------------
-
-[+] Phase Complete
-    Duration            : 3s
-    New Passwords       : 0
-    Total Passwords     : 34
 
 
 [*] Phase 2/3
     Wordlist : rockyou.txt
     Rule     : OneRuleToRuleThemStill.rule
-
 ^C
 [!] Campaign interrupted
+
     Current Phase       : rockyou-rule
-    Session             : test-resume-rockyou-rule
+    Session             : test-rich-crack-run-rockyou-rule
 ```
 
 The campaign can then be resumed:
@@ -325,7 +312,7 @@ $ password-audit crack run \
     -G test-resume \
     --resume
 
-[*] Hashcat Scheduler
+[*] Password Audit Crack
 
 [+] Resuming interrupted campaign
     Skipping            : rockyou
@@ -350,7 +337,7 @@ $ password-audit crack run \
     -G test-debug \
     --debug
 
-[*] Hashcat Scheduler
+[*] Password Audit Crack
 
 [*] Phase 1/3
     Wordlist : rockyou.txt

@@ -44,18 +44,23 @@ $ password-audit organise \
     --ntds company.ntds \
     --bloodhound bloodhound.zip
 
-[*] NTDS Organiser
+[*] Password Audit Organise
 
-    Enabled Accounts    : 481
-    Disabled Accounts   : 42
-    User Accounts       : 273
-    Machine Accounts    : 208
-    NTLM Hashes         : 164
-    LM Hashes           : 88
-    Company Words       : 3
-    Domain Admins       : 23
+        NTDS Summary
+┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ Object            ┃ Value ┃
+┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ Enabled Accounts  │   481 │
+│ Disabled Accounts │    42 │
+│ User Accounts     │   273 │
+│ Machine Accounts  │   208 │
+│ NTLM Hashes       │   164 │
+│ LM Hashes         │    88 │
+│ Domain Admins     │    23 │
+│ Company Words     │     3 │
+└───────────────────┴───────┘
 
-    Output Directory    : ntds-organiser 
+[+] Output written to: ntds-organiser
 ```
 
 The following artefacts are generated:
@@ -106,19 +111,24 @@ $ password-audit organise \
     --potfile hashcat.potfile \
     --bloodhound bloodhound.zip
 
-[*] NTDS Organiser
+[*] Password Audit Organise
 
-    Enabled Accounts    : 481
-    Disabled Accounts   : 42
-    User Accounts       : 273
-    Machine Accounts    : 208
-    NTLM Hashes         : 164
-    LM Hashes           : 88
-    Domain Admins       : 23
-    Company Words       : 3
-    Mapped Passwords    : 134
+        NTDS Summary
+┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ Object            ┃ Value ┃
+┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ Enabled Accounts  │   481 │
+│ Disabled Accounts │    42 │
+│ User Accounts     │   273 │
+│ Machine Accounts  │   208 │
+│ NTLM Hashes       │   164 │
+│ LM Hashes         │    88 │
+│ Domain Admins     │    23 │
+│ Company Words     │     3 │
+│ Mapped Passwords  │   191 │
+└───────────────────┴───────┘
 
-    Output Directory    : ntds-organiser
+[+] Output written to: ntds-organiser
 ```
 
 This generates an additional dataset containing recovered NTLM passwords mapped to their corresponding user accounts:
