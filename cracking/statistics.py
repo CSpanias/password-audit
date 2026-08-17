@@ -7,9 +7,11 @@ historical campaign execution data.
 
 import json
 
+from rich.table import Table
+
 from cracking.constants import HISTORY_DIR
 from common.utils import human_time
-from common.console import summary, info
+from common.console import console
 
 
 def load_history():
@@ -126,19 +128,30 @@ def print_phase_statistics(_args=None):
         return
 
     print()
-    info("Attack Statistics")
-    print()
+    table = Table(
+        title="Attack Statistics",
+        title_style="bold cyan",
+    )
+
+    table.add_column("Phase")
+    table.add_column("Runs", justify="right")
+    table.add_column("Avg Duration", justify="right")
+    table.add_column("Avg Recovery", justify="right")
+    table.add_column("Avg ROI", justify="right")
+    table.add_column("Best Recovery", justify="right")
+    table.add_column("Best ROI", justify="right")
 
     for phase_id, data in sorted(stats.items()):
 
-        print(f"{phase_id}")
-        print("-" * len(phase_id))
+        table.add_row(
+            phase_id,
+            str(data["runs"]),
+            human_time(data["averageDuration"]),
+            str(data["averageRecovered"]),
+            f"{data['averageROI']} pwd/min",
+            str(data["bestRecovered"]),
+            f"{data['bestROI']} pwd/min",
+        )
 
-        summary("Runs", data["runs"])
-        summary("Average Duration", human_time(data["averageDuration"]))
-        summary("Average Recovery", data["averageRecovered"])
-        summary("Average ROI", f"{data['averageROI']} passwords/min")
-        summary("Best Recovery", data["bestRecovered"])
-        summary("Best ROI", f"{data['bestROI']} passwords/min")
-
-        print()
+    console.print(table)
+    print()

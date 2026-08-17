@@ -12,8 +12,9 @@ import sys
 import time
 
 from pathlib import Path
+from rich.table import Table
 
-from common.console import info, warn, ok, summary
+from common.console import info, warn, console
 from common.utils import human_time
 from cracking.parsers import parse_recovery_statistics
 
@@ -271,14 +272,32 @@ def run_phase(
     new_recovered, total_recovered = parse_recovery_statistics(output)
     duration = time.time() - start
 
-    print()
-    ok("Phase Complete")
-    print()
+    # TODO: Phase summary tables (To be removed)
+    # print()
+    # table = Table(
+    #     title=f"Phase {phase_id} Summary",
+    #     title_style="bold cyan",
+    # )
 
-    summary("Duration", human_time(duration))
-    summary("New Passwords", new_recovered)
-    summary("Total Passwords", total_recovered)
+    # table.add_column("Object")
+    # table.add_column("Value", justify="right")
 
+    # table.add_row(
+    #     "Duration",
+    #     human_time(duration),
+    # )
+
+    # table.add_row(
+    #     "New Passwords",
+    #     str(new_recovered),
+    # )
+
+    # table.add_row(
+    #     "Total Passwords",
+    #     str(total_recovered),
+    # )
+
+    # console.print(table)
     print()
 
     return {

@@ -10,13 +10,14 @@ cracking, and analysis modules.
 import os
 
 from pathlib import Path
+from rich.table import Table
 
 from ntds.workflow import organise_dataset
 from analysis.workflow import analyse_passwords
 from cracking.parsers import load_campaign
 from cracking.scheduler import run_campaign
 from cracking.constants import DEFAULT_HASHCAT_DIR
-from common.console import info, summary, warn
+from common.console import console, ok, info, warn
 from cracking.reporting import print_summary
 
 
@@ -79,6 +80,7 @@ def run_audit(
     )
 
     # Organising
+    print()
     info("Stage 1/4 - Organising Data")
 
     organise_results = organise_dataset(
@@ -112,13 +114,36 @@ def run_audit(
 
     print()
 
-    summary("User Accounts", len(organise_results["enabled_users"]))
-    summary("NTLM Hashes", len(organise_results["ntlm_hashes"]))
+    table = Table(
+        title="NTDS Summary",
+        title_style="bold cyan",
+    )
+
+    table.add_column("Object")
+    table.add_column("Count", justify="right")
+
+    table.add_row(
+        "User Accounts",
+        str(len(organise_results["enabled_users"]))
+    )
+
+    table.add_row(
+        "NTLM Hashes",
+        str(len(organise_results["ntlm_hashes"]))
+    )
 
     if organise_results["lm_hashes"]:
-        summary("LM Hashes", len(organise_results["lm_hashes"]))
+        table.add_row(
+            "LM Hashes",
+            str(len(organise_results["lm_hashes"]))
+        )
 
-    summary("Domain Admins", len(organise_results["domain_admins"]))
+    table.add_row(
+        "Domain Admins",
+        str(len(organise_results["domain_admins"]))
+    )
+
+    console.print(table)
 
     print()
 
@@ -132,6 +157,7 @@ def run_audit(
     )
 
     print_summary(campaign_results)
+    print()
 
     # Mapping NTLM passwords back to their users
     info("Stage 3/4 - Mapping Passwords")
@@ -152,8 +178,22 @@ def run_audit(
     )
 
     if mapping_results["mapped_ntlm_passwords"]:
-            summary("Mapped Passwords", len(mapping_results["mapped_ntlm_passwords"]))
-            print()
+
+        table = Table(
+            title="Password Mapping Summary",
+            title_style="bold cyan",
+        )
+
+        table.add_column("Object")
+        table.add_column("Count", justify="right")
+
+        table.add_row(
+            "Mapped Passwords",
+            str(len(mapping_results["mapped_ntlm_passwords"]))
+        )
+
+        console.print(table)
+        print()
 
     info("Stage 4/4 - Analysing Passwords")
     print()
@@ -200,10 +240,10 @@ def run_audit(
         total_recovered = (campaign_results["phases"][-1]["totalRecovered"])
 
 
-    info("Audit Complete")
+    ok("Audit Complete")
     print()
-    summary("Report", report_file)
-    summary("Findings", findings_file)
+    ok(f"Report written to: {report_file}")
+    ok(f"Findings written to: {findings_file}")
 
     return {
         "campaign": campaign_results,

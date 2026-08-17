@@ -25,7 +25,7 @@ def run_cracking_campaign(args):
     """
 
     print()
-    info("Hashcat Scheduler")
+    info("Password Audit Crack")
 
     config = load_campaign(args.campaign)
 

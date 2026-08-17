@@ -5,9 +5,11 @@ This module coordinates NTDS parsing, analysis, password
 mapping, dataset export, and summary generation.
 """
 
-
+from rich.panel import Panel
+from rich.table import Table
 from pathlib import Path
-from common.console import info, summary, warn
+
+from common.console import console, info, ok, warn
 from ntds.workflow import organise_dataset
 
 
@@ -26,7 +28,8 @@ def run_ntds_organiser(args):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print()
-    info("NTDS Organiser")
+    info("Password Audit Organise")
+    print()
 
     results = organise_dataset(
         ntds_file=args.ntds,
@@ -48,22 +51,62 @@ def run_ntds_organiser(args):
 
         print()
 
-    print()
+    table = Table(
+        title="NTDS Summary", 
+        title_style="bold cyan",
+    )
 
-    summary("Enabled Accounts", len(results["enabled"]))
-    summary("Disabled Accounts", len(results["disabled"]))
-    summary("User Accounts", len(results["enabled_users"]))
-    summary("Machine Accounts", len(results["machines"]))
-    summary("NTLM Hashes", len(results["ntlm_hashes"]))
+    table.add_column("Object")
+    table.add_column("Value", justify="right")
+
+    table.add_row(
+        "Enabled Accounts",
+        str(len(results["enabled"]))
+    )
+
+    table.add_row(
+        "Disabled Accounts",
+        str(len(results["disabled"]))
+    )
+
+    table.add_row(
+        "User Accounts",
+        str(len(results["enabled_users"]))
+    )
+
+    table.add_row(
+        "Machine Accounts",
+        str(len(results["machines"]))
+    )
+
+    table.add_row(
+        "NTLM Hashes",
+        str(len(results["ntlm_hashes"]))
+    )
 
     if results["lm_hashes"]:
-        summary("LM Hashes", len(results["lm_hashes"]))
+        table.add_row(
+            "LM Hashes",
+            str(len(results["lm_hashes"]))
+        )
 
-    summary("Domain Admins", len(results["domain_admins"]))
-    summary("Company Words", len(results["company_words"]))
-    
+    table.add_row(
+        "Domain Admins",
+        str(len(results["domain_admins"]))
+    )
+
+    table.add_row(
+        "Company Words",
+        str(len(results["company_words"]))
+    )
+
     if results["mapped_ntlm_passwords"]:
-        summary("Mapped Passwords", len(results["mapped_ntlm_passwords"]))
+        table.add_row(
+            "Mapped Passwords",
+            str(len(results["mapped_ntlm_passwords"]))
+        )
+
+    console.print(table)
 
     print()
-    summary("Output Directory", output_dir)
+    ok(f"Output written to: {output_dir}")

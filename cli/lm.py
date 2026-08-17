@@ -7,9 +7,10 @@ user lists.
 """
 
 from pathlib import Path
+from rich.table import Table
 
 from common.utils import write_lines
-from common.console import info, summary
+from common.console import console, ok
 from analysis.parsers import load_list, load_passwords
 from ntds.lm import build_lm_da_passwords, extract_lm_da_users, build_lm_candidates
 from lm.workflow import map_lm_passwords
@@ -39,15 +40,23 @@ def run_lm_mapping(args):
         )
 
     print()
-    info("LM Password Mapping")
-    print()
+    table = Table(
+        title="LM Password Mapping",
+        title_style="bold cyan",
+    )
 
-    summary("Mapped LM Passwords", len(results["mapped_lm_passwords"]))
+    table.add_column("Object")
+    table.add_column("Value", justify="right")
+
+    table.add_row(
+        "Mapped LM Passwords",
+        str(len(results["mapped_lm_passwords"]))
+    )
+
+    console.print(table)
 
     print()
-    summary("Output Directory", args.output_dir)
-
-    print()
+    ok(f"Output Directory: {args.output_dir}")
 
 
 def run_lm_candidates(args):
@@ -79,13 +88,25 @@ def run_lm_candidates(args):
     )
 
     print()
-    info("LM Candidate Generation")
-    print()
+    table = Table(
+        title="LM Candidate Generation",
+        title_style="bold cyan",
+    )
 
-    summary("LM DA Users", len(lm_da_users))
-    summary("LM DA Candidates", len(lm_da_candidates))
+    table.add_column("Object")
+    table.add_column("Value", justify="right")
+
+    table.add_row(
+        "LM DA Users",
+        str(len(lm_da_users))
+    )
+
+    table.add_row(
+        "LM DA Candidates",
+        str(len(lm_da_candidates))
+    )
+
+    console.print(table)
 
     print()
-    summary("Output Directory", output_dir)
-
-    print()
+    ok(f"Output Directory: {output_dir}")

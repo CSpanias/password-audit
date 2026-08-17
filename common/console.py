@@ -8,6 +8,8 @@ Functions in this module should focus on user-facing console
 messages and avoid implementing business logic.
 """
 
+from rich.console import Console
+
 from common.constants import (
     COLOR_GREEN,
     COLOR_YELLOW,
@@ -18,6 +20,8 @@ from common.constants import (
 # -----------------
 # Console Messages
 # -----------------
+
+console = Console()
 
 def info(message):
     """

@@ -253,7 +253,7 @@ def run_campaign(
     output_file = write_results(results)
     archive_file = archive_results(results)
 
-    ok(f"Results written to: {output_file}")
-    ok(f"Results archived to: {archive_file}")
+    # ok(f"Results written to: {output_file}")
+    # ok(f"Results archived to: {archive_file}")
 
     return results

@@ -5,7 +5,9 @@ This module estimates campaign duration based on
 historical execution statistics.
 """
 
-from common.console import info, summary
+from rich.table import Table
+
+from common.console import console
 from common.utils import human_time
 from cracking.parsers import load_campaign
 from cracking.statistics import calculate_phase_statistics
@@ -86,32 +88,43 @@ def print_campaign_estimate(args):
     )
 
     print()
-    info("Campaign Estimate")
-    print()
+    table = Table(
+        title="Campaign Estimate",
+        title_style="bold cyan",
+    )
+
+    table.add_column("Phase")
+    table.add_column("Duration")
+    table.add_column("Historical Runs", justify="right")
 
     for phase in estimates:
 
         if phase["duration"] is None:
 
-            print(
-                f"{phase['id']:<20}: "
-                f"Unknown ({phase['runs']} runs)"
+            table.add_row(
+                phase["id"],
+                "Unknown",
+                str(phase["runs"]),
             )
-            continue
 
-        print(
-            f"{phase['id']:<20}: "
-            f"{human_time(phase['duration'])} "
-            f"({phase['runs']} runs)"
-        )
+        else:
 
-    print()
+            table.add_row(
+                phase["id"],
+                human_time(phase["duration"]),
+                str(phase["runs"]),
+            )
 
-    suffix = " (partial estimate)" if incomplete else ""
+    table.add_section()
 
-    print(
-        f"{'Estimated Total':<20}: "
-        f"{human_time(total_duration)}{suffix}"
+    table.add_row(
+        "Estimated Total",
+        (
+            f"{human_time(total_duration)}"
+            f"{' (partial)' if incomplete else ''}"
+        ),
+        "-",
     )
 
+    console.print(table)
     print()
