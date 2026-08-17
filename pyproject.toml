@@ -28,4 +28,5 @@ include = [
 docs = [
     "mkdocs-material",
     "mkdocs-glightbox",
+    "rich>=13.0.0",
 ]
