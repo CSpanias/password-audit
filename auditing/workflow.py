@@ -19,6 +19,7 @@ from cracking.scheduler import run_campaign
 from cracking.constants import DEFAULT_HASHCAT_DIR
 from common.console import console, ok, info, warn
 from cracking.reporting import print_summary
+from lm.workflow import generate_lm_results, map_lm_passwords
 
 
 def run_audit(
@@ -98,9 +99,15 @@ def run_audit(
         "hashcatDir",
         DEFAULT_HASHCAT_DIR,
     )
+
     hashcat_potfile = os.path.join(
         hashcat_dir,
         "hashcat.potfile",
+    )
+
+    hashcat_binary = parameters.get(
+        "hashcatBinary",
+        os.path.join(hashcat_dir, "hashcat.exe"),
     )
 
     # Summary output
@@ -180,21 +187,37 @@ def run_audit(
     info("Stage 4/5 - Mapping Passwords")
     print()
 
-    # organise_dataset(
-    #     ntds_file=ntds_file,
-    #     output_dir=output_dir,
-    #     potfile=hashcat_potfile,
-    #     username_filter=username_filter
-    # )
-
-    mapping_results = organise_dataset(
+    # NTLM mapping
+    ntlm_mapping_results = organise_dataset(
         ntds_file=ntds_file,
         output_dir=output_dir,
         potfile=hashcat_potfile,
         username_filter=username_filter,
     )
 
-    if mapping_results["mapped_ntlm_passwords"]:
+    # LM mapping
+    lm_results_file = None
+
+    if organise_results["lm_hashes"]:
+
+        lm_results_file = (output_dir / "lm-results.txt")
+
+        generate_lm_results(
+            hashcat_binary=hashcat_binary,
+            hash_file=output_dir / "lm-hashes.txt",
+            potfile=hashcat_potfile,
+            output_file=lm_results_file,
+        )
+
+        lm_mapping_results = map_lm_passwords(
+            ntds_file=ntds_file,
+            potfile=hashcat_potfile,
+            lm_results=lm_results_file,
+            output_dir=output_dir,
+        )
+
+    # Create table
+    if ntlm_mapping_results["mapped_ntlm_passwords"]:
 
         table = Table(
             title="Password Mapping Summary",
@@ -205,9 +228,16 @@ def run_audit(
         table.add_column("Count", justify="right")
 
         table.add_row(
-            "Mapped Passwords",
-            str(len(mapping_results["mapped_ntlm_passwords"]))
+            "Mapped NTLM Passwords",
+            str(len(ntlm_mapping_results["mapped_ntlm_passwords"]))
         )
+
+        if lm_mapping_results:
+
+            table.add_row(
+                "Mapped LM Passwords",
+                str(len(lm_mapping_results["mapped_lm_passwords"]))
+            )
 
         console.print(table)
         print()
