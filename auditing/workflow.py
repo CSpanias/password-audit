@@ -81,7 +81,7 @@ def run_audit(
 
     # Organising
     print()
-    info("Stage 1/4 - Organising Data")
+    info("Stage 1/5 - Organising Data")
 
     organise_results = organise_dataset(
             ntds_file=ntds_file,
@@ -91,7 +91,9 @@ def run_audit(
         )
 
     campaign = load_campaign(campaign_file)
-    parameters = campaign["parameters"]
+
+    parameters = campaign["ntlm"]["parameters"]
+    
     hashcat_dir = parameters.get(
         "hashcatDir",
         DEFAULT_HASHCAT_DIR,
@@ -100,7 +102,6 @@ def run_audit(
         hashcat_dir,
         "hashcat.potfile",
     )
-    hash_file = output_dir / "ntlm-hashes.txt"
 
     # Summary output
     filtered_users = organise_results["filtered_users"]
@@ -144,31 +145,47 @@ def run_audit(
     )
 
     console.print(table)
-
     print()
 
     # Cracking
-    info("Stage 2/4 - Recovering Passwords")
+    info("Stage 2/5 - Recovering NTLM Passwords")
 
+    ntlm_campaign = campaign["ntlm"]
+        
     campaign_results = run_campaign(
-        config=campaign,
-        hash_file=hash_file,
+        config=ntlm_campaign,
+        hash_file=output_dir / "ntlm-hashes.txt",
         campaign_name=campaign_name,
     )
 
     print_summary(campaign_results)
     print()
 
+    if organise_results["lm_hashes"]:
+
+        info("Stage 3/5 - Recovering LM Passwords")
+    
+        lm_campaign = campaign["lm"]
+
+        lm_campaign_results = run_campaign(
+            config=lm_campaign,
+            hash_file=output_dir / "lm-hashes.txt",
+            campaign_name=f"{campaign_name}-lm",
+        )
+
+        print_summary(lm_campaign_results)
+        print()
+        
     # Mapping NTLM passwords back to their users
-    info("Stage 3/4 - Mapping Passwords")
+    info("Stage 4/5 - Mapping Passwords")
     print()
 
-    organise_dataset(
-        ntds_file=ntds_file,
-        output_dir=output_dir,
-        potfile=hashcat_potfile,
-        username_filter=username_filter
-    )
+    # organise_dataset(
+    #     ntds_file=ntds_file,
+    #     output_dir=output_dir,
+    #     potfile=hashcat_potfile,
+    #     username_filter=username_filter
+    # )
 
     mapping_results = organise_dataset(
         ntds_file=ntds_file,
@@ -195,7 +212,7 @@ def run_audit(
         console.print(table)
         print()
 
-    info("Stage 4/4 - Analysing Passwords")
+    info("Stage 5/5 - Analysing Passwords")
     print()
 
     mapped_passwords = (
