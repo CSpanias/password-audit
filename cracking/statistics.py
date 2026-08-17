@@ -137,9 +137,9 @@ def print_phase_statistics(_args=None):
     table.add_column("Runs", justify="right")
     table.add_column("Avg Duration", justify="right")
     table.add_column("Avg Recovery", justify="right")
-    table.add_column("Avg ROI", justify="right")
+    table.add_column("Avg ROI (pwd/min)", justify="right")
     table.add_column("Best Recovery", justify="right")
-    table.add_column("Best ROI", justify="right")
+    table.add_column("Best ROI (pwd/min)", justify="right")
 
     for phase_id, data in sorted(stats.items()):
 
@@ -148,9 +148,9 @@ def print_phase_statistics(_args=None):
             str(data["runs"]),
             human_time(data["averageDuration"]),
             str(data["averageRecovered"]),
-            f"{data['averageROI']} pwd/min",
+            f"{data['averageROI']}",
             str(data["bestRecovered"]),
-            f"{data['bestROI']} pwd/min",
+            f"{data['bestROI']}",
         )
 
     console.print(table)

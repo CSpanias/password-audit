@@ -165,14 +165,13 @@ The estimate is calculated by matching campaign phases against historical execut
 $ password-audit crack estimate --campaign config.json
 
                Campaign Estimate
-┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
-┃ Phase           ┃ Duration ┃ Historical Runs ┃
-┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
-│ rockyou         │ 3s       │              62 │
-│ loopback-rule   │ 3s       │              58 │
-├─────────────────┼──────────┼─────────────────┤
-│ Estimated Total │ 6s       │               - │
-└─────────────────┴──────────┴─────────────────┘
+
+| Phase           | Duration | Historical Runs |
+|-----------------|----------|-----------------|
+| rockyou         |       3s |              62 |
+| loopback-rule   |       3s |              58 |
+|-----------------|----------|-----------------|
+| Estimated Total |       6s |               - |
 ```
 
 ## Run
@@ -254,14 +253,13 @@ For example:
 $ password-audit crack stats
 
                                            Attack Statistics
-┏━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
-┃ Phase         ┃ Runs ┃ Avg Duration ┃ Avg Recovery ┃       Avg ROI ┃ Best Recovery ┃       Best ROI ┃
-┡━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩
-│ hashmob-rule  │    2 │   26h 8m 52s │         13.0 │  0.01 pwd/min │            24 │   0.02 pwd/min │
-│ loopback-rule │   58 │           3s │         0.55 │  7.77 pwd/min │            23 │ 296.35 pwd/min │
-│ rockyou       │   62 │           3s │         1.24 │ 15.87 pwd/min │            65 │ 739.78 pwd/min │
-│ rockyou-rule  │   20 │        1m 3s │          3.1 │ 42.56 pwd/min │            34 │ 503.28 pwd/min │
-└───────────────┴──────┴──────────────┴──────────────┴───────────────┴───────────────┴────────────────┘
+
+| Phase         | Runs | Avg Duration | Avg Recovery | Avg ROI (pwd/min) | Best Recovery | Best ROI (pwd/min) |
+|---------------|------|--------------|--------------|-------------------|---------------|--------------------|
+| hashmob-rule  |    2 |   26h 8m 52s |         13.0 |              0.01 |            24 |               0.02 |
+| loopback-rule |   58 |           3s |         0.55 |              7.77 |            23 |             296.35 |
+| rockyou       |   62 |           3s |         1.24 |             15.87 |            65 |             739.78 |
+| rockyou-rule  |   20 |        1m 3s |          3.1 |             42.56 |            34 |             503.28 |
 ```
 
 ## Additional Flags

@@ -47,18 +47,17 @@ $ password-audit organise \
 [*] Password Audit Organise
 
         NTDS Summary
-┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ Object            ┃ Value ┃
-┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ Enabled Accounts  │   481 │
-│ Disabled Accounts │    42 │
-│ User Accounts     │   273 │
-│ Machine Accounts  │   208 │
-│ NTLM Hashes       │   164 │
-│ LM Hashes         │    88 │
-│ Domain Admins     │    23 │
-│ Company Words     │     3 │
-└───────────────────┴───────┘
+
+| Object            | Value |
+|-------------------|-------|
+| Enabled Accounts  |   481 |
+| Disabled Accounts |    42 |
+| User Accounts     |   273 |
+| Machine Accounts  |   208 |
+| NTLM Hashes       |   164 |
+| LM Hashes         |    88 |
+| Domain Admins     |    23 |
+| Company Words     |     3 |
 
 [+] Output written to: ntds-organiser
 ```
@@ -114,19 +113,18 @@ $ password-audit organise \
 [*] Password Audit Organise
 
         NTDS Summary
-┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ Object            ┃ Value ┃
-┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ Enabled Accounts  │   481 │
-│ Disabled Accounts │    42 │
-│ User Accounts     │   273 │
-│ Machine Accounts  │   208 │
-│ NTLM Hashes       │   164 │
-│ LM Hashes         │    88 │
-│ Domain Admins     │    23 │
-│ Company Words     │     3 │
-│ Mapped Passwords  │   191 │
-└───────────────────┴───────┘
+
+| Object            | Value |
+|-------------------|-------|
+| Enabled Accounts  |   481 |
+| Disabled Accounts |    42 |
+| User Accounts     |   273 |
+| Machine Accounts  |   208 |
+| NTLM Hashes       |   164 |
+| LM Hashes         |    88 |
+| Domain Admins     |    23 |
+| Company Words     |     3 |
+| Mapped Passwords  |   191 |
 
 [+] Output written to: ntds-organiser
 ```

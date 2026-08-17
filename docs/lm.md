@@ -73,18 +73,17 @@ If LM hashes are present within NTDS, `organise` identifies and extracts them:
 [*] Password Audit Organise
 
         NTDS Summary
-┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ Object            ┃ Value ┃
-┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ Enabled Accounts  │   481 │
-│ Disabled Accounts │    42 │
-│ User Accounts     │   273 │
-│ Machine Accounts  │   208 │
-│ NTLM Hashes       │   164 │
-│ LM Hashes         │    88 │
-│ Domain Admins     │    23 │
-│ Company Words     │     3 │
-└───────────────────┴───────┘
+
+| Object            | Value |
+|-------------------|-------|
+| Enabled Accounts  |   481 |
+| Disabled Accounts |    42 |
+| User Accounts     |   273 |
+| Machine Accounts  |   208 |
+| NTLM Hashes       |   164 |
+| LM Hashes         |    88 |
+| Domain Admins     |    23 |
+| Company Words     |     3 |
 
 [+] Output written to: ntds-organiser
 ```
@@ -120,11 +119,10 @@ $ password-audit lm map \
     -R ntds-organiser/lm-results.txt
 
       LM Password Mapping
-┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ Object              ┃ Value ┃
-┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ Mapped LM Passwords │    15 │
-└─────────────────────┴───────┘
+
+| Object              | Value |
+|---------------------|-------|
+| Mapped LM Passwords |    15 |
 
 [+] Output Directory: ntds-organiser
 ```
@@ -199,12 +197,12 @@ $ password-audit lm generate \
     -L ntds-organiser/mapped-lm-passwords.txt
 
   LM Candidate Generation
-┏━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ Object           ┃ Value ┃
-┡━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ LM DA Users      │     0 │
-│ LM DA Candidates │     0 │
-└──────────────────┴───────┘
+
+| Object           | Value |
+|------------------|-------|
+| LM DA Users      |     0 |
+| LM DA Candidates |     0 |
+
 
 [+] Output Directory: ntds-organiser
 

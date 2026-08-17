@@ -34,10 +34,10 @@ def print_summary(results):
     )
 
     table.add_column("Phase")
-    table.add_column("Duration")
+    table.add_column("Duration", justify="right")
     table.add_column("New Passwords", justify="right")
     table.add_column("Total Passwords", justify="right")
-    table.add_column("ROI/min", justify="right")
+    table.add_column("ROI (pwd/min)", justify="right")
 
     for phase in results["phases"]:
 

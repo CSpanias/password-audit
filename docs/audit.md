@@ -73,35 +73,31 @@ This will sequentially run the `organise`, `crack`, and `analyse` modules and pr
 [*] Stage 1/4 - Organising Data
 
       NTDS Summary
-┏━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ Object        ┃ Count ┃
-┡━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ User Accounts │   273 │
-│ NTLM Hashes   │   164 │
-│ LM Hashes     │    88 │
-│ Domain Admins │    23 │
-└───────────────┴───────┘
+
+| Object        | Count |
+|---------------|-------|
+| User Accounts |   273 |
+| NTLM Hashes   |   164 |
+| LM Hashes     |    88 |
+| Domain Admins |    23 |
 
 [*] Stage 2/4 - Recovering Passwords
 ...
                             Campaign Summary
-┏━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
-┃ Phase         ┃ Duration ┃ New Passwords ┃ Total Passwords ┃ ROI/min ┃
-┡━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩
-│ rockyou       │ 2s       │             0 │              87 │    0.00 │
-│ loopback-rule │ 2s       │             0 │              87 │    0.00 │
-├───────────────┼──────────┼───────────────┼─────────────────┼─────────┤
-│ Total         │ 4s       │             0 │              87 │       - │
-└───────────────┴──────────┴───────────────┴─────────────────┴─────────┘
+
+| Phase         | Duration | New Passwords | Total Passwords | ROI (pwd/min) |
+|---------------|----------|---------------|-----------------|---------------|
+| rockyou       |       2s |             0 |              87 |          0.00 |
+| loopback-rule |       2s |             0 |              87 |          0.00 |
+| Total         |       4s |             0 |              87 |             - |
 
 [*] Stage 3/4 - Mapping Passwords
 
   Password Mapping Summary
-┏━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ Object           ┃ Count ┃
-┡━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ Mapped Passwords │   191 │
-└──────────────────┴───────┘
+
+| Object            | Count |
+|-------------------|-------|
+| Mapped Passwords  | 191   |
 
 [*] Stage 4/4 - Analysing Passwords
 
