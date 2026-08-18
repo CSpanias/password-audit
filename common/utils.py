@@ -28,6 +28,9 @@ def natural_join(items):
         ["A", "B", "C"] -> "A, B, and C"
     """
 
+    if not items:
+        return ""
+
     if len(items) == 1:
         return items[0]
 

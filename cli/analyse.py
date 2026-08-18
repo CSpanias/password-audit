@@ -28,7 +28,7 @@ def run_password_analysis(args):
 
 
     analyse_passwords(
-        mapped_passwords=args.mapped_passwords,
+        mapped_ntlm_passwords=args.mapped_ntlm_passwords,
         domain_admins=args.domain_admins,
         company_words=args.company_words,
         pass_policy=args.pass_policy,

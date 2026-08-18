@@ -28,7 +28,9 @@ def run_audit(
     campaign_file,
     campaign_name,
     username_filter=None,
-    mapped_passwords=None,
+    mapped_ntlm_passwords=None,
+    mapped_lm_passwords=None,
+    lm_users=None,
     domain_admins=None,
     company_words=None,
     enabled_users=None,
@@ -53,7 +55,7 @@ def run_audit(
         username_filter:
             Usernames to exclude from processing.
             
-        mapped_passwords:
+        mapped_ntlm_passwords:
             Override mapped password dataset.
 
         domain_admins:
@@ -197,6 +199,7 @@ def run_audit(
 
     # LM mapping
     lm_results_file = None
+    lm_mapping_results = None
 
     if organise_results["lm_hashes"]:
 
@@ -245,8 +248,8 @@ def run_audit(
     info("Stage 5/5 - Analysing Passwords")
     print()
 
-    mapped_passwords = (
-        mapped_passwords
+    mapped_ntlm_passwords = (
+        mapped_ntlm_passwords
         or output_dir / "mapped-ntlm-passwords.txt"
     )
 
@@ -270,12 +273,24 @@ def run_audit(
         or output_dir / "enabled-users.txt"
     )
 
+    lm_users = (
+        lm_users
+        or output_dir / "lm-users.txt"
+    )
+
+    mapped_lm_passwords = (
+        mapped_lm_passwords
+        or output_dir / "mapped-lm-passwords.txt"
+    )
+
     analyse_passwords(
-        mapped_passwords=mapped_passwords,
+        mapped_ntlm_passwords=mapped_ntlm_passwords,
         domain_admins=domain_admins,
         company_words=company_words,
         pass_policy=pass_policy,
         enabled_users=enabled_users,
+        lm_users=lm_users,
+        mapped_lm_passwords=mapped_lm_passwords,
     )
 
     report_file = Path("report.md")
@@ -294,7 +309,7 @@ def run_audit(
 
     return {
         "campaign": campaign_results,
-        "mappedPasswords": mapped_passwords,
+        "mappedPasswords": mapped_ntlm_passwords,
         "recoveredPasswords": total_recovered,
         "report": report_file,
     }

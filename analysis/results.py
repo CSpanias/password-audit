@@ -33,13 +33,14 @@ from analysis.analysis import (
 
 
 def build_results(
-    passwords,
+    ntlm_mapped_passwords,
     domain_admins,
     company_words,
     minimum_length,
     enabled_users,
     lm_users=None,
-    lm_passwords=None,
+    lm_mapped_passwords=None,
+    domain_name=None
 ):
     """
     Build the complete password analysis results dataset.
@@ -51,8 +52,8 @@ def build_results(
     components.
 
     Args:
-        passwords (list):
-            Recovered plaintext password mappings.
+        ntlm_mapped_passwords (list):
+            Recovered NTLM password.
 
         domain_admins (list):
             Domain Administrator usernames.
@@ -73,8 +74,11 @@ def build_results(
             Accounts identified as storing LM password
             hashes.
 
-        lm_passwords (list):
-            Recovered plaintext password mappings.
+        lm_mapped_passwords (list):
+            Recovered LM passwords.
+
+        domain_name:
+            Fully qualified domain name.
 
     Returns:
         dict:
@@ -87,39 +91,39 @@ def build_results(
 
     # Privileged accounts
     admins = compromised_admins(
-        passwords, 
+        ntlm_mapped_passwords, 
         domain_admins
     )
 
     # Password compliance
-    length_distribution = password_length_distribution(passwords)
+    length_distribution = password_length_distribution(ntlm_mapped_passwords)
     length_failures = password_length_failures(
-        passwords, 
+        ntlm_mapped_passwords, 
         minimum_length
     )
 
     # Password reuse
-    password_frequencies = password_frequency(passwords)
-    top_passes = top_passwords(passwords)
+    password_frequencies = password_frequency(ntlm_mapped_passwords)
+    top_passes = top_passwords(ntlm_mapped_passwords)
     reused_passwords = [
             (password, count)
             for password, count in password_frequencies
             if count > 1
         ]
-    reuse_accounts, similar_pairs = similar_account_reuse(passwords)
+    reuse_accounts, similar_pairs = similar_account_reuse(ntlm_mapped_passwords)
     
     # Predictable patterns
     company_findings = company_name_passwords(
-        passwords, 
+        ntlm_mapped_passwords, 
         company_words
     )
-    keyboard_findings = keyboard_walk_passwords(passwords)
-    username_findings = username_passwords(passwords)
-    common_password_findings = common_passwords(passwords)
-    date_findings = date_passwords(passwords)
+    keyboard_findings = keyboard_walk_passwords(ntlm_mapped_passwords)
+    username_findings = username_passwords(ntlm_mapped_passwords)
+    common_password_findings = common_passwords(ntlm_mapped_passwords)
+    date_findings = date_passwords(ntlm_mapped_passwords)
     
     # Password complexity
-    char_classes = character_class_adoption(passwords)
+    char_classes = character_class_adoption(ntlm_mapped_passwords)
 
     # Presence of LM hashes
     lm_findings = lm_hashes(lm_users)
@@ -131,7 +135,7 @@ def build_results(
     })
 
     # Domain Admins with LM
-    lm_admins = compromised_lm_admins(lm_passwords, domain_admins)
+    lm_admins = compromised_lm_admins(lm_mapped_passwords, domain_admins)
 
     results = {}
 
@@ -153,8 +157,8 @@ def build_results(
         "failures": length_failures,
         "count": len(length_failures),
         "percentage": (
-            round(len(length_failures) / len(passwords) * 100, 1)
-            if passwords else 0
+            round(len(length_failures) / len(ntlm_mapped_passwords) * 100, 1)
+            if ntlm_mapped_passwords else 0
         )
     }
 
@@ -170,10 +174,10 @@ def build_results(
         "percentage": (
             round(
                 sum(entry[1] for entry in reused_passwords)
-                / len(passwords) * 100,
+                / len(ntlm_mapped_passwords) * 100,
                 1
             )
-            if passwords
+            if ntlm_mapped_passwords
             else 0
         ),
         "passwords": reused_passwords,
@@ -229,17 +233,17 @@ def build_results(
     results["character_classes"] = char_classes
 
     # Crack rate
-    results["total_passwords"] = len(passwords)
+    results["total_passwords"] = len(ntlm_mapped_passwords)
     results["enabled_users"] = len(enabled_users)
     results["unique_passwords"] = len(
         set(
-            p["password"] for p in passwords
+            p["password"] for p in ntlm_mapped_passwords
         )
     )
 
     results["crack_rate"] = (
         round(
-            len(passwords) / len(enabled_users) * 100,
+            len(ntlm_mapped_passwords) / len(enabled_users) * 100,
             1
         )
         if enabled_users
@@ -259,11 +263,14 @@ def build_results(
     }
 
     # Recovered LM passwords
-    lm_passwords = lm_passwords or []
+    lm_mapped_passwords = lm_mapped_passwords or []
     
     results["lm_passwords"] = {
-        "count": len(lm_passwords),
-        "accounts": lm_passwords,
+        "count": len(lm_mapped_passwords),
+        "accounts": lm_mapped_passwords,
     }
+
+    # Fully qualified domain name
+    results["domain_name"] = domain_name
 
     return results

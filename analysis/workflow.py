@@ -5,6 +5,10 @@ This module provides reusable password analysis workflows
 for report generation and audit orchestration.
 """
 
+import sys
+
+from pathlib import Path
+
 from analysis.parsers import load_passwords, load_list, load_domain_policy, load_company_words, load_lm_users
 from analysis.results import build_results
 from analysis.executive_summary import executive_summary
@@ -13,10 +17,11 @@ from analysis.remediation_guidance import remediation_guidance, remediation_refe
 from analysis.findings import build_findings
 from reports.json import write_findings
 from reports.markdown import render_markdown, write_markdown
+from common.console import warn
 
 
 def analyse_passwords(
-    mapped_passwords,
+    mapped_ntlm_passwords,
     domain_admins,
     company_words,
     pass_policy,
@@ -29,8 +34,8 @@ def analyse_passwords(
     Analyse recovered passwords and generate a report.
 
     Args:
-        mapped_passwords:
-            Password dataset.
+        mapped_ntlm_passwords:
+            Recovered NTLM passwords.
 
         domain_admins:
             Domain administrator dataset.
@@ -51,7 +56,7 @@ def analyse_passwords(
             Output report path.
 
         mapped_lm_passwords:
-            Password dataset.
+            Recovered LM passwords.
 
     Returns:
         dict:
@@ -67,34 +72,59 @@ def analyse_passwords(
 
     # Domain password policy
     policy = load_domain_policy(pass_policy)
+    domain_name = policy.get("Domain")
 
     # Domain-based generate company file
     company_words = load_company_words(company_words)
 
     # Recovered NTLM passwords
-    passwords = load_passwords(mapped_passwords)
+    ntlm_passwords = []
+
+    if (mapped_ntlm_passwords and Path(mapped_ntlm_passwords).exists()):
+            
+            ntlm_passwords = load_passwords(mapped_ntlm_passwords)
 
     # Presence of LM hashes
-    lm_users = load_lm_users(lm_users)
+    loaded_lm_users = []
 
-    # Recovered LM passwords
-    lm_passwords = []
-    
-    if mapped_lm_passwords:
-        lm_passwords = load_passwords(
-            mapped_lm_passwords
+    if (lm_users and Path(lm_users).exists()):
+
+        loaded_lm_users = load_lm_users(lm_users)
+
+    lm_users = loaded_lm_users
+
+    # Length Compliance
+    minimum_length = policy["Minimum Password Length"]
+
+    try:
+        minimum_length = int(minimum_length)
+
+    except (TypeError, ValueError):
+        warn(
+            "Unable to determine Minimum Password Length "
+            "from domain-policy.txt"
         )
+        warn(
+            "Password policy data appears to be unavailable "
+            "within the supplied dataset."
+        )
+        sys.exit(1)
+
+    # Recovered LM passwords 
+    lm_passwords = []
+
+    if (mapped_lm_passwords and Path(mapped_lm_passwords).exists()):
+        lm_passwords = load_passwords(mapped_lm_passwords)
 
     results = build_results(
-        passwords=passwords,
+        ntlm_mapped_passwords=ntlm_passwords,
         domain_admins=domain_admins,
         company_words=company_words,
-        minimum_length=int(
-            policy["Minimum Password Length"]
-        ),
+        minimum_length=minimum_length,
         enabled_users=enabled_users,
         lm_users=lm_users,
-        lm_passwords=lm_passwords,
+        lm_mapped_passwords=lm_passwords,
+        domain_name=domain_name
     )
 
     # Markdown report export

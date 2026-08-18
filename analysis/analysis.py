@@ -599,6 +599,14 @@ def character_class_adoption(passwords):
 
     total = len(passwords)
 
+    if total == 0:
+        return {
+            "lower": 0,
+            "upper": 0,
+            "numeric": 0,
+            "special": 0,
+        }
+
     lower = 0
     upper = 0
     numeric = 0

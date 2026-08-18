@@ -117,10 +117,24 @@ def main():
 
     optional_audit_parser.add_argument(
         "-M",
-        "--mapped-passwords",
+        "--mapped-ntlm-passwords",
         default="./ntds-organiser/mapped-ntlm-passwords.txt",
-        help="Recovered password dataset",
+        help="Recovered NTLM passwords",
     )
+
+    optional_audit_parser.add_argument(
+            "-U",
+            "--lm-users",
+            default="./ntds-organiser/lm-users.txt",
+            help="Accounts storing LM password hashes",
+        )
+
+    optional_audit_parser.add_argument(
+            "-L",
+            "--mapped-lm-passwords",
+            default="./ntds-organiser/mapped-lm-passwords.txt",
+            help="Recovered LM passwords",
+        )
 
     optional_audit_parser.add_argument(
         "-D",
@@ -422,7 +436,7 @@ def main():
     # Required arguments
     required_analyse_parser.add_argument(
         "-M",
-        "--mapped-passwords",
+        "--mapped-ntlm_passwords",
         required=True,
         help="Recovered NTLM passwords"
     )

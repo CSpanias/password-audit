@@ -80,8 +80,8 @@ A simplified example report structure is shown below:
 ```markdown
 # Executive Summary
 
-A password audit was performed against extracted Active Directory password 
-hashes to assess the effectiveness of password selection practices and identify 
+A password audit was performed against the domain.local domain in order to 
+assess the effectiveness of password selection practices and identify 
 weaknesses that could increase the likelihood of credential compromise. The 
 assessment simulated the techniques available to an attacker with access to 
 password hash material and provides insight into the effectiveness of password 
