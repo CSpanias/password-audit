@@ -57,47 +57,49 @@ Campaigns are written in JSON and contain the following sections:
     * `rule`: Rule file to be used by the phase.
 
 !!! tip
-    Example configuration files for both [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json) and [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json) can be found on the GitHub root directory.
+    Example configuration files for [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json), [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json), or [both](https://github.com/CSpanias/password-audit/blob/main/example-dual-config-small.json) can be found on the GitHub root directory.
 
 An example JSON file consisting of three phases is shown below:
 
 ```json
 {
-    "parameters": {
-        "hashcatDir": "/mnt/c/tools/hashcat",
-        "hashMode": "1000",
-        "flags": [
-            "-O",
-            "-w", "3",
-            "-d", "1",
-            "--status",
-            "--status-timer", "300"
-        ]
-    },
+    "ntlm": {
+        "parameters": {
+            "hashcatDir": "/mnt/c/tools/hashcat",
+            "hashMode": "1000",
+            "flags": [
+                "-O",
+                "-w", "3",
+                "-d", "1",
+                "--status",
+                "--status-timer", "300"
+            ]
+        },
 
-    "phases": [
-        {
-            "id": "rockyou-rule",
-            "type": "wordlist",
-            "wordlist": "rockyou.txt",
-            "rule": "OneRuleToRuleThemStill.rule",
-            "enabled": true
-        },
-        {
-            "id": "hashmob-rule",
-            "type": "wordlist",
-            "wordlist": "hashmob.net_2026-06-07.combined.txt",
-            "rule": "OneRuleToRuleThemStill.rule",
-            "enabled": true
-        },
-        {
-            "id": "loopback-rule",
-            "type": "loopback",
-            "wordlist": "loopback.txt",
-            "rule": "OneRuleToRuleThemStill.rule",
-            "enabled": true
-        }
-    ]
+        "phases": [
+            {
+                "id": "rockyou-rule",
+                "type": "wordlist",
+                "wordlist": "rockyou.txt",
+                "rule": "OneRuleToRuleThemStill.rule",
+                "enabled": true
+            },
+            {
+                "id": "hashmob-rule",
+                "type": "wordlist",
+                "wordlist": "hashmob.net_2026-06-07.combined.txt",
+                "rule": "OneRuleToRuleThemStill.rule",
+                "enabled": true
+            },
+            {
+                "id": "loopback-rule",
+                "type": "loopback",
+                "wordlist": "loopback.txt",
+                "rule": "OneRuleToRuleThemStill.rule",
+                "enabled": true
+            }
+        ]
+    }
 }
 ```
 

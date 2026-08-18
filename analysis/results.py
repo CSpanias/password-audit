@@ -265,11 +265,24 @@ def build_results(
     # Recovered LM passwords
     lm_mapped_passwords = lm_mapped_passwords or []
 
+    fully_recovered = 0
+    partially_recovered = 0
+
+    for account in lm_mapped_passwords:
+
+        password = account["password"]
+
+        if "[notfound]" in password:
+            partially_recovered += 1
+        else:
+            fully_recovered += 1
+
     results["lm_passwords"] = {
-        "count": len(lm_mapped_passwords),
+        "count": fully_recovered,
+        "partialCount": partially_recovered,
         "accounts": lm_mapped_passwords,
         "recoveryRate": (
-            round(len(lm_mapped_passwords) / lm_findings["count"] * 100, 1)
+            round(fully_recovered / lm_findings["count"] * 100, 1)
             if lm_findings["count"]
             else 0
         ),

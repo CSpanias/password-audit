@@ -84,9 +84,10 @@ def commentary_lm_hashes(results):
     Generate commentary relating to LM hash exposure.
 
     The presence of LM password hashes is summarised
-    together with associated security risks, password
-    recovery statistics, and any affected privileged
-    accounts.
+    together with associated security risks. Where LM
+    passwords have been recovered, recovery rates,
+    partial recoveries, and any affected privileged
+    accounts are also reported.
 
     Args:
         results (dict):
@@ -103,6 +104,7 @@ def commentary_lm_hashes(results):
     unique_hashes = results["lm_hashes"]["uniqueHashes"]
     duplicate_hashes = results["lm_hashes"]["duplicateHashes"]
     lm_password_count = results["lm_passwords"]["count"]
+    partial_lm_password_count = results["lm_passwords"]["partialCount"]
     lm_crack_rate = results["lm_passwords"]["recoveryRate"]
     da_count = results["lm_admins"]["count"]
 
@@ -133,10 +135,18 @@ def commentary_lm_hashes(results):
             f"{lm_crack_rate}% of affected accounts. "
         )
 
+        if partial_lm_password_count:
+
+            recovery_text += (
+                f"A further {num_to_word(partial_lm_password_count)} account"
+                f"{'s' if partial_lm_password_count != 1 else ''} yielded a partial password "
+                "recovery. "
+            )
+
         if lm_crack_rate >= 90:
             recovery_text += (
                 "This demonstrates the practical weakness of LM password storage. The "
-                f"{lm_crack_rate}% recovery rate observed during the assessment highlights the "
+                "extremely high recovery rate observed during the assessment highlights the "
                 "elevated risk associated with retaining legacy password hashing technologies."
             )
 
@@ -173,7 +183,12 @@ def commentary_lm_hashes(results):
     lines.append(f"| Duplicate LM Hashes | {duplicate_hashes} |")
 
     if lm_password_count:
-        lines.append(f"| Recovered LM Passwords | {lm_password_count} |")
+        lines.append(f"| Fully Recovered LM Passwords | {lm_password_count} |")
+
+    if partial_lm_password_count:
+        lines.append(f"| Partially Recovered LM Passwords | {partial_lm_password_count} |")
+
+    if lm_password_count:
         lines.append(f"| Recovery Rate | {lm_crack_rate}% |")
 
     if da_count:

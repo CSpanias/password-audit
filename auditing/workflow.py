@@ -82,7 +82,9 @@ def run_audit(
         exist_ok=True,
     )
 
+    #---------------------------------------------------------------------------
     # Organising
+    #---------------------------------------------------------------------------
     print()
     info("Stage 1/5 - Organising Data")
 
@@ -156,7 +158,9 @@ def run_audit(
     console.print(table)
     print()
 
+    #---------------------------------------------------------------------------
     # Cracking
+    #---------------------------------------------------------------------------
     info("Stage 2/5 - Recovering NTLM Passwords")
 
     ntlm_campaign = campaign["ntlm"]
@@ -170,11 +174,11 @@ def run_audit(
     print_summary(campaign_results)
     print()
 
-    if organise_results["lm_hashes"]:
+    lm_campaign = campaign.get("lm")
+
+    if organise_results["lm_hashes"] and lm_campaign:
 
         info("Stage 3/5 - Recovering LM Passwords")
-    
-        lm_campaign = campaign["lm"]
 
         lm_campaign_results = run_campaign(
             config=lm_campaign,
@@ -184,8 +188,16 @@ def run_audit(
 
         print_summary(lm_campaign_results)
         print()
-        
+
+    elif organise_results["lm_hashes"]:
+
+        info("Stage 3/5 - Recovering LM Passwords")
+        warn("No LM campaign configured - skipping")
+        print()
+
+    #--------------------------------------------------------------------------- 
     # Mapping NTLM passwords back to their users
+    #---------------------------------------------------------------------------
     info("Stage 4/5 - Mapping Passwords")
     print()
 
@@ -245,7 +257,9 @@ def run_audit(
         console.print(table)
         print()
 
+    #---------------------------------------------------------------------------
     info("Stage 5/5 - Analysing Passwords")
+    #---------------------------------------------------------------------------
     print()
 
     mapped_ntlm_passwords = (

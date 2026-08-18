@@ -22,3 +22,4 @@ site/
 !docs/images/
 !example-lm-config.json
 !example-ntlm-config.json
+!example-dual-config-small.json

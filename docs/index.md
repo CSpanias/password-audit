@@ -29,7 +29,7 @@ The core ideas behind each script are discussed in the following articles:
 The most efficient way to execute a complete password audit is via the use of the (aptly named!) [`audit`](audit.md) module:
 
 !!! tip
-    Example configuration files for both [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json) and [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json) can be found on the GitHub root directory.
+    Example configuration files for [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json), [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json), or [both](https://github.com/CSpanias/password-audit/blob/main/example-dual-config-small.json) can be found on the GitHub root directory.
 
 ```bash
 password-audit audit \
