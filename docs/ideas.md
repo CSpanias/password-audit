@@ -2,21 +2,6 @@
 
 This page documents potential future enhancements. Features listed here are ideas under consideration and are not guaranteed to be implemented.
 
-## Audit
-
-### Automated LM Workflow
-
-!!! warning
-    This feature requires architectural changes across the `audit` and `crack` modules.
-
-Integrate the LM recovery workflow into the `audit` module, i.e. implement the `hashcat --show` step internally.
-
-* Implement the `hashcat --show` step internally
-* Accept two hashcat modes on the configuration files (`1000`, `3000`)
-* Automate Hashcat mode selection:
-    * NTDS datasets (`-N`) &rarr; `1000`
-    * LM datasets (`-L`) &rarr; `3000`
-
 ## Crack
 
 ### Campaign Resume
