@@ -49,12 +49,14 @@ def phase_statistics():
 
     for campaign in load_history():
 
+        hash_mode = campaign.get("hashMode", "unknown")
+
         for phase in campaign.get("phases", []):
 
-            phase_id = phase["id"]
+            phase_key = (hash_mode, phase["id"])
 
             stats.setdefault(
-                phase_id,
+                phase_key,
                 {
                     "runs": 0,
                     "duration": 0,
@@ -65,18 +67,18 @@ def phase_statistics():
                 }
             )
 
-            stats[phase_id]["runs"] += 1
-            stats[phase_id]["duration"] += phase["duration"]
-            stats[phase_id]["newRecovered"] += phase["newRecovered"]
-            stats[phase_id]["passwordsPerMinute"] += (
+            stats[phase_key]["runs"] += 1
+            stats[phase_key]["duration"] += phase["duration"]
+            stats[phase_key]["newRecovered"] += phase["newRecovered"]
+            stats[phase_key]["passwordsPerMinute"] += (
                 phase["passwordsPerMinute"]
             )
-            stats[phase_id]["bestRecovered"] = max(
-                stats[phase_id]["bestRecovered"],
+            stats[phase_key]["bestRecovered"] = max(
+                stats[phase_key]["bestRecovered"],
                 phase["newRecovered"],
             )
-            stats[phase_id]["bestROI"] = max(
-                stats[phase_id]["bestROI"],
+            stats[phase_key]["bestROI"] = max(
+                stats[phase_key]["bestROI"],
                 phase["passwordsPerMinute"],
             )
 
@@ -94,9 +96,9 @@ def calculate_phase_statistics():
 
     calculated = {}
 
-    for phase_id, data in phase_statistics().items():
+    for (hash_mode, phase_id), data in phase_statistics().items():
 
-        calculated[phase_id] = {
+        calculated[(hash_mode, phase_id)] = {
             "runs": data["runs"],
             "averageDuration": round(data["duration"] / data["runs"], 2),
             "averageRecovered": round(data["newRecovered"] / data["runs"], 2),
@@ -133,6 +135,7 @@ def print_phase_statistics(_args=None):
         title_style="bold cyan",
     )
 
+    table.add_column("Hash Type")
     table.add_column("Phase")
     table.add_column("Runs", justify="right")
     table.add_column("Avg Duration", justify="right")
@@ -141,9 +144,15 @@ def print_phase_statistics(_args=None):
     table.add_column("Best Recovery", justify="right")
     table.add_column("Best ROI (pwd/min)", justify="right")
 
-    for phase_id, data in sorted(stats.items()):
+    for (hash_mode, phase_id), data in sorted(stats.items()):
+
+        hash_type = {
+            "1000": "NTLM",
+            "3000": "LM",
+        }.get(hash_mode, hash_mode)
 
         table.add_row(
+            hash_type,
             phase_id,
             str(data["runs"]),
             human_time(data["averageDuration"]),
