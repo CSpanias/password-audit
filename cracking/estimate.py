@@ -22,109 +22,110 @@ def estimate_campaign(path):
             Path to the campaign configuration.
 
     Returns:
-        tuple:
-            Campaign phase estimates and estimated duration.
+        dict:
+            Campaign estimates keyed by campaign name.
     """
 
-    campaign = load_campaign(path)
+    campaigns = load_campaign(path)
     statistics = calculate_phase_statistics()
 
-    estimates = []
-    total_duration = 0
-    incomplete = False
+    results = {}
 
-    enabled_phases = [
-        phase
-        for phase in campaign["phases"]
-        if phase.get("enabled", True)
-    ]
+    for name, campaign in campaigns.items():
 
-    for phase in enabled_phases:
+        estimates = []
+        total_duration = 0
+        incomplete = False
 
-        phase_id = phase["id"]
+        enabled_phases = [
+            phase
+            for phase in campaign["phases"]
+            if phase.get("enabled", True)
+        ]
 
-        if phase_id not in statistics:
+        for phase in enabled_phases:
+
+            phase_id = phase["id"]
+
+            if phase_id not in statistics:
+
+                estimates.append(
+                    {
+                        "id": phase_id,
+                        "duration": None,
+                        "runs": 0,
+                    }
+                )
+
+                incomplete = True
+                continue
+
+            duration = statistics[phase_id]["averageDuration"]
 
             estimates.append(
                 {
                     "id": phase_id,
-                    "duration": None,
-                    "runs": 0,
+                    "duration": duration,
+                    "runs": statistics[phase_id]["runs"],
                 }
             )
 
-            incomplete = True
-            continue
+            total_duration += duration
 
-        duration = statistics[phase_id]["averageDuration"]
+        results[name] = {
+            "estimates": estimates,
+            "total_duration": total_duration,
+            "incomplete": incomplete,
+        }
 
-        estimates.append(
-            {
-                "id": phase_id,
-                "duration": duration,
-                "runs": statistics[phase_id]["runs"],
-            }
-        )
-
-        total_duration += duration
-
-    return estimates, total_duration, incomplete
+    return results
 
 
 def print_campaign_estimate(args):
-    """
-    Display a campaign duration estimate.
 
-    Args:
-        args:
-            Parsed command-line arguments.
-
-    Returns:
-        None
-    """
-
-    estimates, total_duration, incomplete = (
-        estimate_campaign(args.campaign)
-    )
+    campaigns = estimate_campaign(args.campaign)
 
     print()
-    table = Table(
-        title="Campaign Estimate",
-        title_style="bold cyan",
-    )
 
-    table.add_column("Phase")
-    table.add_column("Duration")
-    table.add_column("Historical Runs", justify="right")
+    for name, campaign in campaigns.items():
 
-    for phase in estimates:
+        table = Table(
+            title=f"{name.upper()} Campaign Estimate",
+            title_style="bold cyan",
+        )
 
-        if phase["duration"] is None:
+        table.add_column("Phase")
+        table.add_column("Duration")
+        table.add_column("Historical Runs", justify="right")
 
-            table.add_row(
-                phase["id"],
-                "Unknown",
-                str(phase["runs"]),
-            )
+        for phase in campaign["estimates"]:
 
-        else:
+            if phase["duration"] is None:
 
-            table.add_row(
-                phase["id"],
-                human_time(phase["duration"]),
-                str(phase["runs"]),
-            )
+                table.add_row(
+                    phase["id"],
+                    "Unknown",
+                    str(phase["runs"]),
+                )
 
-    table.add_section()
+            else:
 
-    table.add_row(
-        "Estimated Total",
-        (
-            f"{human_time(total_duration)}"
-            f"{' (partial)' if incomplete else ''}"
-        ),
-        "-",
-    )
+                table.add_row(
+                    phase["id"],
+                    human_time(phase["duration"]),
+                    str(phase["runs"]),
+                )
 
-    console.print(table)
-    print()
+        table.add_section()
+
+        table.add_row(
+            "Estimated Total",
+            (
+                f"{human_time(campaign['total_duration'])}"
+                f"{' (partial)' if campaign['incomplete'] else ''}"
+            ),
+            "-",
+        )
+
+        console.print(table)
+        print()
