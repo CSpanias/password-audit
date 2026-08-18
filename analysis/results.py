@@ -264,10 +264,15 @@ def build_results(
 
     # Recovered LM passwords
     lm_mapped_passwords = lm_mapped_passwords or []
-    
+
     results["lm_passwords"] = {
         "count": len(lm_mapped_passwords),
         "accounts": lm_mapped_passwords,
+        "recoveryRate": (
+            round(len(lm_mapped_passwords) / lm_findings["count"] * 100, 1)
+            if lm_findings["count"]
+            else 0
+        ),
     }
 
     # Fully qualified domain name

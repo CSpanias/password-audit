@@ -76,15 +76,17 @@ def commentary_admins(results):
 
 
 # ---------------------------------------------------------------------------
-# Presence of LM hashes
+# LM-related findings
 # ---------------------------------------------------------------------------
 
 def commentary_lm_hashes(results):
     """
     Generate commentary relating to LM hash exposure.
 
-    Accounts identified as storing LM password hashes are
-    summarised together with the associated security risks.
+    The presence of LM password hashes is summarised
+    together with associated security risks, password
+    recovery statistics, and any affected privileged
+    accounts.
 
     Args:
         results (dict):
@@ -95,105 +97,87 @@ def commentary_lm_hashes(results):
             Markdown-formatted commentary.
     """
 
-    count = results["lm_hashes"]["count"]
+    lines = []
+
+    lm_hash_count = results["lm_hashes"]["count"]
     unique_hashes = results["lm_hashes"]["uniqueHashes"]
     duplicate_hashes = results["lm_hashes"]["duplicateHashes"]
-
-    if not count:
-        return ""
-
-    lines = []
-
-    lines.append(
-        f"LM password hashes were identified for {num_to_word(count)} account"
-        f"{'s' if count != 1 else ''}. The presence of LM hashes indicates that legacy password "
-        "storage mechanisms remain enabled for a subset of accounts within the environment. The "
-        f"analysis identified {num_to_word(unique_hashes)} unique LM hash "
-        f"value{'s' if unique_hashes != 1 else ''} and {num_to_word(duplicate_hashes)} duplicate "
-        f"LM hash occurrence{'s' if duplicate_hashes != 1 else ''}. This indicates that multiple "
-        "accounts share identical LM hash values and are therefore likely to be configured with "
-        "the same password."
-    )
-
-    lines.append("")
-    lines.append("| Metric | Value |")
-    lines.append("| --- | ---: |")
-    lines.append(f"| Accounts with LM Hashes | {count} |")
-    lines.append(f"| Unique LM Hashes | {unique_hashes} |")
-    lines.append(f"| Duplicate LM Hashes | {duplicate_hashes} |")
-    lines.append("")
-
-    return "\n".join(lines)
-
-
-# ---------------------------------------------------------------------------
-# Recovered LM Passwords
-# ---------------------------------------------------------------------------
-
-def commentary_lm_passwords(results):
-    """
-    Generate technical commentary for recovered LM passwords.
-
-    Passwords recovered through LM hash analysis indicate
-    that legacy LM password storage remains enabled for a
-    portion of the environment and that affected credentials
-    are susceptible to efficient offline recovery attacks.
-
-    Where privileged accounts are affected, additional
-    commentary is included to highlight the elevated risk
-    associated with the recovery of Domain Administrator
-    credentials.
-
-    Args:
-        results (dict):
-            Standardised password analysis results
-            containing LM password recovery findings.
-
-    Returns:
-        str:
-            Markdown-formatted narrative and supporting
-            metrics table describing recovered LM password
-            findings. Returns an empty string when no LM
-            passwords have been recovered.
-    """
-
-    lines = []
-
-    count = results["lm_passwords"]["count"]
+    lm_password_count = results["lm_passwords"]["count"]
+    lm_crack_rate = results["lm_passwords"]["recoveryRate"]
     da_count = results["lm_admins"]["count"]
 
-    if not count:
+    if not lm_hash_count:
         return ""
 
     lines.append(
-        "Unlike NTLM password recovery, LM password recovery is facilitated by the design of the "
-        "LM hashing algorithm, which processes passwords in two independent seven-character "
-        "halves. This significantly reduces the effective search space and enables rapid password "
-        "recovery using commonly available password dictionaries and rule sets. In this instance, "
-        f"passwords were recovered from {num_to_word(count)} account{'s' if count != 1 else ''}, "
-        "demonstrating the practical weakness of LM password storage and the ease with which "
-        "credentials may be recovered through offline attacks."
+        f"LM password hashes were identified for {num_to_word(lm_hash_count)} account"
+        f"{'s' if lm_hash_count != 1 else ''}. The presence of LM hashes indicates that legacy "
+        "password storage mechanisms remain enabled for a subset of accounts within the "
+        f"environment. Analysis identified {num_to_word(unique_hashes)} unique LM hash "
+        f"value{'s' if unique_hashes != 1 else ''} and {num_to_word(duplicate_hashes)} duplicate "
+        f"LM hash occurrence{'s' if duplicate_hashes != 1 else ''}. This indicates that multiple "
+        "accounts are likely configured with identical passwords."
     )
 
-    # Domain Admins with LM hashes
-    if da_count:
+    if lm_password_count:
 
-        lines.append(
-            f"Recovered LM passwords included {num_to_word(da_count)} Domain Administrator "
-            f"account{'s' if da_count != 1 else ''}. The recovery of privileged credentials "
-            "significantly increases the potential impact of credential compromise and may "
-            "facilitate rapid privilege escalation."
+        lines.append("")
+
+        recovery_text = (
+            "Unlike NTLM password recovery, LM password recovery is facilitated by the design of "
+            "the LM hashing algorithm, which processes passwords in two independent seven-character "
+            "halves. This significantly reduces the effective search space and enables rapid "
+            "password recovery using commonly available password dictionaries and rule sets. "
+            f"Passwords were successfully recovered from {num_to_word(lm_password_count)} "
+            f"account{'s' if lm_password_count != 1 else ''} that stored LM hashes, representing "
+            f"{lm_crack_rate}% of affected accounts. "
         )
+
+        if lm_crack_rate >= 90:
+            recovery_text += (
+                "This demonstrates the practical weakness of LM password storage. The "
+                f"{lm_crack_rate}% recovery rate observed during the assessment highlights the "
+                "elevated risk associated with retaining legacy password hashing technologies."
+            )
+
+        elif lm_crack_rate >= 50:
+            recovery_text += (
+                "This demonstrates the practical weakness of LM password storage and illustrates "
+                "the increased exposure associated with retaining legacy password hashing "
+                "technologies."
+            )
+
+        else:
+            recovery_text += (
+                "Whilst recovery was not universal, the results demonstrate that LM password "
+                "storage remains susceptible to efficient offline attack."
+            )
+
+        lines.append(recovery_text)
+
+        # Domain Admins with LM hashes
+        if da_count:
+
+            lines.append(
+                f"Recovered LM passwords included {num_to_word(da_count)} Domain Administrator "
+                f"account{'s' if da_count != 1 else ''}. The recovery of privileged credentials "
+                "significantly increases the potential impact of credential compromise and may "
+                "facilitate rapid privilege escalation."
+            )
 
     lines.append("")
     lines.append("| Metric | Value |")
     lines.append("| --- | ---: |")
-    lines.append(f"| Recovered LM Passwords | {count} |")
+    lines.append(f"| Accounts with LM Hashes | {lm_hash_count} |")
+    lines.append(f"| Unique LM Hashes | {unique_hashes} |")
+    lines.append(f"| Duplicate LM Hashes | {duplicate_hashes} |")
+
+    if lm_password_count:
+        lines.append(f"| Recovered LM Passwords | {lm_password_count} |")
+        lines.append(f"| Recovery Rate | {lm_crack_rate}% |")
 
     if da_count:
-        lines.append(
-            f"| LM Domain Administrator Accounts | {da_count} |"
-        )
+        lines.append(f"| LM Domain Administrator Accounts | {da_count} |")
 
     lines.append("")
 
@@ -800,11 +784,8 @@ def technical_commentary(results):
     # Privileged accounts
     lines.append(commentary_admins(results))
 
-    # Presence of LM hashes
+    # LM-related findings
     lines.append(commentary_lm_hashes(results))
-
-    # Recovered LM passwords
-    lines.append(commentary_lm_passwords(results))
 
     # Domain policy compliance
     lines.append(commentary_password_lengths(results))

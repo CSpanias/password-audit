@@ -66,38 +66,31 @@ def remediation_guidance(results):
         )
 
     # ------------------------
-    # # Presence of LM hashes
+    # LM-related findings
     # ------------------------
 
     if results["lm_hashes"]["count"]:
 
-        lines.append(
-            "- LM hash storage should be disabled and affected users "
-            "should be required to change their passwords to ensure "
-            "that previously stored LM hashes are removed. Any legacy "
-            "systems requiring LM compatibility should be identified "
-            "and remediated where possible."
-        )
-
-    # ------------------------
-    # Recovered LM passwords
-    # ------------------------
-
-    if results["lm_passwords"]["count"]:
-
         recommendation = (
-            "- Accounts for which passwords were recovered from LM hashes "
-            "should be required to change their passwords to invalidate "
-            "previously recovered credentials."
+            "- LM hash storage should be disabled and affected users should be required to change "
+            "their passwords to ensure that previously stored LM hashes are removed. Any legacy "
+            "systems requiring LM compatibility should be identified and remediated where possible."
         )
 
-        # Domain Admins with LM hashes
-        if results["lm_admins"]["count"]:
-
+        if results["lm_passwords"]["count"]:
+        
             recommendation += (
-                " Privileged accounts should be prioritised for immediate "
-                "password reset and reviewed for potential credential exposure."
+                " Accounts for which passwords were recovered from LM hashes should be required to "
+                "change their passwords immediately in order to invalidate recovered credentials."
             )
+    
+            # Domain Admins with LM hashes
+            if results["lm_admins"]["count"]:
+    
+                recommendation += (
+                    " Privileged accounts should be prioritised for immediate password reset and "
+                    "reviewed for evidence of credential exposure or misuse."
+                )
 
         lines.append(recommendation)
 
