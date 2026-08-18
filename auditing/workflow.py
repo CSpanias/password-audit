@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from rich.table import Table
 
-from ntds.workflow import organise_dataset
+from auditing.validation import validate_audit_inputs
 from analysis.workflow import analyse_passwords
 from cracking.parsers import load_campaign
 from cracking.scheduler import run_campaign
@@ -20,6 +20,7 @@ from cracking.constants import DEFAULT_HASHCAT_DIR
 from common.console import console, ok, info, warn
 from cracking.reporting import print_summary
 from lm.workflow import generate_lm_results, map_lm_passwords
+from ntds.workflow import organise_dataset
 
 
 def run_audit(
@@ -81,6 +82,32 @@ def run_audit(
         parents=True,
         exist_ok=True,
     )
+
+    #---------------------------------------------------------------------------
+    # Pre-flight checks
+    #---------------------------------------------------------------------------
+    print()
+    info("Validating Inputs")
+    print()
+
+    try:
+
+        validate_audit_inputs(
+                ntds_file,
+                bloodhound_file,
+                campaign_file,
+            )
+        
+        ok("Validation Successful")
+        print()
+
+    except ValueError as exc:
+
+        warn(str(exc))
+        print()
+
+        return
+
 
     #---------------------------------------------------------------------------
     # Organising
