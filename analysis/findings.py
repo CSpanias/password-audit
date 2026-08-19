@@ -5,6 +5,8 @@ This module converts analysis results into a structured
 finding format suitable for export.
 """
 
+from common.utils import num_to_word
+
 
 def build_findings(results):
     """
@@ -29,17 +31,15 @@ def build_findings(results):
             "id": "password-audit",
             "title": "Password Audit",
             "description": (
-                f"{results['total_passwords']:,} plaintext passwords "
-                f"were recovered from {results['enabled_users']:,} "
-                f"enabled accounts ({results['crack_rate']}%)."
+                f"A total of {num_to_word(results['total_passwords'])} plaintext passwords were "
+                f"recovered from {num_to_word(results['enabled_users'])} enabled accounts."
             )
         },
         {
             "id": "password-statistics",
             "title": "Password Statistics",
             "description": (
-                "Password frequency and character usage "
-                "statistics were analysed."
+                "Password frequency and character usage statistics were analysed."
             )
         }
     ]
@@ -56,7 +56,7 @@ def build_findings(results):
             "id": "domain-admin-passwords",
             "title": "Recovered Domain Administrator Passwords",
             "description": (
-                f"{domain_admins_ntlm:,} Domain Administrator "
+                f"A total of {num_to_word(domain_admins_ntlm)} Domain Administrator "
                 f"password{'s' if domain_admins_ntlm != 1 else ''} "
                 f"{'were' if domain_admins_ntlm != 1 else 'was'} recovered."
             )
@@ -74,8 +74,8 @@ def build_findings(results):
             "id": "lm-hashes-present",
             "title": "LM Hashes Present",
             "description": (
-                f"{lm_hashes:,} accounts were found "
-                "storing LM password hashes."
+                f"A total of {num_to_word(lm_hashes)} account{'s' if lm_hashes != 1 else ''} were "
+                "found storing LM password hashes."
             )
         })
 
@@ -91,8 +91,9 @@ def build_findings(results):
             "id": "domain-admin-lm-hashes",
             "title": "Domain Administrator LM Hashes",
             "description": (
-                f"{domain_admins_lm:,} Domain Administrator "
-                "accounts were found storing LM password hashes."
+                f"A total of {num_to_word(domain_admins_lm)} Domain Administrator "
+                f"account{'s' if domain_admins_lm != 1 else ''} "
+                f"{'were' if domain_admins_lm != 1 else 'was'} found storing LM password hashes."
             )
         })
 
@@ -109,10 +110,9 @@ def build_findings(results):
             "id": "non-compliant-passwords",
             "title": "Non-Compliant Passwords",
             "description": (
-                f"{non_compliant_passwords:,} "
-                " passwords did not comply "
-                "with the configured minimum password "
-                "length requirement."
+                f"A total of {num_to_word(non_compliant_passwords)} "
+                f"password{'s' if non_compliant_passwords != 1 else ''} did not comply with the "
+                "configured minimum password length requirement."
             )
         })
 
@@ -133,8 +133,10 @@ def build_findings(results):
             "id": "password-reuse",
             "title": "Password Reuse",
            "description": (
-                f"{reused_passwords:,} passwords were reused across "
-                "multiple unrelated accounts."
+                f"A total of {num_to_word(reused_passwords)} "
+                f"password{'s' if reused_passwords != 1 else ''} "
+                f"{'were' if reused_passwords != 1 else 'was'} reused across multiple unrelated "
+                "accounts."
             )
         })
 
@@ -147,8 +149,9 @@ def build_findings(results):
             "id": "shared-account-passwords",
             "title": "Shared Passwords",
             "description": (
-                f"{similar_name_reuse:,} "
-                "Same password across similarly named accounts "
+                f"A total of {num_to_word(similar_name_reuse)} same "
+                f"password{'s' if similar_name_reuse != 1 else ''} across similarly named "
+                "accounts. "
             )
         })
     
@@ -164,8 +167,9 @@ def build_findings(results):
             "id": "username-derived-passwords",
             "title": "Username-Derived Passwords",
             "description": (
-                f"{username_passwords:,} passwords contained "
-                "username-derived content."
+                f"A total of {num_to_word(username_passwords)} "
+                f"password{'s' if username_passwords != 1 else ''} contained username-derived "
+                "content."
             )
         })
 
@@ -177,8 +181,9 @@ def build_findings(results):
             "id": "organisation-related-passwords",
             "title": "Organisation-Related Passwords",
             "description": (
-                f"{company_words:,} passwords contained "
-                "organisation-related terminology."
+                f"A total of {num_to_word(company_words)} "
+                f"password{'s' if company_words != 1 else ''} contained organisation-related "
+                "terminology."
             )
         })
 
@@ -190,8 +195,8 @@ def build_findings(results):
             "id": "common-passwords",
             "title": "Common Passwords",
             "description": (
-                f"{common_passwords:,} passwords contained common "
-                "dictionary words."
+                f"A total of {num_to_word(common_passwords)} "
+                f"password{'s' if common_passwords != 1 else ''} contained common dictionary words."
             )
         })
 
@@ -203,8 +208,8 @@ def build_findings(results):
             "id": "date-based-passwords",
             "title": "Date-Based Passwords",
             "description": (
-                f"{date_passwords:,} passwords contained "
-                "date-related content."
+                f"A total of {num_to_word(date_passwords)} "
+                f"password{'s' if date_passwords != 1 else ''} contained date-related content."
             )
         })
 
@@ -216,8 +221,8 @@ def build_findings(results):
             "id": "keyboard-patterns",
             "title": "Keyboard Patterns",
             "description": (
-                f"{keyboard_walks:,} passwords contained keyboard "
-                "walking patterns."
+                f"A total of {num_to_word(keyboard_walks)} "
+                f"password{'s' if keyboard_walks != 1 else ''} contained keyboard walking patterns."
             )
         })
 
