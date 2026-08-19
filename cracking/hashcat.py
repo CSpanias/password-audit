@@ -272,32 +272,6 @@ def run_phase(
     new_recovered, total_recovered = parse_recovery_statistics(output)
     duration = time.time() - start
 
-    # TODO: Phase summary tables (To be removed)
-    # print()
-    # table = Table(
-    #     title=f"Phase {phase_id} Summary",
-    #     title_style="bold cyan",
-    # )
-
-    # table.add_column("Object")
-    # table.add_column("Value", justify="right")
-
-    # table.add_row(
-    #     "Duration",
-    #     human_time(duration),
-    # )
-
-    # table.add_row(
-    #     "New Passwords",
-    #     str(new_recovered),
-    # )
-
-    # table.add_row(
-    #     "Total Passwords",
-    #     str(total_recovered),
-    # )
-
-    # console.print(table)
     print()
 
     return {

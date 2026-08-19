@@ -31,6 +31,8 @@ def parse_recovery_statistics(output):
             total number of recovered passwords.
     """
 
+    matches = []
+
     for line in output.splitlines():
 
         if line.startswith("Recovered"):
@@ -41,11 +43,14 @@ def parse_recovery_statistics(output):
             )
 
             if match:
+                matches.append(match.groups())
 
-                total_recovered = int(match.group(1))
-                new_recovered = int(match.group(3))
+    if matches:
 
-                return new_recovered, total_recovered
+        total_recovered = int(matches[-1][0])
+        new_recovered = int(matches[-1][2])
+
+        return new_recovered, total_recovered
 
     return 0, 0
 
