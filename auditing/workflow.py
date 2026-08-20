@@ -177,6 +177,9 @@ def run_audit(
     #---------------------------------------------------------------------------
     info("Stage 2/5 - Recovering NTLM Passwords")
 
+    campaign_results = {"phases": []}
+    lm_campaign_results = {"phases": []}
+
     ntlm_campaign = campaign["ntlm"]
 
     if not has_enabled_phases(ntlm_campaign):
