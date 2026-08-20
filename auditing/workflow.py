@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from rich.table import Table
 
-from auditing.validation import validate_audit_inputs
+from auditing.validation import validate_audit_inputs, has_enabled_phases
 from analysis.workflow import analyse_passwords
 from cracking.parsers import load_campaign
 from cracking.scheduler import run_campaign
@@ -161,26 +161,13 @@ def run_audit(
     table.add_column("Object")
     table.add_column("Count", justify="right")
 
-    table.add_row(
-        "User Accounts",
-        str(len(organise_results["enabled_users"]))
-    )
-
-    table.add_row(
-        "NTLM Hashes",
-        str(len(organise_results["ntlm_hashes"]))
-    )
+    table.add_row("User Accounts", str(len(organise_results["enabled_users"])))
+    table.add_row("NTLM Hashes", str(len(organise_results["ntlm_hashes"])))
 
     if organise_results["lm_hashes"]:
-        table.add_row(
-            "LM Hashes",
-            str(len(organise_results["lm_hashes"]))
-        )
+        table.add_row("LM Hashes", str(len(organise_results["lm_hashes"])))
 
-    table.add_row(
-        "Domain Admins",
-        str(len(organise_results["domain_admins"]))
-    )
+    table.add_row("Domain Admins", str(len(organise_results["domain_admins"])))
 
     console.print(table)
     print()
@@ -191,15 +178,22 @@ def run_audit(
     info("Stage 2/5 - Recovering NTLM Passwords")
 
     ntlm_campaign = campaign["ntlm"]
-        
-    campaign_results = run_campaign(
-        config=ntlm_campaign,
-        hash_file=output_dir / "ntlm-hashes.txt",
-        campaign_name=campaign_name,
-    )
 
-    print_summary(campaign_results)
-    print()
+    if not has_enabled_phases(ntlm_campaign):
+
+        warn("No enabled NTLM phases - skipping")
+        print()
+
+    else:
+
+        campaign_results = run_campaign(
+            config=ntlm_campaign,
+            hash_file=output_dir / "ntlm-hashes.txt",
+            campaign_name=campaign_name,
+        )
+
+        print_summary(campaign_results)
+        print()
 
     lm_campaign = campaign.get("lm")
 
