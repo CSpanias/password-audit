@@ -43,34 +43,35 @@ def commentary_admins(results):
     count = results["admins"]["count"]
 
     if not count:
+        return ""
+        # return (
+        #     "No Domain Administrator passwords were successfully recovered during the password "
+        #     "audit. This is a positive outcome, as privileged accounts represent high-value "
+        #     "targets and their compromise would significantly increase the potential impact of a "
+        #     "successful attack."
+        # )
 
-        return (
-            "No Domain Administrator passwords were successfully recovered during the password "
-            "audit. This is a positive outcome, as privileged accounts represent high-value "
-            "targets and their compromise would significantly increase the potential impact of a "
-            "successful attack."
+    if count:
+        lines = []
+
+        lines.append(
+            f"{num_to_word(count).capitalize()} Domain Administrator account"
+            f"{'s were' if count > 1 else ' was'} successfully recovered during the password audit. "
+            "Domain Administrator accounts represent some of the most privileged identities within "
+            "Active Directory and typically provide broad access to authentication services, directory "
+            "data, and domain-joined systems. Compromise of these credentials significantly increases "
+            "the potential impact of credential exposure and may facilitate privilege escalation or "
+            "wider compromise of the environment."
         )
 
-    lines = []
+        lines.append("")
+        lines.append("| Username | Password |")
+        lines.append("| ---------- | ---------- |")
 
-    lines.append(
-        f"{num_to_word(count).capitalize()} Domain Administrator account"
-        f"{'s were' if count > 1 else ' was'} successfully recovered during the password audit. "
-        "Domain Administrator accounts represent some of the most privileged identities within "
-        "Active Directory and typically provide broad access to authentication services, directory "
-        "data, and domain-joined systems. Compromise of these credentials significantly increases "
-        "the potential impact of credential exposure and may facilitate privilege escalation or "
-        "wider compromise of the environment."
-    )
+        for account in admins:
+            lines.append(f"| {account['username']} | {mask_password(account['password'])} |")
 
-    lines.append("")
-    lines.append("| Username | Password |")
-    lines.append("| ---------- | ---------- |")
-
-    for account in admins:
-        lines.append(f"| {account['username']} | {mask_password(account['password'])} |")
-
-    lines.append("")
+        lines.append("")
 
     return "\n".join(lines)
 
@@ -111,15 +112,27 @@ def commentary_lm_hashes(results):
     if not lm_hash_count:
         return ""
 
-    lines.append(
-        f"LM password hashes were identified for {num_to_word(lm_hash_count)} account"
-        f"{'s' if lm_hash_count != 1 else ''}. The presence of LM hashes indicates that legacy "
-        "password storage mechanisms remain enabled for a subset of accounts within the "
-        f"environment. Analysis identified {num_to_word(unique_hashes)} unique LM hash "
-        f"value{'s' if unique_hashes != 1 else ''} and {num_to_word(duplicate_hashes)} duplicate "
-        f"LM hash occurrence{'s' if duplicate_hashes != 1 else ''}. This indicates that multiple "
-        "accounts are likely configured with identical passwords."
-    )
+    if duplicate_hashes:
+
+        lines.append(
+            f"LM password hashes were identified for {num_to_word(lm_hash_count)} account"
+            f"{'s' if lm_hash_count != 1 else ''}. The presence of LM hashes indicates that legacy "
+            "password storage mechanisms remain enabled for a subset of accounts within the "
+            f"environment. Analysis identified {num_to_word(unique_hashes)} unique LM hash "
+            f"value{'s' if unique_hashes != 1 else ''} and {num_to_word(duplicate_hashes)} duplicate "
+            f"LM hash occurrence{'s' if duplicate_hashes != 1 else ''}. This indicates that multiple "
+            "accounts are likely configured with identical passwords."
+        )
+
+    else:
+
+        lines.append(
+            f"LM password hashes were identified for {num_to_word(lm_hash_count)} account"
+            f"{'s' if lm_hash_count != 1 else ''}. The presence of LM hashes indicates that legacy "
+            "password storage mechanisms remain enabled for a subset of accounts within the "
+            f"environment. Analysis identified {num_to_word(unique_hashes)} unique LM hash "
+            f"value{'s' if unique_hashes != 1 else ''}."
+        )
 
     if lm_password_count:
 
@@ -168,6 +181,7 @@ def commentary_lm_hashes(results):
         # Domain Admins with LM hashes
         if da_count:
 
+            lines.append("")
             lines.append(
                 f"Recovered LM passwords included {num_to_word(da_count)} Domain Administrator "
                 f"account{'s' if da_count != 1 else ''}. The recovery of privileged credentials "
@@ -180,7 +194,9 @@ def commentary_lm_hashes(results):
     lines.append("| --- | ---: |")
     lines.append(f"| Accounts with LM Hashes | {lm_hash_count} |")
     lines.append(f"| Unique LM Hashes | {unique_hashes} |")
-    lines.append(f"| Duplicate LM Hashes | {duplicate_hashes} |")
+
+    if duplicate_hashes:
+        lines.append(f"| Duplicate LM Hashes | {duplicate_hashes} |")
 
     if lm_password_count:
         lines.append(f"| Fully Recovered LM Passwords | {lm_password_count} |")
@@ -278,15 +294,16 @@ def commentary_password_lengths(results):
         lines.append("")
 
     else:
-        lines.append(
-            "All recovered passwords complied with the configured minimum "
-            f"password length requirement of {num_to_word(minimum_length)} characters. "
-            "This suggests that the domain password policy is being "
-            "consistently enforced across the recovered credential "
-            "population. The most commonly observed password length was "
-            f"{num_to_word(most_common_length)} characters, indicating that users "
-            "typically select passwords at or above the required minimum."
-        )
+        return ""
+        # lines.append(
+        #     "All recovered passwords complied with the configured minimum "
+        #     f"password length requirement of {num_to_word(minimum_length)} characters. "
+        #     "This suggests that the domain password policy is being "
+        #     "consistently enforced across the recovered credential "
+        #     "population. The most commonly observed password length was "
+        #     f"{num_to_word(most_common_length)} characters, indicating that users "
+        #     "typically select passwords at or above the required minimum."
+        # )
 
     return "\n".join(lines)
 
@@ -320,8 +337,9 @@ def commentary_password_reuse(results):
         reused_passwords.append({"password": password,"count": count})
 
     if not reused_passwords:
-        return ("No password reuse was identified across the recovered passwords. This reduces the "
-            "potential impact of credential compromise.")
+        return ""
+        # return ("No password reuse was identified across the recovered passwords. This reduces the "
+        #     "potential impact of credential compromise.")
 
     lines = []
 
@@ -374,17 +392,17 @@ def commentary_similar_account_reuse(results):
     similar_pairs = results["similar_account_reuse"]["similarPairs"]
 
     if similar_pairs == 0:
-
         return ""
 
     if count == 0:
+        return ""
 
-        return (
-            "No password reuse was identified between similarly named accounts. "
-            "This suggests that standard and privileged accounts are generally "
-            "configured with separate credentials, reducing the potential impact "
-            "of credential compromise."
-        )
+        # return (
+        #     "No password reuse was identified between similarly named accounts. "
+        #     "This suggests that standard and privileged accounts are generally "
+        #     "configured with separate credentials, reducing the potential impact "
+        #     "of credential compromise."
+        # )
 
     lines = []
 
@@ -485,9 +503,9 @@ def commentary_company_words(results):
     stats = results["company_words"]["stats"]
 
     if not count:
-
-        return ("No recovered passwords were identified as containing organisation-related terminology. This reduces the "
-            "effectiveness of targeted password guessing attacks that utilise publicly available organisational information.")
+        return ""
+    #     return ("No recovered passwords were identified as containing organisation-related terminology. This reduces the "
+    #         "effectiveness of targeted password guessing attacks that utilise publicly available organisational information.")
 
     lines = []
 
@@ -546,9 +564,9 @@ def commentary_date_passwords(results):
     stats = results["date_passwords"]["stats"]
 
     if not count:
-
-        return ("No recovered passwords were identified as containing date-related terminology such as days, months, or "
-            "seasons. This reduces reliance on predictable and easily guessable password construction patterns.")
+        return ""
+    #     return ("No recovered passwords were identified as containing date-related terminology such as days, months, or "
+    #         "seasons. This reduces reliance on predictable and easily guessable password construction patterns.")
 
     lines = []
 
@@ -608,9 +626,9 @@ def commentary_keyboard_walks(results):
     stats = results["keyboard_walks"]["stats"]
 
     if not count:
-
-        return ("No recovered passwords were identified as containing keyboard walking patterns. Such patterns are "
-            "commonly included within password-cracking rule sets and their absence represents a positive indicator of password quality.")
+        return ""
+    #     return ("No recovered passwords were identified as containing keyboard walking patterns. Such patterns are "
+    #         "commonly included within password-cracking rule sets and their absence represents a positive indicator of password quality.")
 
     lines = []
 
@@ -672,10 +690,10 @@ def commentary_common_passwords(results):
     stats = results["common_passwords"]["stats"]
 
     if not count:
-
-        return ("No recovered passwords were identified as containing commonly used password terms or well-known weak "
-            "password variants. This suggests that users are generally avoiding predictable password selections "
-            "that are commonly represented within attacker wordlists.")
+        return ""
+    #     return ("No recovered passwords were identified as containing commonly used password terms or well-known weak "
+    #         "password variants. This suggests that users are generally avoiding predictable password selections "
+    #         "that are commonly represented within attacker wordlists.")
 
     lines = []
 
@@ -734,8 +752,9 @@ def commentary_character_classes(results):
     stats = results["character_classes"]
 
     if not stats:
-        return (
-            "No recovered passwords were available for character class analysis.")
+        return ""
+    #     return (
+    #         "No recovered passwords were available for character class analysis.")
 
     lines = []
 
