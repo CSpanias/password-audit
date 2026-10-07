@@ -156,21 +156,6 @@ def extract_username_domains(entries):
 def extract_domain_admins(users_data, groups_data):
     """
     Identify Domain Administrator accounts from BloodHound data.
-
-    Members of groups whose SID ends in '-512' are treated as
-    Domain Administrators in accordance with Active Directory
-    conventions.
-
-    Args:
-        users_data (dict):
-            BloodHound users.json data.
-
-        groups_data (dict):
-            BloodHound groups.json data.
-
-    Returns:
-        list:
-            Domain Administrator usernames.
     """
 
     if not users_data or not groups_data:
@@ -181,27 +166,112 @@ def extract_domain_admins(users_data, groups_data):
         for user in users_data["data"]
     }
 
-    domain_admins = []
+    groups_lookup = {
+        group["ObjectIdentifier"]: group
+        for group in groups_data["data"]
+    }
 
-    for group in groups_data["data"]:
+    domain_admins = set()
+    visited = set()
 
-        if not group["ObjectIdentifier"].endswith("-512"):
-            continue
+    def resolve_members(sid):
+        """
+        Recursively resolve group membership.
+        """
 
-        for member in group.get("Members", []):
+        if sid in visited:
+            return
 
-            sid = member["ObjectIdentifier"]
+        visited.add(sid)
 
-            if sid not in users_lookup:
-                continue
+        # User
+        if sid in users_lookup:
 
-            user = users_lookup[sid]
-            username = user["Properties"].get("samaccountname")
+            username = (
+                users_lookup[sid]
+                .get("Properties", {})
+                .get("samaccountname")
+            )
 
             if username:
-                domain_admins.append(username)
+                domain_admins.add(username)
 
-    return sorted(set(domain_admins))
+            return
+
+        # Group
+        group = groups_lookup.get(sid)
+
+        if not group:
+            return
+
+        for member in group.get("Members", []):
+            resolve_members(member["ObjectIdentifier"])
+
+    # Resolve Domain Admins group membership
+    for group in groups_data["data"]:
+        if group["ObjectIdentifier"].endswith("-512"):
+            resolve_members(group["ObjectIdentifier"])
+
+    # Include PrimaryGroupSID = Domain Admins
+    for user in users_data["data"]:
+
+        if user.get("PrimaryGroupSID", "").endswith("-512"):
+            username = (user.get("Properties", {}).get("samaccountname"))
+
+            if username:
+                domain_admins.add(username)
+
+    return sorted(domain_admins)
+
+# def extract_domain_admins(users_data, groups_data):
+#     """
+#     Identify Domain Administrator accounts from BloodHound data.
+
+#     Members of groups whose SID ends in '-512' are treated as
+#     Domain Administrators in accordance with Active Directory
+#     conventions.
+
+#     Args:
+#         users_data (dict):
+#             BloodHound users.json data.
+
+#         groups_data (dict):
+#             BloodHound groups.json data.
+
+#     Returns:
+#         list:
+#             Domain Administrator usernames.
+#     """
+
+#     if not users_data or not groups_data:
+#         return []
+
+#     users_lookup = {
+#         user["ObjectIdentifier"]: user
+#         for user in users_data["data"]
+#     }
+
+#     domain_admins = []
+
+#     for group in groups_data["data"]:
+
+#         if not group["ObjectIdentifier"].endswith("-512"):
+#             continue
+
+#         for member in group.get("Members", []):
+
+#             sid = member["ObjectIdentifier"]
+
+#             if sid not in users_lookup:
+#                 continue
+
+#             user = users_lookup[sid]
+#             username = user["Properties"].get("samaccountname")
+
+#             if username:
+#                 domain_admins.append(username)
+
+#     return sorted(set(domain_admins))
 
 
 def extract_domain_policy(domains_data):
