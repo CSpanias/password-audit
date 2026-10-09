@@ -204,74 +204,21 @@ def extract_domain_admins(users_data, groups_data):
         if not group:
             return
 
+        # Standard group members
         for member in group.get("Members", []):
             resolve_members(member["ObjectIdentifier"])
+
+        # PrimaryGroupSID members
+        for user in users_data["data"\]:
+            if user.get("PrimaryGroupSID") == sid:
+                resolve_members(user["ObjectIdentifier"])
 
     # Resolve Domain Admins group membership
     for group in groups_data["data"]:
         if group["ObjectIdentifier"].endswith("-512"):
             resolve_members(group["ObjectIdentifier"])
 
-    # Include PrimaryGroupSID = Domain Admins
-    for user in users_data["data"]:
-
-        if user.get("PrimaryGroupSID", "").endswith("-512"):
-            username = (user.get("Properties", {}).get("samaccountname"))
-
-            if username:
-                domain_admins.add(username)
-
     return sorted(domain_admins)
-
-# def extract_domain_admins(users_data, groups_data):
-#     """
-#     Identify Domain Administrator accounts from BloodHound data.
-
-#     Members of groups whose SID ends in '-512' are treated as
-#     Domain Administrators in accordance with Active Directory
-#     conventions.
-
-#     Args:
-#         users_data (dict):
-#             BloodHound users.json data.
-
-#         groups_data (dict):
-#             BloodHound groups.json data.
-
-#     Returns:
-#         list:
-#             Domain Administrator usernames.
-#     """
-
-#     if not users_data or not groups_data:
-#         return []
-
-#     users_lookup = {
-#         user["ObjectIdentifier"]: user
-#         for user in users_data["data"]
-#     }
-
-#     domain_admins = []
-
-#     for group in groups_data["data"]:
-
-#         if not group["ObjectIdentifier"].endswith("-512"):
-#             continue
-
-#         for member in group.get("Members", []):
-
-#             sid = member["ObjectIdentifier"]
-
-#             if sid not in users_lookup:
-#                 continue
-
-#             user = users_lookup[sid]
-#             username = user["Properties"].get("samaccountname")
-
-#             if username:
-#                 domain_admins.append(username)
-
-#     return sorted(set(domain_admins))
 
 
 def extract_domain_policy(domains_data):
