@@ -209,7 +209,7 @@ def extract_domain_admins(users_data, groups_data):
             resolve_members(member["ObjectIdentifier"])
 
         # PrimaryGroupSID members
-        for user in users_data["data"\]:
+        for user in users_data["data"]:
             if user.get("PrimaryGroupSID") == sid:
                 resolve_members(user["ObjectIdentifier"])
 
