@@ -4,11 +4,11 @@
 
 `password-audit` is a modular Active Directory password auditing framework that combines dataset organisation, password recovery campaigns, and password analysis into a single toolkit.
 
-It combines and extends the functionality of the following standalone projects:
+It combines and extends the functionality of the following, now deprecated and deleted, standalone projects:
 
-* [`ntds-organiser`](https://github.com/CSpanias/ntds-organiser): Parses and enriches Active Directory hash datasets.
-* [`hashcat-scheduler`](https://github.com/CSpanias/hashcat-scheduler): Executes and tracks Hashcat recovery campaigns.
-* [`password-analyser`](https://github.com/CSpanias/password-analyser): Analyses recovered passwords and generates assessment reports.
+* `ntds-organiser`: Parses and enriches Active Directory hash datasets.
+* `hashcat-scheduler`: Executes and tracks Hashcat recovery campaigns.
+* `password-analyser`: Analyses recovered passwords and generates assessment reports.
 
 📖 **Documentation:** https://cspanias.github.io/password-audit/
 

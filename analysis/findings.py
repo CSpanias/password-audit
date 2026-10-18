@@ -149,9 +149,9 @@ def build_findings(results):
             "id": "shared-account-passwords",
             "title": "Shared Passwords",
             "description": (
-                f"A total of {num_to_word(similar_name_reuse)} same "
-                f"password{'s' if similar_name_reuse != 1 else ''} across similarly named "
-                "accounts. "
+                f"A total of {num_to_word(similar_name_reuse)} "
+                f"password{'s' if similar_name_reuse != 1 else ''} were shared "
+                "across similarly named accounts. "
             )
         })
     
