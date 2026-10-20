@@ -281,7 +281,11 @@ def commentary_password_lengths(results):
                 "characters."
             )
 
-        lines.append("The following non-compliant password lengths were observed most frequently:")
+        lines.append(
+            f"The following non-compliant password "
+            f"length{'s were' if len(common_lengths) > 1 else ' was'} observed "
+            "most frequently:"
+        )
 
         lines.append("")
         lines.append("| Length | Count | Percentage |")
@@ -627,14 +631,16 @@ def commentary_keyboard_walks(results):
 
     if not count:
         return ""
-    #     return ("No recovered passwords were identified as containing keyboard walking patterns. Such patterns are "
-    #         "commonly included within password-cracking rule sets and their absence represents a positive indicator of password quality.")
 
     lines = []
 
-    lines.append(f"{num_to_word(count).capitalize()} recovered password{'s were' if count != 1 else ' was'} "
-        "identified as containing keyboard walking patterns. Keyboard sequences are widely represented within password "
-        "auditing wordlists and cracking rule sets due to their predictable structure.")
+    lines.append(
+        f"A total of {num_to_word(count).capitalize()} recovered "
+        f"password{'s were' if count != 1 else ' was'} identified as "
+        "containing keyboard walking patterns. Keyboard sequences are widely "
+        "represented within password auditing wordlists and cracking rule sets "
+        "due to their predictable structure."
+    )
 
     lines.append("")
     lines.append("| Username | Password |")

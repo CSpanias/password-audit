@@ -50,7 +50,7 @@ def executive_summary(results):
         "effectiveness of password controls, and the resilience of privileged "
         "accounts. "
 
-        f"The assessment demonstrated that {size} of user credentials could be "
+        f"The audit demonstrated that {size} of user credentials could be "
         "recovered through offline password-cracking techniques, indicating "
         f"that {impact} remain susceptible to compromise following credential "
         "exposure."
@@ -80,11 +80,10 @@ def executive_summary(results):
     if admin_count and lm_count:
 
         message = (
-            "Of particular concern, the assessment identified weaknesses "
-            "that could significantly increase the impact of a successful "
-            "credential compromise. These included the recovery of "
-            "privileged credentials and the continued use of legacy "
-            "LanMan (LM) password hashes. "
+            "Of particular concern, the assessment identified privileged "
+            "credentials and legacy LanMan (LM) password hashes. The "
+            "combination of these findings could substantially increase "
+            "the risk and impact of a credential compromise."
         )
 
     elif admin_count:
@@ -117,12 +116,9 @@ def executive_summary(results):
     if message and lm_recovered:
 
         message += (
-            "The risk associated with credential compromise is further "
-            "increased by the continued use of LM password hashes. "
-            "Passwords were successfully recovered from accounts that "
-            "stored LM hashes, demonstrating that this legacy "
-            "authentication technology continues to increase both the "
-            "likelihood and impact of credential compromise. "
+            "Passwords were successfully recovered from accounts storing LM "
+            "hashes, highlighting the insecurity of this legacy authentication "
+            "mechanism and the increased risk of credential compromise."
         )
 
     elif message and lm_count:
