@@ -466,7 +466,7 @@ def commentary_username_passwords(results):
 
     lines = []
 
-    lines.append(f"{num_to_word(count).capitalize()} recovered password{'s were' if count != 1 else ' was'} "
+    lines.append(f"A total of {num_to_word(count).capitalize()} recovered password{'s were' if count != 1 else ' was'} "
         "identified as containing the username or a variation thereof. Passwords incorporating username-related "
         "information reduce password entropy and may be more easily predicted by an attacker.")
 
@@ -635,7 +635,7 @@ def commentary_keyboard_walks(results):
     lines = []
 
     lines.append(
-        f"A total of {num_to_word(count).capitalize()} recovered "
+        f"A total of {num_to_word(count)} recovered "
         f"password{'s were' if count != 1 else ' was'} identified as "
         "containing keyboard walking patterns. Keyboard sequences are widely "
         "represented within password auditing wordlists and cracking rule sets "
