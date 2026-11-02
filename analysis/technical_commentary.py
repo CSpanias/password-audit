@@ -474,7 +474,7 @@ def commentary_username_passwords(results):
     lines.append("| Username | Password |")
     lines.append("| ---------- | ---------- |")
 
-    for account in accounts:
+    for account in accounts[:5]:
         lines.append(f"| {account['username']} | {mask_password(account['password'])} |")
 
     lines.append("")
@@ -535,7 +535,7 @@ def commentary_company_words(results):
         lines.append("| Term | Occurrences |")
         lines.append("| ---------- | ---------- |")
 
-        for term, frequency in stats:
+        for term, frequency in stats[:5]:
             lines.append(f"| {term} | {frequency} |")
 
     lines.append("")
