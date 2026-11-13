@@ -28,7 +28,7 @@ def analyse_passwords(
     enabled_users,
     lm_users=None,
     mapped_lm_passwords=None,
-    output_file="report.md",
+    output_file="password-audit-report.md",
 ):
     """
     Analyse recovered passwords and generate a report.
@@ -101,12 +101,11 @@ def analyse_passwords(
 
     except (TypeError, ValueError):
         warn(
-            "Unable to determine Minimum Password Length "
-            "from domain-policy.txt"
+            "Unable to determine Minimum Password Length from domain-policy.txt"
         )
         warn(
-            "Password policy data appears to be unavailable "
-            "within the supplied dataset."
+            "Password policy data appears to be unavailable within the "
+            "supplied dataset."
         )
         sys.exit(1)
 
@@ -140,6 +139,6 @@ def analyse_passwords(
 
     # Export files to disc
     write_markdown(output_file, render_markdown(report))
-    write_findings("findings.json", findings)
+    write_findings("password-audit-findings.json", findings)
 
     return results

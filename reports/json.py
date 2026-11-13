@@ -1,9 +1,8 @@
 """
 JSON findings export.
 
-This module exports analysis findings in a machine-readable
-format suitable for integration with external tools and
-reporting platforms.
+This module exports analysis findings in a machine-readable format suitable for 
+integration with external tools and reporting platforms.
 """
 
 import json
@@ -24,13 +23,7 @@ def write_findings(path, findings):
         None
     """
 
-    output = {
-        "findings": findings
-    }
+    output = {"findings": findings}
 
     with open(path, "w", encoding="utf-8") as handle:
-        json.dump(
-            output,
-            handle,
-            indent=4,
-        )
+        json.dump(output, handle, indent=4)

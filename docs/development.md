@@ -15,7 +15,7 @@ The framework is organised into a number of top-level packages:
 
 | Package | Responsibility |
 |----------|-------------|
-| `analysis` | Password analysis and report generation |
+| `analysis` | Password analysis and report content generation |
 | `auditing` | End-to-end workflow orchestration |
 | `cli` | Command-line interface entry points |
 | `common` | Shared utilities, constants, and helpers |
@@ -23,6 +23,7 @@ The framework is organised into a number of top-level packages:
 | `docs` | Project documentation |
 | `lm` | LM password mapping and candidate generation |
 | `ntds` | NTDS, BloodHound, and password dataset processing |
+| `reports` | Markdown rendering and JSON findings export |
 
 
 ```text
@@ -34,7 +35,8 @@ password-audit/
 ├── cracking/
 ├── docs/
 ├── lm/
-└── ntds/
+├── ntds/
+└── reports/
 ```
 
 Each package is intended to remain largely self-contained, with shared functionality placed in `common` where appropriate.
@@ -75,6 +77,7 @@ cli/audit.py
 auditing/workflow.py
         ├── ntds/workflow.py
         ├── cracking/scheduler.py
+        ├── lm/workflow.py
         └── analysis/workflow.py
 ```
 
@@ -97,13 +100,16 @@ ntds/exports.py
 Executes Hashcat campaigns and records statistics:
 
 ```text
-cli/crack.py
-        ↓
-cracking/scheduler.py
-        ├── cracking/phases.py
-        ├── cracking/hashcat.py
-        ├── cracking/history.py
-        └── cracking/reporting.py
+cli/main.py
+        ├── cli/crack.py
+        │       ├── cracking/scheduler.py
+        │       │       ├── cracking/validation.py
+        │       │       ├── cracking/hashcat.py
+        │       │       ├── cracking/loopback.py
+        │       │       └── cracking/results.py
+        │       └── cracking/reporting.py
+        ├── cracking/estimate.py
+        └── cracking/statistics.py
 ```
 
 ### Analyse
@@ -115,9 +121,15 @@ cli/analyse.py
         ↓
 analysis/workflow.py
         ├── analysis/parsers.py
-        ├── analysis/patterns.py
+        ├── analysis/analysis.py
         ├── analysis/results.py
-        └── analysis/reports.py
+        ├── analysis/executive_summary.py
+        ├── analysis/technical_commentary.py
+        ├── analysis/remediation_guidance.py
+        ├── analysis/findings.py
+        └── reports/
+                ├── reports/markdown.py
+                └── reports/json.py
 ```
 
 ### LM
@@ -126,11 +138,11 @@ Processes recovered LM passwords and generates candidate datasets:
 
 ```text
 cli/lm.py
-        ↓
-lm/workflow.py
-        ├── lm/mapping.py
-        ├── lm/candidates.py
-        └── ntds/exports.py
+        ├── lm/workflow.py (maps recovered LM passwords)
+        │       ├── ntds/parsers.py
+        │       ├── ntds/results.py
+        │       └── ntds/exports.py
+        └── ntds/lm.py (LM account analysis and candidate generation)
 ```
 
 ## Contributing New Features
