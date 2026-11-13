@@ -1,16 +1,22 @@
 """
-Executive summary generation.
+Generate an executive-summary narrative from password-audit findings.
 
-This module produces a high-level narrative overview of the password audit 
-findings, highlighting key strengths, weaknesses, and overall organisational 
-exposure to password-related risks.
+The summary brings together high-impact findings, systemic weaknesses,
+positive observations, and a concluding assessment.
 """
 
 from common.utils import natural_join
 
 
 def executive_summary(results):
+    """Build an executive summary from aggregated password-audit results.
 
+    Args:
+        results (dict): Results produced by analysis.results.build_results.
+
+    Returns:
+        str: Summary paragraphs separated by blank lines.
+    """
     summary = []
     positive_findings = []
 
@@ -57,7 +63,7 @@ def executive_summary(results):
     )
 
     #---------------------------------------------------------------------------
-    # High-Impact Findings
+    # HIGH IMPACT FINDINGS
     #---------------------------------------------------------------------------
     
     # Privileged Accounts
@@ -78,7 +84,7 @@ def executive_summary(results):
 
     if admin_count and lm_count:
 
-        message = (
+        high_impact_message = (
             "Of particular concern, the assessment identified privileged "
             "credentials and legacy LanMan (LM) password hashes. The "
             "combination of these findings could substantially increase "
@@ -87,24 +93,24 @@ def executive_summary(results):
 
     elif admin_count:
 
-        message = (
+        high_impact_message = (
             "Of particular concern, the assessment resulted in the "
             "recovery of one or more privileged credentials. "
         )
 
     elif lm_count:
 
-        message = (
+        high_impact_message = (
             "Of particular concern, the assessment identified the continued "
             "use of legacy LanMan (LM) password hashes. "
         )
 
     else:
-        message = None
+        high_impact_message = None
 
-    if message and admin_count:
+    if high_impact_message and admin_count:
 
-        message += (
+        high_impact_message += (
             "Privileged accounts provide elevated access to directory "
             "services, business systems, and sensitive information. The "
             "compromise of such credentials could enable unauthorised "
@@ -112,32 +118,32 @@ def executive_summary(results):
             "controls, and increase the risk of operational disruption. "
         )
 
-    if message and lm_recovered:
+    if high_impact_message and lm_recovered:
 
-        message += (
+        high_impact_message += (
             "Passwords were successfully recovered from accounts storing LM "
             "hashes, highlighting the insecurity of this legacy authentication "
             "mechanism and the increased risk of credential compromise."
         )
 
-    elif message and lm_count:
+    elif high_impact_message and lm_count:
 
-        message += (
+        high_impact_message += (
             "LM hashing represents an obsolete password storage mechanism "
             "that is significantly weaker than modern alternatives and "
             "increases exposure to offline password-cracking attacks. "
         )
 
-    if message and lm_admin_count:
+    if high_impact_message and lm_admin_count:
 
-        message += (
+        high_impact_message += (
             "The presence of LM-related weaknesses on privileged accounts "
             "further increases the potential impact of a successful "
             "compromise and should be prioritised for remediation."
         )
 
-    if message:
-        summary.append(message)
+    if high_impact_message:
+        summary.append(high_impact_message)
 
 
     #---------------------------------------------------------------------------
@@ -160,9 +166,13 @@ def executive_summary(results):
     general_reuse_passwords = (
         results["password_reuse_general"]["sharedPasswords"]
     )
+
+    # similarPairs counts comparable account pairs
     similar_account_reuse_pairs = (
         results["similar_account_reuse"]["similarPairs"]
     )
+
+    # count counts pairs that actually share a password.
     similar_account_reuse_count = (
         results["similar_account_reuse"]["count"]
     )
@@ -197,7 +207,7 @@ def executive_summary(results):
 
     if systemic_weaknesses:
 
-        message = (
+        systemic_message = (
             "The assessment also identified a number of broader "
             "password-management weaknesses, including "
             f"{natural_join(systemic_weaknesses)}. Collectively, these "
@@ -208,7 +218,7 @@ def executive_summary(results):
 
         if (general_reuse_passwords or failure_count or weaknesses):
 
-            message += (
+            systemic_message += (
                 "Password reuse increases the potential impact of a compromised "
                 "credential by potentially providing access to multiple accounts "
                 "or systems, whilst weak and predictable password choices reduce "
@@ -219,11 +229,13 @@ def executive_summary(results):
 
             if similar_account_reuse_count:
 
-                message += (
+                systemic_message += (
                     "Password reuse between related accounts may also undermine "
                     "administrative account separation and increase the risk of "
                     "privilege escalation. "
                 )
+
+        summary.append(systemic_message)
 
     if not general_reuse_passwords:
         positive_findings.append(
@@ -241,9 +253,6 @@ def executive_summary(results):
         positive_findings.append(
             "the absence of password reuse between similarly named accounts"
         )
-
-    if message:
-        summary.append(message)
 
     #---------------------------------------------------------------------------
     # POSITIVE SECURITY FINDINGS
