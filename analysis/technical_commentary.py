@@ -26,9 +26,8 @@ def commentary_admins(results):
     """
     Generate commentary for recovered Domain Administrator passwords.
 
-    The commentary includes a summary of the finding and a sample
-    table of affected privileged accounts where passwords were
-    successfully recovered.
+    The commentary includes a summary of the finding and a sample table of 
+    affected privileged accounts where passwords were successfully recovered.
 
     Args:
         results (dict):
@@ -44,12 +43,6 @@ def commentary_admins(results):
 
     if not count:
         return ""
-        # return (
-        #     "No Domain Administrator passwords were successfully recovered during the password "
-        #     "audit. This is a positive outcome, as privileged accounts represent high-value "
-        #     "targets and their compromise would significantly increase the potential impact of a "
-        #     "successful attack."
-        # )
 
     if count:
         lines = []
@@ -84,11 +77,9 @@ def commentary_lm_hashes(results):
     """
     Generate commentary relating to LM hash exposure.
 
-    The presence of LM password hashes is summarised
-    together with associated security risks. Where LM
-    passwords have been recovered, recovery rates,
-    partial recoveries, and any affected privileged
-    accounts are also reported.
+    The presence of LM password hashes is summarised together with associated 
+    security risks. Where LM passwords have been recovered, recovery rates,
+    partial recoveries, and any affected privileged accounts are also reported.
 
     Args:
         results (dict):

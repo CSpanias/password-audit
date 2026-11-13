@@ -1,9 +1,9 @@
 """
 Executive summary generation.
 
-This module produces a high-level narrative overview of the
-password audit findings, highlighting key strengths, weaknesses,
-and overall organisational exposure to password-related risks.
+This module produces a high-level narrative overview of the password audit 
+findings, highlighting key strengths, weaknesses, and overall organisational 
+exposure to password-related risks.
 """
 
 from common.utils import natural_join
@@ -55,7 +55,6 @@ def executive_summary(results):
         f"that {impact} remain susceptible to compromise following credential "
         "exposure."
     )
-
 
     #---------------------------------------------------------------------------
     # High-Impact Findings
@@ -142,7 +141,7 @@ def executive_summary(results):
 
 
     #---------------------------------------------------------------------------
-    # Systemic Password Weaknesses
+    # SYSTEMIC PASSWORD WEAKNESSES
     #---------------------------------------------------------------------------
 
     # Compliance with password policy
@@ -158,9 +157,15 @@ def executive_summary(results):
     keyboard_count = results["keyboard_walks"]["count"]
 
     # Password reuse
-    general_reuse_passwords = (results["password_reuse_general"]["sharedPasswords"])
-    similar_account_reuse_pairs = results["similar_account_reuse"]["similarPairs"]
-    similar_account_reuse_count = results["similar_account_reuse"]["count"]
+    general_reuse_passwords = (
+        results["password_reuse_general"]["sharedPasswords"]
+    )
+    similar_account_reuse_pairs = (
+        results["similar_account_reuse"]["similarPairs"]
+    )
+    similar_account_reuse_count = (
+        results["similar_account_reuse"]["count"]
+    )
 
     if username_count:
         weaknesses.append("username-derived passwords")
@@ -237,24 +242,26 @@ def executive_summary(results):
             "the absence of password reuse between similarly named accounts"
         )
 
-    summary.append(message)
-
+    if message:
+        summary.append(message)
 
     #---------------------------------------------------------------------------
-    # Positive security findings
+    # POSITIVE SECURITY FINDINGS
     #---------------------------------------------------------------------------
     if positive_findings:
 
         summary.append(
             "Several positive security outcomes were also observed, including "
-            f"{natural_join(positive_findings)}. These findings suggest that several password "
-            "security controls and user practices are operating effectively and help reduce the "
-            "likelihood and impact of credential compromise. While they do not eliminate risk "
-            "entirely, they provide a strong foundation for continued improvement."
+            f"{natural_join(positive_findings)}. These findings suggest that "
+            "several password security controls and user practices are "
+            "operating effectively and help reduce the likelihood and impact "
+            "of credential compromise. While they do not eliminate risk "
+            "entirely, they provide a strong foundation for continued "
+            "improvement."
         )
 
     #---------------------------------------------------------------------------
-    # Conclusion
+    # CONCLUSION
     #---------------------------------------------------------------------------
     conclusion_findings = []
 
@@ -280,20 +287,23 @@ def executive_summary(results):
             "strengthen password security across the environment. While many "
             "baseline controls appear effective, weaknesses affecting "
             f"{natural_join(conclusion_findings)} increase the potential "
-            "impact of credential compromise. Addressing these issues will reduce the "
-            "likelihood of unauthorised access, improve protection of "
-            "sensitive information, and strengthen the organisation's "
+            "impact of credential compromise. Addressing these issues will "
+            "reduce the likelihood of unauthorised access, improve protection "
+            "of sensitive information, and strengthen the organisation's "
             "overall resilience against credential-based attacks."
         )
 
     else:
         summary.append(
-            "Overall, the assessment did not identify any significant password-related weaknesses "
-            "during the assessement dataset. The findings indicate a generally mature approach to "
-            "password management, with no evidence of systemic issues that would substantially "
-            "increase the likelihood of successful credential-based attacks. Continued adherence "
-            "to existing password standards, together with periodic reassessment, will help "
-            "maintain and further strengthen this security posture over time."
+            "Overall, the assessment did not identify any significant "
+            "password-related weaknesses during the assessement dataset. The "
+            "findings indicate a generally mature approach to password "
+            "management, with no evidence of systemic issues that would "
+            "substantially increase the likelihood of successful "
+            "credential-based attacks. Continued adherence to existing "
+            "password standards, together with periodic reassessment, will "
+            "help maintain and further strengthen this security posture over "
+            "time."
         )
 
     return "\n\n".join(summary)
