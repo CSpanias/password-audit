@@ -30,29 +30,7 @@ To update the installation:
 uv tool upgrade password-audit
 ```
 
-## Development installation
+## Next step
 
-Clone the repository and install the project in editable mode with its
-documentation dependencies:
-
-```bash
-git clone https://github.com/CSpanias/password-audit
-cd password-audit
-uv venv
-uv pip install -e ".[docs]"
-```
-
-The editable install makes source changes available without reinstalling the
-package. Verify the CLI and run the test suite:
-
-```bash
-password-audit --help
-python -m unittest discover -s tests
-```
-
-Preview and build the documentation locally:
-
-```bash
-uv run mkdocs serve
-uv run mkdocs build --strict
-```
+For the recommended workflow, continue with the
+[end-to-end audit guide](audit.md).

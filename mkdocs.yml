@@ -47,13 +47,10 @@ nav:
   - Overview: index.md
   - Getting Started:
       - Installation: installation.md
-      - End-to-end Audit: audit.md
   - Modules:
+      - End-to-end Audit (Recommended): audit.md
       - Organise: organise.md
       - Crack: crack.md
       - Analyse: analyse.md
       - LM: lm.md
-  - Project:
-      - Development: development.md
-      - Roadmap: ideas.md
       

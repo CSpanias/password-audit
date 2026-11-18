@@ -62,5 +62,4 @@ enables LM recovery; see the [Audit guide](audit.md) for the workflow details.
 | [Crack](crack.md) | Configure campaigns, run phases, resume work, and inspect statistics. |
 | [Analyse](analyse.md) | Review analysis coverage and select report formats. |
 | [LM](lm.md) | Understand LM mapping and candidate generation. |
-| [Installation](installation.md) | Install the CLI or set up a development environment. |
-| [Development](development.md) | Explore the codebase and build the documentation locally. |
+| [Installation](installation.md) | Install the CLI and continue to a recommended audit. |

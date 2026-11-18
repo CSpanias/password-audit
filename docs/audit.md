@@ -35,9 +35,9 @@ password-audit audit \
 By default, the command generates:
 
 - `password-audit-report.md`
-- `password-audit-report.html` — an offline dashboard with filters and
+- `password-audit-report.html`, an offline dashboard with filters and
   **Copy Markdown** controls for the report narrative
-- `password-audit-findings.json` — the findings sidecar
+- `password-audit-findings.json`, the findings sidecar
 
 Choose a different report set with `--format`. Supported values are `markdown`,
 `html`, `json`, `yaml`, and `sarif`. An explicit selection replaces the default:
