@@ -30,7 +30,8 @@ To update the installation:
 uv tool upgrade password-audit
 ```
 
-## Next step
+## Recommended workflow
 
-For the recommended workflow, continue with the
-[end-to-end audit guide](audit.md).
+Continue with the [end-to-end audit guide](audit.md) for the recommended
+assessment workflow. The standalone modules are available for advanced or
+partial workflows.

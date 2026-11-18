@@ -195,6 +195,7 @@ class ReportRendererTests(unittest.TestCase):
             "-C", "config.json",
             "-G", "internal-password-audit",
             "--format", "html", "sarif",
+            "--resume",
         ]
         with (
             patch.object(sys, "argv", arguments),
@@ -204,6 +205,8 @@ class ReportRendererTests(unittest.TestCase):
 
         parsed = run_audit_workflow.call_args.args[0]
         self.assertEqual(parsed.report_formats, ["html", "sarif"])
+        self.assertIsNone(parsed.company_words)
+        self.assertTrue(parsed.resume)
 
         args = parsed
         with patch.object(cli_audit, "run_audit") as run_audit:
@@ -213,6 +216,7 @@ class ReportRendererTests(unittest.TestCase):
             run_audit.call_args.kwargs["report_formats"],
             ["html", "sarif"],
         )
+        self.assertTrue(run_audit.call_args.kwargs["resume"])
 
     def test_audit_workflow_passes_report_formats_to_analysis(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -224,6 +228,8 @@ class ReportRendererTests(unittest.TestCase):
                 load_campaign=DEFAULT,
                 has_enabled_phases=DEFAULT,
                 analyse_passwords=DEFAULT,
+                run_campaign=DEFAULT,
+                print_summary=DEFAULT,
             )
             values = mocks.start()
             self.addCleanup(mocks.stop)
@@ -248,7 +254,8 @@ class ReportRendererTests(unittest.TestCase):
             values["load_campaign"].return_value = {
                 "ntlm": {"parameters": {}, "phases": []},
             }
-            values["has_enabled_phases"].return_value = False
+            values["has_enabled_phases"].return_value = True
+            values["run_campaign"].return_value = {"phases": []}
 
             audit_workflow.run_audit(
                 ntds_file="company.ntds",
@@ -256,11 +263,19 @@ class ReportRendererTests(unittest.TestCase):
                 campaign_file="config.json",
                 campaign_name="internal-password-audit",
                 report_formats=["json"],
+                resume=True,
             )
 
+            self.assertTrue(
+                values["run_campaign"].call_args.kwargs["resume"]
+            )
             self.assertEqual(
                 values["analyse_passwords"].call_args.kwargs["report_formats"],
                 ["json"],
+            )
+            self.assertEqual(
+                values["analyse_passwords"].call_args.kwargs["company_words"],
+                [Path(directory) / "password-audit" / "company-words.txt"],
             )
 
     def test_cli_accepts_multiple_report_formats(self):
@@ -283,6 +298,7 @@ class ReportRendererTests(unittest.TestCase):
 
         parsed = run_analysis.call_args.args[0]
         self.assertEqual(parsed.mapped_ntlm_passwords, "mapped-passwords.txt")
+        self.assertIsNone(parsed.company_words)
         self.assertEqual(parsed.report_formats, ["html", "sarif"])
         self.assertEqual(parsed.output, "audit")
 

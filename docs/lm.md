@@ -30,18 +30,18 @@ The standalone workflow has two steps:
 2. Pass the NTDS export, Hashcat potfile, and `--show` results to `lm map`.
 
 ```bash
-hashcat -m 3000 --show ntds-organiser/lm-hashes.txt \
+hashcat -m 3000 --show password-audit/lm-hashes.txt \
     --potfile-path /path/to/hashcat.potfile \
-    > ntds-organiser/lm-results.txt
+    > password-audit/lm-results.txt
 
 password-audit lm map \
     --ntds company.ntds \
     --potfile /path/to/hashcat.potfile \
-    --lm-results ntds-organiser/lm-results.txt
+    --lm-results password-audit/lm-results.txt
 ```
 
 When matches are found, the mapped records are written to
-`ntds-organiser/mapped-lm-passwords.txt`. The output directory can be changed
+`password-audit/mapped-lm-passwords.txt`. The output directory can be changed
 with `--output-dir`.
 
 | Option | Purpose |
@@ -49,7 +49,7 @@ with `--output-dir`.
 | `-N`, `--ntds` | NTDS export. |
 | `-P`, `--potfile` | Hashcat potfile. |
 | `-R`, `--lm-results` | Results produced by Hashcat `--show`. |
-| `-O`, `--output-dir` | Output directory; defaults to `ntds-organiser`. |
+| `-O`, `--output-dir` | Output directory; defaults to `password-audit`. |
 
 Unlike the standalone workflow, `audit` runs the LM `--show` and mapping steps
 for you. If an LM campaign is included in the campaign file, `audit` also runs
@@ -63,10 +63,10 @@ writes the matching records and their possible case variants:
 
 ```bash
 password-audit lm generate \
-    --mapped-lm-passwords ntds-organiser/mapped-lm-passwords.txt
+    --mapped-lm-passwords password-audit/mapped-lm-passwords.txt
 ```
 
-The default output directory is `ntds-organiser/`. The command creates:
+The default output directory is `password-audit/`. The command creates:
 
 | File | Contents |
 | --- | --- |
@@ -89,8 +89,8 @@ dataset alongside the required mapped NTLM dataset:
 
 ```bash
 password-audit analyse \
-    --mapped-ntlm-passwords ntds-organiser/mapped-ntlm-passwords.txt \
-    --mapped-lm-passwords ntds-organiser/mapped-lm-passwords.txt
+    --mapped-ntlm-passwords password-audit/mapped-ntlm-passwords.txt \
+    --mapped-lm-passwords password-audit/mapped-lm-passwords.txt
 ```
 
 The report includes LM hash presence and, where applicable, Domain

@@ -7,8 +7,8 @@ authorised to assess.
 | Command | Purpose |
 | --- | --- |
 | `password-audit crack run` | Run an NTLM-only or LM-only campaign. |
-| `password-audit crack estimate` | Display phase estimates from recorded runs (see the current limitation below). |
-| `password-audit crack stats` | Review historical phase performance. |
+| `password-audit crack estimate` | Experimental phase estimates (currently limited; see below). |
+| `password-audit crack stats` | Experimental historical phase statistics. |
 
 For combined NTLM and LM recovery, use the end-to-end
 [`audit`](audit.md) workflow.
@@ -83,7 +83,7 @@ definitions are rejected.
 
 ```bash
 password-audit crack run \
-    --hashes ntds-organiser/ntlm-hashes.txt \
+    --hashes password-audit/ntlm-hashes.txt \
     --campaign campaign.json \
     --campaign-name internal-audit
 ```
@@ -96,38 +96,21 @@ both. To run both campaign types as part of one workflow, use `audit`.
 | `-H`, `--hashes` | Hash dataset to process. |
 | `-C`, `--campaign` | Campaign JSON file. |
 | `-G`, `--campaign-name` | Identifier for campaign sessions and results. |
-| `--resume` | Resume a previously interrupted campaign. |
 | `--debug` | Show verbose Hashcat output. |
 
 Results are written beside the hash dataset as
 `<campaign-name>-results.json`. A timestamped copy is archived under
 `~/.password-audit/history/`. Hashcat maintains its potfile in the configured
-Hashcat directory.
-
-### Resume an interrupted campaign
-
-If a campaign is interrupted, rerun it with the same hash dataset, campaign
-file, and campaign name, adding `--resume`:
-
-```bash
-password-audit crack run \
-    --hashes ntds-organiser/ntlm-hashes.txt \
-    --campaign campaign.json \
-    --campaign-name internal-audit \
-    --resume
-```
-
-The workflow resumes from the recorded results and skips phases that completed
-successfully. It does not discover campaigns automatically; the original
-arguments must be provided again.
+Hashcat directory. Campaign resumption is provided by the end-to-end
+[`audit --resume`](audit.md#resume-an-audit) workflow, not by `crack run`.
 
 ## Estimate duration
 
 The estimator is intended to use average phase durations from prior campaign
 history. **Known limitation:** campaign statistics are keyed by both hash mode
 and phase ID, while the estimator looks them up by phase ID alone. As a result,
-phase durations currently appear as unknown. Use `stats` to review the
-recorded history.
+phase durations currently appear as unknown. This command and `stats` are
+experimental; use `stats` only for an exploratory view of recorded history.
 
 ```bash
 password-audit crack estimate --campaign campaign.json

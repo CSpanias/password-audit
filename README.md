@@ -16,11 +16,11 @@ It combines and extends the functionality of the following, now deprecated and d
 
 * End-to-end password auditing workflow (`audit`)
 * NTDS and BloodHound dataset processing (`organise`)
-* Hashcat campaign execution and tracking (`crack`)
+* Advanced standalone Hashcat campaign execution (`crack`)
 * LM password recovery support and candidate generation (`lm`)
-* Rich-formatted CLI help, analysis progress, summary tables, and an offline HTML dashboard (`analyse`)
+* Rich-formatted CLI help, analysis progress, summary tables, and an offline HTML dashboard
 * Markdown, JSON, YAML, SARIF, and HTML report exports
-* Campaign statistics and duration estimation (`crack`)
+* Experimental campaign statistics and duration estimation (`crack`)
 
 ## Installation
 
@@ -67,7 +67,8 @@ password-audit -h
 
 ## Quick Start
 
-The recommended workflow is the `audit` module, which automatically orchestrates dataset organisation, password recovery, password mapping, and report generation:
+The recommended workflow is `audit`, which automatically orchestrates dataset
+organisation, password recovery, password mapping, and report generation:
 
 ```bash
 password-audit audit \
@@ -77,9 +78,18 @@ password-audit audit \
     --campaign-name internal-audit
 ```
 
-## Typical Workflow
+Company-specific password analysis is stronger with a curated wordlist. You
+can optionally create `./company-words.txt` with around 10–20 terms tailored
+to the company; `audit` adds it to the generated domain/account terms and
+reminds you if it appears unchanged since the previous run.
 
-A password audit using `password-audit` consists of the following stages:
+The standalone commands below remain available for advanced or partial runs.
+For ordinary assessments, prefer `audit`.
+
+## Advanced partial workflow
+
+The end-to-end command runs these stages automatically. Run modules
+independently only when you need to repeat or troubleshoot part of the process:
 
 ```markdown
 Extract NTDS (secretsdump) and Collect BloodHound Data (rusthound-ce)
@@ -91,7 +101,7 @@ Extract NTDS (secretsdump) and Collect BloodHound Data (rusthound-ce)
 Parse NTDS and BloodHound data (password-audit organise)
     |
     +--> domain-admins.txt
-    +--> company-words.txt
+    +--> password-audit/company-words.txt (basic generated terms)
     +--> domain-policy.txt
     +--> enabled-users.txt
     +--> .ntds-disabled.txt

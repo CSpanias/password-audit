@@ -41,6 +41,11 @@ def main():
     parser = argparse.ArgumentParser(
         description="Password Audit Framework",
         formatter_class=CustomFormatter,
+        epilog=(
+            "Recommended workflow: password-audit audit. "
+            "Use organise, crack, analyse, and lm for advanced standalone "
+            "or partial workflows."
+        ),
     )
 
     subparsers = parser.add_subparsers(
@@ -121,50 +126,62 @@ def main():
     optional_audit_parser.add_argument(
         "-M",
         "--mapped-ntlm-passwords",
-        default="./ntds-organiser/mapped-ntlm-passwords.txt",
+        default="./password-audit/mapped-ntlm-passwords.txt",
         help="Recovered NTLM passwords",
     )
 
     optional_audit_parser.add_argument(
             "-U",
             "--lm-users",
-            default="./ntds-organiser/lm-users.txt",
+            default="./password-audit/lm-users.txt",
             help="Accounts storing LM password hashes",
         )
 
     optional_audit_parser.add_argument(
             "-L",
             "--mapped-lm-passwords",
-            default="./ntds-organiser/mapped-lm-passwords.txt",
+            default="./password-audit/mapped-lm-passwords.txt",
             help="Recovered LM passwords",
         )
 
     optional_audit_parser.add_argument(
         "-D",
         "--domain-admins",
-        default="./ntds-organiser/domain-admins.txt",
+        default="./password-audit/domain-admins.txt",
         help="Domain Admin account list",
     )
 
     optional_audit_parser.add_argument(
         "-P",
         "--pass-policy",
-        default="./ntds-organiser/domain-policy.txt",
+        default="./password-audit/domain-policy.txt",
         help="Domain password policy",
     )
 
     optional_audit_parser.add_argument(
         "-W",
         "--company-words",
-        default="./ntds-organiser/company-words.txt",
-        help="Organisation-related strings",
+        default=None,
+        help=(
+            "Optional curated company wordlist to add to generated terms; "
+            "defaults to ./company-words.txt when present"
+        ),
     )
 
     optional_audit_parser.add_argument(
         "-E",
         "--enabled-users",
-        default="./ntds-organiser/enabled-users.txt",
+        default="./password-audit/enabled-users.txt",
         help="Enabled user accounts list",
+    )
+
+    optional_audit_parser.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "Skip completed campaign phases and restart the interrupted phase; "
+            "legacy ntds-organiser results are not migrated"
+        ),
     )
 
     optional_audit_parser.add_argument(
@@ -190,7 +207,7 @@ def main():
 
     organise_parser = subparsers.add_parser(
         "organise",
-        help="Process NTDS, BloodHound, and Hashcat data",
+        help="Advanced standalone NTDS/BloodHound processing",
         description=(
             "Parse NTDS, BloodHound, and Hashcat datasets and "
             "generate analysis artefacts."
@@ -239,7 +256,7 @@ def main():
     optional_organise_parser.add_argument(
         "-O",
         "--output",
-        default="ntds-organiser",
+        default="password-audit",
         help="Output directory"
     )
 
@@ -259,11 +276,11 @@ def main():
 
     crack_parser = subparsers.add_parser(
         "crack",
-        help="Password recovery campaigns",
+        help="Advanced standalone password recovery campaigns",
         description=(
-            "Execute Hashcat password recovery campaigns, "
-            "estimate campaign duration using historical "
-            "statistics, and review past campaign performance."
+            "Advanced standalone Hashcat campaigns. Campaign estimates and "
+            "historical statistics are experimental; use audit for the "
+            "recommended end-to-end workflow."
         ),
         epilog="""
     Examples:
@@ -272,7 +289,7 @@ def main():
             -C config.json
 
         password-audit crack run \\
-            -H ntds-organiser/ntlm-hashes.txt \\
+            -H password-audit/ntlm-hashes.txt \\
             -C config.json \\
             -G internal-audit
 
@@ -292,7 +309,7 @@ def main():
 
     estimate_parser = crack_subparsers.add_parser(
         "estimate",
-        help="Estimate campaign duration",
+        help="Experimental campaign duration estimate",
         description=(
             "Estimate the duration of a cracking campaign "
             "before execution using the supplied configuration "
@@ -339,7 +356,7 @@ def main():
     Example:
 
         password-audit crack run \\
-            -H ntds-organiser/ntlm-hashes.txt \\
+            -H password-audit/ntlm-hashes.txt \\
             -C config.json \\
             -G internal-audit
     """,
@@ -379,12 +396,6 @@ def main():
 
     # Optional arguments
     optional_run_parser.add_argument(
-        "--resume",
-        action="store_true",
-        help="Resume an interrupted campaign"
-    )
-
-    optional_run_parser.add_argument(
         "--debug",
         action="store_true",
         help="Display verbose Hashcat output",
@@ -400,7 +411,7 @@ def main():
 
     stats_parser = crack_subparsers.add_parser(
         "stats",
-        help="Display historical cracking statistics",
+        help="Experimental historical cracking statistics",
         description=(
             "Display statistics for previously executed "
             "cracking campaigns, including password recovery "
@@ -424,7 +435,7 @@ def main():
 
     analyse_parser = subparsers.add_parser(
         "analyse",
-        help="Analyse recovered passwords and generate reports",
+        help="Advanced standalone password analysis and reporting",
         description=(
             "Analyse recovered NTLM and LM passwords, "
             "identify common weaknesses, and generate "
@@ -436,7 +447,7 @@ def main():
         Example:
 
             password-audit analyse \\
-                -M ntds-organiser/mapped-ntlm-passwords.txt
+                -M password-audit/mapped-ntlm-passwords.txt
         """)
     )
 
@@ -464,42 +475,45 @@ def main():
     optional_analyse_parser.add_argument(
         "-D",
         "--domain-admins",
-        default="./ntds-organiser/domain-admins.txt",
+        default="./password-audit/domain-admins.txt",
         help="Domain Admin account list"
     )
 
     optional_analyse_parser.add_argument(
         "-P",
         "--pass-policy",
-        default="./ntds-organiser/domain-policy.txt",
+        default="./password-audit/domain-policy.txt",
         help="Domain password policy"
     )
 
     optional_analyse_parser.add_argument(
         "-G",
         "--company-words",
-        default="./ntds-organiser/company-words.txt",
-        help="Organisation-specific password analysis terms"
+        default=None,
+        help=(
+            "Optional curated company wordlist added to generated terms; "
+            "defaults to ./company-words.txt when present"
+        )
     )
 
     optional_analyse_parser.add_argument(
         "-E",
         "--enabled-users",
-        default="./ntds-organiser/enabled-users.txt",
+        default="./password-audit/enabled-users.txt",
         help="Enabled user accounts list"
     )
 
     optional_analyse_parser.add_argument(
         "-U",
         "--lm-users",
-        default="./ntds-organiser/lm-users.txt",
+        default="./password-audit/lm-users.txt",
         help="Accounts storing LM password hashes"
     )
 
     optional_analyse_parser.add_argument(
         "-L",
         "--mapped-lm-passwords",
-        #default="./ntds-organiser/mapped-lm-passwords.txt",
+        #default="./password-audit/mapped-lm-passwords.txt",
         help="Recovered LM passwords"
     )
 
@@ -536,7 +550,7 @@ def main():
 
     lm_parser = subparsers.add_parser(
         "lm",
-        help="LM password recovery and candidate generation",
+        help="Advanced standalone LM password utilities",
         description=(
             "LM password processing utilities used to "
             "reconstruct recovered LM passwords, map them "
@@ -553,7 +567,7 @@ def main():
                 -R lm-results.txt
 
             password-audit lm generate \\
-                -L ntds-organiser/mapped-lm-passwords.txt
+                -L password-audit/mapped-lm-passwords.txt
         """)
     )
 
@@ -619,7 +633,7 @@ def main():
     optional_lm_map_parser.add_argument(
         "-O",
         "--output-dir",
-        default="ntds-organiser",
+        default="password-audit",
         help="Output directory",
     )
 
@@ -644,7 +658,7 @@ def main():
         Example:
 
             password-audit lm generate \\
-                -L ntds-organiser/mapped-lm-passwords.txt
+                -L password-audit/mapped-lm-passwords.txt
         """)
     )
 
@@ -668,14 +682,14 @@ def main():
     optional_lm_generate_parser.add_argument(
         "-D",
         "--domain-admins",
-        default="./ntds-organiser/domain-admins.txt",
+        default="./password-audit/domain-admins.txt",
         help="Domain Admin account list",
     )
 
     optional_lm_generate_parser.add_argument(
         "-O",
         "--output-dir",
-        default="ntds-organiser",
+        default="password-audit",
         help="Output directory",
     )
 

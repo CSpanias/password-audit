@@ -1,20 +1,11 @@
 # Password Audit
 
-Password Audit is a command-line toolkit for organising Active Directory
-password data, running Hashcat campaigns, analysing recovered passwords, and
-generating reports. Use it only with data you are authorised to assess.
+Password Audit is a command-line toolkit for authorised Active Directory
+password assessments. The recommended `audit` command organises the data,
+runs configured recovery campaigns, analyses recovered passwords, and
+generates reports.
 
-## At a glance
-
-| Command | Purpose |
-| --- | --- |
-| `audit` | Run the end-to-end workflow and generate reports. |
-| `organise` | Parse NTDS and BloodHound exports; optionally map recovered NTLM passwords. |
-| `crack` | Run Hashcat campaigns and review historical campaign statistics. |
-| `analyse` | Analyse mapped passwords and export reports. |
-| `lm` | Map recovered LM passwords or generate case variants for Domain Administrator passwords. |
-
-## Quick start
+## Recommended workflow
 
 Install the package and prepare an NTDS export, a BloodHound ZIP export, Hashcat,
 and a campaign configuration. See [Installation](installation.md) and
@@ -27,6 +18,13 @@ password-audit audit \
     --campaign campaign.json \
     --campaign-name internal-audit
 ```
+
+For the strongest organisation-specific analysis, optionally prepare
+`./company-words.txt` with around 10–20 terms based on what you know about the
+company. The audit adds these terms to its basic domain/account-derived list
+and reminds you if the curated file appears unchanged since the previous run.
+This list is optional; the generated terms are still used without it. See
+[Company-specific terms](audit.md#company-specific-terms).
 
 By default, the audit writes `password-audit-report.md`,
 `password-audit-report.html`, and `password-audit-findings.json`. To choose
@@ -43,7 +41,7 @@ formats explicitly, use `--format` followed by one or more of `markdown`,
 
 The `audit` command orchestrates these stages:
 
-1. **Organise** NTDS and BloodHound data into `ntds-organiser/` artefacts.
+1. **Organise** NTDS and BloodHound data into `password-audit/` artefacts.
 2. **Recover** NTLM passwords using the enabled phases in the NTLM campaign.
 3. **Recover LM passwords**, when LM hashes and an LM campaign are available.
 4. **Map** recovered passwords to accounts. LM results are reconstructed with
@@ -53,13 +51,15 @@ The `audit` command orchestrates these stages:
 The campaign file must include an `ntlm` section. An optional `lm` section
 enables LM recovery; see the [Audit guide](audit.md) for the workflow details.
 
-## Choose a workflow
+## Advanced standalone workflows
+
+Use these commands when you need to run or repeat only part of the workflow.
+They remain available independently; for a typical assessment, start with
+[`audit`](audit.md).
 
 | Guide | Use it to |
 | --- | --- |
-| [End-to-end audit](audit.md) | Run the recommended workflow from input validation to reports. |
-| [Organise](organise.md) | Prepare NTDS/BloodHound artefacts and map an existing Hashcat potfile. |
-| [Crack](crack.md) | Configure campaigns, run phases, resume work, and inspect statistics. |
-| [Analyse](analyse.md) | Review analysis coverage and select report formats. |
-| [LM](lm.md) | Understand LM mapping and candidate generation. |
-| [Installation](installation.md) | Install the CLI and continue to a recommended audit. |
+| [Organise](organise.md) | Prepare NTDS/BloodHound artefacts or map an existing Hashcat potfile. |
+| [Crack](crack.md) | Run a single campaign or inspect experimental campaign statistics. |
+| [Analyse](analyse.md) | Re-analyse mapped passwords and regenerate reports. |
+| [LM](lm.md) | Map recovered LM passwords or generate LM-derived candidates. |

@@ -7,6 +7,7 @@ domain policy information, organisation-specific terminology,
 and supporting account lists.
 """
 
+from os import PathLike
 
 # ---------------------------------------------------------------------------
 # Password Data
@@ -108,10 +109,10 @@ def load_domain_policy(path):
 
 def load_company_words(path):
     """
-    Load organisation-specific words used during password analysis.
+    Load one or more organisation-specific wordlists.
 
-    Terms are normalised to lowercase to support
-    case-insensitive matching.
+    Terms are normalised to lowercase and deduplicated while preserving their
+    first-seen order.
 
     Returns:
         List[str]
@@ -120,13 +121,19 @@ def load_company_words(path):
     if not path:
         return []
 
-    with open(path, encoding="utf-8") as f:
+    paths = [path] if isinstance(path, (str, PathLike)) else path
+    words = []
+    seen = set()
 
-        return [
-            line.strip().lower()
-            for line in f
-            if line.strip()
-        ]
+    for wordlist_path in paths:
+        with open(wordlist_path, encoding="utf-8") as wordlist:
+            for line in wordlist:
+                term = line.strip().lower()
+                if term and term not in seen:
+                    words.append(term)
+                    seen.add(term)
+
+    return words
 
 
 # ---------------------------------------------------------------------------

@@ -182,8 +182,9 @@ def run_phase(
             Rule file applied to the attack.
 
         session_name:
-            Hashcat session identifier used for attack
-            recovery and resume operations.
+            Hashcat session identifier for this execution. A retried phase
+            receives a new session because checkpoint restoration is not
+            performed.
 
         flags:
             Additional Hashcat command-line arguments.

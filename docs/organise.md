@@ -13,7 +13,7 @@ password-audit organise \
     --bloodhound bloodhound.zip
 ```
 
-By default, output files are written to `ntds-organiser/`. Use `--output` to
+By default, output files are written to `password-audit/`. Use `--output` to
 choose another directory.
 
 ## Options
@@ -23,7 +23,7 @@ choose another directory.
 | `-N`, `--ntds` | SecretsDump NTDS export | Required |
 | `-B`, `--bloodhound` | BloodHound ZIP export | Required |
 | `-F`, `--filter` | Comma-separated usernames to exclude | None |
-| `-O`, `--output` | Output directory | `ntds-organiser` |
+| `-O`, `--output` | Output directory | `password-audit` |
 | `-P`, `--potfile` | Hashcat potfile for NTLM password mapping | None |
 
 Use `password-audit organise --help` for the installed version's full help.
@@ -37,7 +37,7 @@ Use `password-audit organise --help` for the installed version's full help.
 | `ntds-users-clean.txt` | Normalized enabled-user records. |
 | `domain-admins.txt` | Domain Administrator accounts identified from BloodHound data, when available. |
 | `domain-policy.txt` | Password policy values extracted from BloodHound data, when available. |
-| `company-words.txt` | Organisation-related terms derived from the available domain and account data. |
+| `company-words.txt` | Basic terms derived from domain/account data; not a realistic company vocabulary. |
 | `lm-hashes.txt`, `lm-users.txt` | LM hashes and associated accounts, when present. |
 | `mapped-ntlm-passwords.txt` | Recovered NTLM passwords mapped to accounts; written when a potfile is supplied and matches are found. |
 | `.ntds-enabled.txt`, `.ntds-disabled.txt`, `.ntds-machines.txt` | Intermediate records used by the workflow. |
@@ -45,6 +45,11 @@ Use `password-audit organise --help` for the installed version's full help.
 
 The output includes password hashes and may include recovered plaintext
 passwords. Store it securely and restrict access to the assessment team.
+
+The generated `company-words.txt` is a basic seed and is regenerated when
+organising data. For more realistic company-specific password analysis, keep a
+separate curated `./company-words.txt` file with roughly 10–20 relevant terms;
+the `audit` workflow adds it to the generated terms when present.
 
 ## Map recovered NTLM passwords
 

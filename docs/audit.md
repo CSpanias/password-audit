@@ -54,12 +54,72 @@ password-audit audit \
 The `--format` option accepts one or more formats. The findings JSON sidecar is
 written in addition to the selected report formats.
 
+## Company-specific terms
+
+The organiser generates a basic `password-audit/company-words.txt` list from
+domain and account data. It does not infer a realistic company vocabulary.
+For more useful organisation-specific password analysis, you can optionally
+create `./company-words.txt` with roughly 10–20 terms tailored to the company
+under assessment. The audit automatically adds that file when present; you can
+also provide another path with `--company-words`:
+
+```text
+password-audit audit \
+    --ntds company.ntds \
+    --bloodhound bloodhound.zip \
+    --campaign campaign.json \
+    --campaign-name internal-audit \
+    --company-words ./company-words.txt
+```
+
+Curated terms supplement the generated list and are deduplicated
+case-insensitively. The audit does not modify or regenerate your curated file.
+It prints a reminder when no curated list is found and warns when the file's
+name, size, and modification time appear unchanged since the previous audit.
+Review the list for each assessment; using the same list can be appropriate
+when reassessing the same company. Only its filename and file metadata are
+stored in `password-audit/.company-words-state.json` for this reminder; the
+curated terms are not copied into that state file. The curated list is optional.
+
+## Resume an audit
+
+If an audit is interrupted, rerun it with the same input files, filter,
+campaign configuration, and campaign name, adding `--resume`:
+
+```bash
+password-audit audit \
+    --ntds company.ntds \
+    --bloodhound bloodhound.zip \
+    --campaign campaign.json \
+    --campaign-name internal-audit \
+    --resume
+```
+
+The audit reorganises its inputs, then validates the resulting hash datasets
+and campaign inputs against the saved results. Completed NTLM and LM campaigns
+are reused, completed phases are skipped, and an interrupted phase starts over
+from the beginning. Hashcat checkpoints are not restored. Mapping, analysis,
+and report generation run again after the campaigns, so this also refreshes
+reports from existing recovered data.
+
+If no campaign results exist yet, that campaign starts from its first enabled
+phase. Resume is refused when saved results have a different compatibility
+fingerprint or were written by a version that did not record one.
+
+The fingerprint covers the hash datasets, campaign configuration, Hashcat
+binary, configured wordlists, and rule files. It does not hash the mutable
+potfile contents or files referenced only through free-form Hashcat flags;
+keep those inputs unchanged when resuming. Fingerprinting reads configured
+files in full, which can add startup time for very large wordlists. The
+campaign results journal is written atomically, and Ctrl+C records the active
+phase as interrupted.
+
 ## Workflow
 
 The audit runs the following stages:
 
 1. **Validate** the NTDS file, BloodHound export, and campaign configuration.
-2. **Organise** the datasets into `ntds-organiser/`, including NTLM hashes,
+2. **Organise** the datasets into `password-audit/`, including NTLM hashes,
    enabled users, Domain Administrators, and policy data.
 3. **Recover NTLM passwords** using the enabled NTLM campaign phases.
 4. **Recover LM passwords**, when LM hashes are present and an LM campaign is
@@ -80,26 +140,30 @@ the configured Hashcat potfile.
 | `-C`, `--campaign` | Campaign JSON file | Required |
 | `-G`, `--campaign-name` | Identifier used for campaign results | Required |
 | `-F`, `--filter` | Comma-separated usernames to exclude | None |
-| `-M`, `--mapped-ntlm-passwords` | Recovered NTLM password mapping file | `ntds-organiser/mapped-ntlm-passwords.txt` |
-| `-U`, `--lm-users` | LM-hash account list | `ntds-organiser/lm-users.txt` |
-| `-L`, `--mapped-lm-passwords` | Recovered LM password mapping file | `ntds-organiser/mapped-lm-passwords.txt` |
-| `-D`, `--domain-admins` | Domain Administrator account list | `ntds-organiser/domain-admins.txt` |
-| `-P`, `--pass-policy` | Domain password policy | `ntds-organiser/domain-policy.txt` |
-| `-W`, `--company-words` | Organisation-related terms | `ntds-organiser/company-words.txt` |
-| `-E`, `--enabled-users` | Enabled account list | `ntds-organiser/enabled-users.txt` |
+| `-M`, `--mapped-ntlm-passwords` | Recovered NTLM password mapping file | `password-audit/mapped-ntlm-passwords.txt` |
+| `-U`, `--lm-users` | LM-hash account list | `password-audit/lm-users.txt` |
+| `-L`, `--mapped-lm-passwords` | Recovered LM password mapping file | `password-audit/mapped-lm-passwords.txt` |
+| `-D`, `--domain-admins` | Domain Administrator account list | `password-audit/domain-admins.txt` |
+| `-P`, `--pass-policy` | Domain password policy | `password-audit/domain-policy.txt` |
+| `-W`, `--company-words` | Optional curated terms added to the generated list | `./company-words.txt` when present; otherwise none |
+| `-E`, `--enabled-users` | Enabled account list | `password-audit/enabled-users.txt` |
+| `--resume` | Reuse completed campaigns/phases and restart an interrupted phase | Disabled |
 | `--format` | One or more report formats | `markdown html` |
 
 Paths are relative to the current working directory unless given as absolute
 paths. Use `password-audit audit --help` for the installed version's complete
 option list.
 
-## Outputs and standalone commands
+## Outputs and advanced standalone commands
 
 Organised datasets and campaign result files are written under
-`ntds-organiser/`. Campaign history is also archived in
+`password-audit/`. Existing files in the former `ntds-organiser/` directory
+are left untouched and are not migrated or used as a fallback. An interrupted
+campaign stored there will not automatically resume with the new default
+directory. Campaign history is also archived in
 `~/.password-audit/history/` for the estimate and statistics commands.
 
-For manual or partial workflows, run the modules independently:
+For manual or partial workflows, these standalone commands remain available:
 
 - [Organise](organise.md) prepares datasets and can map an existing NTLM
   potfile.

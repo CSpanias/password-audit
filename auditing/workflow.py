@@ -13,6 +13,10 @@ from pathlib import Path
 from rich.table import Table
 
 from analysis.workflow import analyse_passwords
+from auditing.company_words import (
+    prepare_company_word_sources,
+    save_company_word_snapshot,
+)
 from auditing.validation import has_enabled_phases, validate_audit_inputs
 from common.console import console, info, ok, warn
 from cracking.constants import DEFAULT_HASHCAT_DIR
@@ -38,6 +42,7 @@ def run_audit(
     enabled_users=None,
     pass_policy=None,
     report_formats=None,
+    resume=False,
 ):
     """
     Execute an end-to-end password audit workflow.
@@ -76,12 +81,15 @@ def run_audit(
         report_formats:
             Report formats to generate.
 
+        resume:
+            Skip completed campaign phases and restart the interrupted phase.
+
     Returns:
         dict:
             Workflow execution results.
     """
 
-    output_dir = Path("ntds-organiser")
+    output_dir = Path("password-audit")
 
     output_dir.mkdir(
         parents=True,
@@ -198,6 +206,7 @@ def run_audit(
             config=ntlm_campaign,
             hash_file=output_dir / "ntlm-hashes.txt",
             campaign_name=campaign_name,
+            resume=resume,
         )
 
         print_summary(campaign_results)
@@ -213,6 +222,7 @@ def run_audit(
             config=lm_campaign,
             hash_file=output_dir / "lm-hashes.txt",
             campaign_name=f"{campaign_name}-lm",
+            resume=resume,
         )
 
         print_summary(lm_campaign_results)
@@ -301,9 +311,10 @@ def run_audit(
         or output_dir / "domain-admins.txt"
     )
 
-    company_words = (
-        company_words
-        or output_dir / "company-words.txt"
+    company_word_sources, company_word_snapshot = prepare_company_word_sources(
+        generated_path=output_dir / "company-words.txt",
+        custom_path=company_words,
+        state_path=output_dir / ".company-words-state.json",
     )
 
     pass_policy = (
@@ -329,13 +340,19 @@ def run_audit(
     analyse_passwords(
         mapped_ntlm_passwords=mapped_ntlm_passwords,
         domain_admins=domain_admins,
-        company_words=company_words,
+        company_words=company_word_sources,
         pass_policy=pass_policy,
         enabled_users=enabled_users,
         lm_users=lm_users,
         mapped_lm_passwords=mapped_lm_passwords,
         report_formats=report_formats,
     )
+
+    if company_word_snapshot:
+        save_company_word_snapshot(
+            output_dir / ".company-words-state.json",
+            company_word_snapshot,
+        )
 
     selected_formats = report_formats or ("markdown", "html")
     if isinstance(selected_formats, str):

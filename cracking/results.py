@@ -6,17 +6,38 @@ to disk.
 """
 
 import json
-
-from pathlib import Path
+import os
+import tempfile
 from datetime import datetime
+from pathlib import Path
 
-from common.console import (
-    ok,
-)
+from common.console import ok
+from cracking.constants import HISTORY_DIR
 
-from cracking.constants import (
-    HISTORY_DIR,
-)
+
+def _write_json_atomically(output_file, data):
+    temporary_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=output_file.parent,
+            prefix=f".{output_file.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary_path = Path(handle.name)
+            json.dump(data, handle, indent=4)
+            handle.flush()
+            os.fsync(handle.fileno())
+
+        os.replace(temporary_path, output_file)
+        temporary_path = None
+
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 def write_results(results):
@@ -42,8 +63,7 @@ def write_results(results):
         / f"{campaign}-results.json"
     )
 
-    with open(output_file, "w", encoding="utf-8") as handle:
-        json.dump(results, handle, indent=4)
+    _write_json_atomically(output_file, results)
 
     return output_file
 
@@ -77,8 +97,7 @@ def archive_results(results):
         / f"{timestamp}-{results['campaign']}.json"
     )
 
-    with open(archive_file, "w", encoding="utf-8") as handle:
-        json.dump(results, handle, indent=4)
+    _write_json_atomically(archive_file, results)
 
     return archive_file
 

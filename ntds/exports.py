@@ -111,11 +111,10 @@ def export_results(results, output_dir):
             results["lm_da_candidates"]
         )
 
-    if results["company_words"]:
-        write_lines(
-            output_dir / "company-words.txt",
-            results["company_words"]
-        )
+    write_lines(
+        output_dir / "company-words.txt",
+        results["company_words"]
+    )
 
     if results["policy"]:
 
