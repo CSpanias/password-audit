@@ -1,0 +1,55 @@
+# ==============================================================================
+# Predictable Pattern Findings
+# ==============================================================================
+
+username-derived-passwords:
+  id: PWD-PATTERN-001
+  title: Username-Derived Passwords
+  severity: medium
+  category: predictable_patterns
+  remediation: |
+    Advise users to select passwords unrelated to their username. Consider
+    deploying password filtering solutions that block username-derived password
+    constructions.
+  description_template: "A total of {count} password{s} contained username-derived content."
+
+organisation-related-passwords:
+  id: PWD-PATTERN-002
+  title: Organisation-Related Passwords
+  severity: medium
+  category: predictable_patterns
+  remediation: |
+    Advise users to select passwords unrelated to organisational terminology.
+    Consider deploying password filtering solutions that block organisation-related
+    password constructions.
+  description_template: "A total of {count} password{s} contained organisation-related terminology."
+
+common-passwords:
+  id: PWD-PATTERN-003
+  title: Common Passwords
+  severity: medium
+  category: predictable_patterns
+  remediation: |
+    Advise users to avoid common dictionary words in passwords. Consider deploying
+    password filtering solutions that block commonly used password terms.
+  description_template: "A total of {count} password{s} contained common dictionary words."
+
+date-based-passwords:
+  id: PWD-PATTERN-004
+  title: Date-Based Passwords
+  severity: low
+  category: predictable_patterns
+  remediation: |
+    Advise users to avoid date-related references in passwords. Consider deploying
+    password filtering solutions that block date-based password constructions.
+  description_template: "A total of {count} password{s} contained date-related content."
+
+keyboard-patterns:
+  id: PWD-PATTERN-005
+  title: Keyboard Patterns
+  severity: low
+  category: predictable_patterns
+  remediation: |
+    Advise users to avoid keyboard walking patterns in passwords. Consider
+    deploying password filtering solutions that block keyboard sequence patterns.
+  description_template: "A total of {count} password{s} contained keyboard walking patterns."

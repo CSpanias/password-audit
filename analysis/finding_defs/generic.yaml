@@ -1,0 +1,24 @@
+# ==============================================================================
+# Generic Password Audit Findings
+# ==============================================================================
+
+password-audit:
+  id: PWD-AUDIT-001
+  title: Password Audit
+  severity: info
+  category: general
+  remediation: |
+    Review the findings in this report and prioritise remediation based on
+    severity. Address critical and high findings first to reduce the risk
+    of credential-based attacks.
+  description_template: "A total of {count} plaintext passwords were recovered from {enabled} enabled accounts."
+
+password-statistics:
+  id: PWD-STATS-001
+  title: Password Statistics
+  severity: info
+  category: general
+  remediation: |
+    Use password statistics to identify weak password construction patterns
+    and inform password policy decisions.
+  description: "Password frequency and character usage statistics were analysed."

@@ -1,0 +1,14 @@
+# ==============================================================================
+# Password Policy Findings
+# ==============================================================================
+
+non-compliant-passwords:
+  id: PWD-POLICY-001
+  title: Non-Compliant Passwords
+  severity: medium
+  category: password_policy
+  remediation: |
+    Enforce the configured minimum password length policy. Review accounts with
+    non-compliant passwords and require password changes where passwords fall
+    below the minimum length requirement.
+  description_template: "A total of {count} password{s} did not comply with the configured minimum password length requirement."

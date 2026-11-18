@@ -14,10 +14,15 @@ from analysis.results import build_results
 from analysis.executive_summary import executive_summary
 from analysis.technical_commentary import technical_commentary
 from analysis.remediation_guidance import remediation_guidance, remediation_references
-from analysis.findings import build_findings
+from analysis.findings import build_findings_dict
 from reports.json import write_findings
 from reports.markdown import render_markdown, write_markdown
-from common.console import warn
+from common.console import warn, ok
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+
+console = Console()
 
 
 def analyse_passwords(
@@ -135,10 +140,88 @@ def analyse_passwords(
     }
 
     # Findings JSON export
-    findings = build_findings(results)
+    findings = build_findings_dict(results)
 
     # Export files to disc
     write_markdown(output_file, render_markdown(report))
     write_findings("password-audit-findings.json", findings)
 
+    # Rich console output
+    _print_console_summary(results, findings)
+
     return results
+
+
+def _print_console_summary(results, findings):
+    """
+    Display a rich-formatted console summary of the password audit results.
+
+    Args:
+        results:
+            Analysis results dictionary.
+        findings:
+            List of finding dictionaries.
+    """
+    console.print()
+    console.print(Panel.fit(
+        "[bold]Password Audit Results[/bold]",
+        border_style="cyan",
+    ))
+    console.print()
+
+    # Summary table
+    table = Table(show_header=False, box=None, padding=(0, 1))
+    table.add_column("Label", style="bold cyan")
+    table.add_column("Value", style="white")
+
+    table.add_row("Total passwords", str(results.get("total_passwords", 0)))
+    table.add_row("Enabled users", str(results.get("enabled_users", 0)))
+    table.add_row("Unique passwords", str(results.get("unique_passwords", 0)))
+    table.add_row("Crack rate", f"{results.get('crack_rate', 0)}%")
+
+    console.print(table)
+    console.print()
+
+    # Findings summary by severity
+    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    severity_style = {
+        "critical": "bold white on red",
+        "high": "bold red",
+        "medium": "bold yellow",
+        "low": "blue",
+        "info": "dim",
+    }
+
+    findings_by_severity = {}
+    for f in findings:
+        sev = f.get("severity", "info")
+        findings_by_severity.setdefault(sev, []).append(f)
+
+    finding_table = Table(title="Findings", header_style="bold magenta")
+    finding_table.add_column("Severity", style="bold")
+    finding_table.add_column("Count", justify="right")
+    finding_table.add_column("Finding", style="white")
+
+    for sev in sorted(findings_by_severity.keys(), key=lambda s: severity_order.get(s, 99)):
+        count = len(findings_by_severity[sev])
+        style = severity_style.get(sev, "white")
+        finding_table.add_row(sev.upper(), str(count), style=style)
+
+    console.print(finding_table)
+    console.print()
+
+    # Detail for critical/high findings
+    important = [f for f in findings if f.get("severity") in ("critical", "high")]
+    if important:
+        console.print(Panel(
+            "[bold red]Critical / High Findings[/bold red]",
+            border_style="red",
+        ))
+        for f in important:
+            console.print(f"  [bold]{f['id']}[/bold] - {f['title']}")
+            console.print(f"    {f['description']}")
+        console.print()
+
+    ok("Report written to: report.md")
+    ok("Findings written to: password-audit-findings.json")
+    console.print()

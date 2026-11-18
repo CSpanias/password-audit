@@ -1,0 +1,25 @@
+# ==============================================================================
+# Password Reuse Findings
+# ==============================================================================
+
+password-reuse:
+  id: PWD-REUSE-001
+  title: Password Reuse
+  severity: high
+  category: password_reuse
+  remediation: |
+    Enforce unique passwords across all accounts. Require password changes for
+    accounts sharing passwords and implement technical controls to prevent
+    password reuse.
+  description_template: "A total of {count} password{s} {were_was} reused across multiple unrelated accounts."
+
+shared-account-passwords:
+  id: PWD-REUSE-002
+  title: Shared Passwords
+  severity: high
+  category: password_reuse
+  remediation: |
+    Investigate accounts sharing passwords with similarly named accounts. Require
+    password changes and review for evidence of credential compromise or shared
+    account usage.
+  description_template: "A total of {count} password{s} were shared across similarly named accounts."

@@ -1,0 +1,26 @@
+# ==============================================================================
+# Privileged Account Findings
+# ==============================================================================
+
+domain-admin-passwords:
+  id: DOMAIN-ADMIN-001
+  title: Recovered Domain Administrator Passwords
+  severity: critical
+  category: privileged_accounts
+  remediation: |
+    Immediately reset passwords for all affected Domain Administrator accounts.
+    Implement privileged access management (PAM), enforce multi-factor
+    authentication (MFA), and apply dedicated password policies to privileged
+    identities.
+  description_template: "A total of {count} Domain Administrator password{s} {were_was} recovered."
+
+domain-admin-lm-hashes:
+  id: DOMAIN-ADMIN-002
+  title: Domain Administrator LM Hashes
+  severity: critical
+  category: legacy_auth
+  remediation: |
+    Disable LM hash storage and require affected Domain Administrator accounts
+    to change their passwords immediately. Prioritise privileged accounts for
+    password reset and review for evidence of credential exposure or misuse.
+  description_template: "A total of {count} Domain Administrator account{s} {were_was} found storing LM password hashes."
