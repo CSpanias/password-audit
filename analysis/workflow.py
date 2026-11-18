@@ -26,8 +26,8 @@ from analysis.remediation_guidance import remediation_guidance, remediation_refe
 from analysis.results import build_results
 from analysis.technical_commentary import technical_commentary
 from common.console import console, warn
+from reports.html import render_html
 from reports.json import write_findings
-from reports.renderers import REPORT_RENDERERS, write_report
 
 
 def analyse_passwords(
@@ -38,8 +38,7 @@ def analyse_passwords(
     enabled_users,
     lm_users=None,
     mapped_lm_passwords=None,
-    output_file="password-audit-report.md",
-    report_formats=None,
+    output_file="password-audit-report.html",
 ):
     """
     Analyse recovered passwords and generate a report.
@@ -66,9 +65,6 @@ def analyse_passwords(
         output_file:
             Output report path.
 
-        report_formats:
-            Report formats to generate.
-
         mapped_lm_passwords:
             Recovered LM passwords.
 
@@ -76,29 +72,6 @@ def analyse_passwords(
         dict:
             Password analysis results.
     """
-
-    if report_formats is None:
-        requested_formats = ["markdown", "html"]
-    elif isinstance(report_formats, str):
-        requested_formats = [report_formats]
-    else:
-        requested_formats = report_formats
-
-    formats = list(dict.fromkeys(requested_formats))
-    if not formats:
-        raise ValueError("At least one report format must be selected.")
-
-    unsupported = [
-        format_name
-        for format_name in formats
-        if format_name not in REPORT_RENDERERS
-    ]
-    if unsupported:
-        available = ", ".join(REPORT_RENDERERS)
-        raise ValueError(
-            f"Unsupported report format(s): {', '.join(unsupported)}. "
-            f"Choose from: {available}"
-        )
 
     with Progress(
         SpinnerColumn(),
@@ -141,14 +114,12 @@ def analyse_passwords(
         progress.advance(task_id)
 
         progress.update(task_id, description="Writing report files")
-        report_paths = [
-            write_report(output_file, report, format_name)
-            for format_name in formats
-        ]
+        report_path = Path(output_file).with_suffix(".html")
+        report_path.write_text(render_html(report), encoding="utf-8")
         write_findings("password-audit-findings.json", findings)
         progress.advance(task_id)
 
-    _print_console_summary(results, findings, report_paths)
+    _print_console_summary(results, findings, report_path)
 
     return results
 
@@ -206,7 +177,7 @@ def _build_analysis_results(
     )
 
 
-def _print_console_summary(results, findings, report_paths):
+def _print_console_summary(results, findings, report_path):
     """
     Display a rich-formatted console summary of the password audit results.
 
@@ -215,8 +186,8 @@ def _print_console_summary(results, findings, report_paths):
             Analysis results dictionary.
         findings:
             List of finding dictionaries.
-        report_paths:
-            Paths to generated report files.
+        report_path:
+            Path to the generated HTML report.
     """
     console.print()
     console.print(Panel.fit(
@@ -283,8 +254,7 @@ def _print_console_summary(results, findings, report_paths):
     console.print(finding_table)
     console.print()
 
-    for path in report_paths:
-        console.print(Text(f"Report written to: {path}", style="green"))
+    console.print(Text(f"Report written to: {report_path}", style="green"))
     console.print(Text(
         "Findings written to: password-audit-findings.json",
         style="green",

@@ -31,7 +31,7 @@ curated list. Curated terms supplement generated terms.
 | `-G`, `--company-words` | Optional curated terms added to generated terms; `./company-words.txt` is auto-detected when present. |
 | `-E`, `--enabled-users` | Enabled account list used for summary statistics. |
 | `-U`, `--lm-users` | Accounts associated with LM hashes. |
-| `-O`, `--output` | Report output path; the selected format extension replaces its extension. |
+| `-O`, `--output` | HTML report output path. |
 
 Use `password-audit analyse --help` for all aliases and default paths.
 
@@ -51,28 +51,21 @@ Finding IDs, severity, category, descriptions, and remediation guidance are
 defined in the packaged YAML files. Severity is attached to individual
 findings; the report does not calculate an overall risk score.
 
-## Report formats
+## Reports
 
-Without `--format`, analysis writes Markdown and HTML. Supported formats are
-`markdown`, `html`, `json`, `yaml`, and `sarif`; an explicit selection writes
-only those report formats.
+Analysis writes a self-contained HTML report and a JSON findings sidecar.
 
 ```bash
-# Default Markdown and HTML reports
 password-audit analyse \
     --mapped-ntlm-passwords password-audit/mapped-ntlm-passwords.txt
 
-# Select formats and an output base name
 password-audit analyse \
     --mapped-ntlm-passwords password-audit/mapped-ntlm-passwords.txt \
-    --format json sarif \
-    --output audit-report
+    --output audit-report.html
 ```
 
-For the default output path, the reports are
-`password-audit-report.md` and `password-audit-report.html`. With
-`--output audit-report --format json sarif`, the report files are
-`audit-report.json` and `audit-report.sarif`. The findings sidecar
+The default report is `password-audit-report.html`; `--output` can set a
+different name. Its extension is always `.html`. The findings sidecar
 `password-audit-findings.json` is written in every case.
 
 The HTML report is self-contained and works offline. Its narrative sections
@@ -80,8 +73,7 @@ include **Copy Markdown** buttons. The remediation section also contains
 References under a level-three heading; the references are included when that
 section is copied.
 
-JSON, YAML, and SARIF contain the structured report data. The separate
-findings sidecar has this shape:
+The findings sidecar has this shape:
 
 ```json
 {

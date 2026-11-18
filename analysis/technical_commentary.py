@@ -9,14 +9,7 @@ security guidance.
 
 from collections import Counter
 
-from common.utils import mask_password, num_to_word, natural_join
-
-
-# NOTE:
-# Table rendering is intentionally explicit for readability.
-# Consider abstracting this if additional report formats are
-# introduced in future.
-
+from common.utils import mask_password, natural_join, num_to_word
 
 # ---------------------------------------------------------------------------
 # Privileged Accounts

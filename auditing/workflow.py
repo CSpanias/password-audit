@@ -25,7 +25,6 @@ from cracking.reporting import print_summary
 from cracking.scheduler import run_campaign
 from lm.workflow import generate_lm_results, map_lm_passwords
 from ntds.workflow import organise_dataset
-from reports.renderers import REPORT_RENDERERS
 
 
 def run_audit(
@@ -41,7 +40,6 @@ def run_audit(
     company_words=None,
     enabled_users=None,
     pass_policy=None,
-    report_formats=None,
     resume=False,
 ):
     """
@@ -77,9 +75,6 @@ def run_audit(
 
         pass_policy:
             Override domain password policy.
-
-        report_formats:
-            Report formats to generate.
 
         resume:
             Skip completed campaign phases and restart the interrupted phase.
@@ -345,7 +340,6 @@ def run_audit(
         enabled_users=enabled_users,
         lm_users=lm_users,
         mapped_lm_passwords=mapped_lm_passwords,
-        report_formats=report_formats,
     )
 
     if company_word_snapshot:
@@ -354,12 +348,7 @@ def run_audit(
             company_word_snapshot,
         )
 
-    selected_formats = report_formats or ("markdown", "html")
-    if isinstance(selected_formats, str):
-        selected_formats = (selected_formats,)
-    report_file = Path("password-audit-report").with_suffix(
-        REPORT_RENDERERS[selected_formats[0]][0]
-    )
+    report_file = Path("password-audit-report.html")
     
     total_recovered = 0
 

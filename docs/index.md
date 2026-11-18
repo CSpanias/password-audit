@@ -26,10 +26,8 @@ and reminds you if the curated file appears unchanged since the previous run.
 This list is optional; the generated terms are still used without it. See
 [Company-specific terms](audit.md#company-specific-terms).
 
-By default, the audit writes `password-audit-report.md`,
-`password-audit-report.html`, and `password-audit-findings.json`. To choose
-formats explicitly, use `--format` followed by one or more of `markdown`,
-`html`, `json`, `yaml`, or `sarif`.
+The audit writes `password-audit-report.html` and the structured
+`password-audit-findings.json` sidecar.
 
 !!! tip "Example campaigns"
     The repository includes [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json),

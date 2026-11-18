@@ -95,5 +95,4 @@ password-audit analyse \
 
 The report includes LM hash presence and, where applicable, Domain
 Administrator LM exposure and LM recovery statistics. See
-[`analyse`](analyse.md#what-is-analysed) for report formats and the full
-analysis scope.
+[`analyse`](analyse.md#what-is-analysed) for the full analysis scope.

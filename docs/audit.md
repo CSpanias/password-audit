@@ -34,25 +34,12 @@ password-audit audit \
 
 By default, the command generates:
 
-- `password-audit-report.md`
 - `password-audit-report.html`, an offline dashboard with filters and
   **Copy Markdown** controls for the report narrative
 - `password-audit-findings.json`, the findings sidecar
 
-Choose a different report set with `--format`. Supported values are `markdown`,
-`html`, `json`, `yaml`, and `sarif`. An explicit selection replaces the default:
-
-```bash
-password-audit audit \
-    --ntds company.ntds \
-    --bloodhound bloodhound.zip \
-    --campaign campaign.json \
-    --campaign-name internal-audit \
-    --format json sarif
-```
-
-The `--format` option accepts one or more formats. The findings JSON sidecar is
-written in addition to the selected report formats.
+The offline HTML report is the only report format. The findings JSON sidecar
+is always written separately for integrations such as the SureCloud adapter.
 
 ## Company-specific terms
 
@@ -148,7 +135,6 @@ the configured Hashcat potfile.
 | `-W`, `--company-words` | Optional curated terms added to the generated list | `./company-words.txt` when present; otherwise none |
 | `-E`, `--enabled-users` | Enabled account list | `password-audit/enabled-users.txt` |
 | `--resume` | Reuse completed campaigns/phases and restart an interrupted phase | Disabled |
-| `--format` | One or more report formats | `markdown html` |
 
 Paths are relative to the current working directory unless given as absolute
 paths. Use `password-audit audit --help` for the installed version's complete

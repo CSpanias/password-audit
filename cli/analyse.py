@@ -3,7 +3,7 @@ Password Analyser command-line interface.
 
 This module coordinates password analysis by loading input
 datasets, generating analysis results, producing report
-content, and exporting the final Markdown report.
+content, and writing the HTML report and findings sidecar.
 """
 
 from pathlib import Path
@@ -20,8 +20,8 @@ def run_password_analysis(args):
     subsequently transformed into executive summary, technical
     commentary, and remediation guidance sections.
 
-    The completed report is rendered in the requested formats
-    and written to disk.
+    The completed HTML report and JSON findings sidecar are
+    written to disk.
 
     Returns:
         None
@@ -51,5 +51,4 @@ def run_password_analysis(args):
         lm_users=args.lm_users,
         mapped_lm_passwords=args.mapped_lm_passwords,
         output_file=args.output,
-        report_formats=getattr(args, "report_formats", None),
     )

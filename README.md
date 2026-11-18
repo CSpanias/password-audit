@@ -19,7 +19,7 @@ It combines and extends the functionality of the following, now deprecated and d
 * Advanced standalone Hashcat campaign execution (`crack`)
 * LM password recovery support and candidate generation (`lm`)
 * Rich-formatted CLI help, analysis progress, summary tables, and an offline HTML dashboard
-* Markdown, JSON, YAML, SARIF, and HTML report exports
+* Self-contained HTML reports and a JSON findings sidecar for integrations
 * Experimental campaign statistics and duration estimation (`crack`)
 
 ## Installation
@@ -126,7 +126,7 @@ Map recovered NTLM passwords back to user accounts (password-audit organise)
 Analyse the results & generate the report (password-audit analyse)
     |
     v
-    +--> password-audit-report.md
+    +--> password-audit-report.html
     +--> password-audit-findings.json
 ```
 

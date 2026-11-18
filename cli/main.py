@@ -17,7 +17,6 @@ from cli.lm import run_lm_candidates, run_lm_mapping
 from cli.organise import run_ntds_organiser
 from cracking.estimate import print_campaign_estimate
 from cracking.statistics import print_phase_statistics
-from reports.renderers import REPORT_RENDERERS
 
 
 def main():
@@ -73,8 +72,7 @@ def main():
                 -N company.ntds \\
                 -B bloodhound.zip \\
                 -C config.json \\
-                -G internal-password-audit \\
-                --format markdown html
+                -G internal-password-audit
         """)
     )
 
@@ -181,19 +179,6 @@ def main():
         help=(
             "Skip completed campaign phases and restart the interrupted phase; "
             "legacy ntds-organiser results are not migrated"
-        ),
-    )
-
-    optional_audit_parser.add_argument(
-        "--format",
-        dest="report_formats",
-        nargs="+",
-        metavar="FORMAT",
-        choices=tuple(REPORT_RENDERERS),
-        default=argparse.SUPPRESS,
-        help=(
-            "One or more report formats to generate "
-            "(default: markdown and html)"
         ),
     )
 
@@ -439,8 +424,7 @@ def main():
         description=(
             "Analyse recovered NTLM and LM passwords, "
             "identify common weaknesses, and generate "
-            "reports in Markdown, JSON, YAML, SARIF, or HTML "
-            "with findings and remediation guidance."
+            "an HTML report with findings and remediation guidance."
         ),
         formatter_class=CustomFormatter,
         epilog=dedent("""
@@ -520,23 +504,9 @@ def main():
     optional_analyse_parser.add_argument(
         "-O",
         "--output",
-        default="password-audit-report.md",
+        default="password-audit-report.html",
         help=(
-            "Output report path; its extension is replaced with the "
-            "selected format extension"
-        ),
-    )
-
-    optional_analyse_parser.add_argument(
-        "--format",
-        dest="report_formats",
-        nargs="+",
-        metavar="FORMAT",
-        choices=tuple(REPORT_RENDERERS),
-        default=argparse.SUPPRESS,
-        help=(
-            "One or more report formats to generate "
-            "(default: markdown and html)"
+            "HTML report output path"
         ),
     )
     

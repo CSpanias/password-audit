@@ -53,7 +53,6 @@ class CampaignResumeTests(unittest.TestCase):
             enabled_users=None,
             pass_policy=None,
             filter=None,
-            report_formats=None,
             resume=True,
         )
         with patch.object(cli_audit, "run_audit") as run_audit:

@@ -7,7 +7,6 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import DEFAULT, patch
 
-import yaml
 from rich.console import Console
 
 import analysis.workflow as analysis_workflow
@@ -15,11 +14,7 @@ import auditing.workflow as audit_workflow
 import cli.audit as cli_audit
 import cli.main as cli_main
 from reports.html import render_html
-from reports.json import render_json
-from reports.markdown import render_markdown
-from reports.renderers import write_report
-from reports.sarif import render_sarif
-from reports.yaml import render_yaml
+from reports.json import write_findings
 
 REPORT = {
     "summary": {
@@ -49,7 +44,7 @@ REPORT = {
 }
 
 
-class ReportRendererTests(unittest.TestCase):
+class HtmlReportTests(unittest.TestCase):
     def _patch_analysis_workflow(self):
         mocks = patch.multiple(
             analysis_workflow,
@@ -89,22 +84,6 @@ class ReportRendererTests(unittest.TestCase):
         values["build_findings_dict"].return_value = REPORT["findings"]
         return values
 
-    def test_json_and_yaml_serialize_the_shared_report(self):
-        self.assertEqual(json.loads(render_json(REPORT)), REPORT)
-        self.assertEqual(yaml.safe_load(render_yaml(REPORT)), REPORT)
-
-    def test_sarif_maps_severity_and_includes_finding_metadata(self):
-        sarif = json.loads(render_sarif(REPORT))
-        run = sarif["runs"][0]
-
-        self.assertEqual(sarif["version"], "2.1.0")
-        self.assertEqual(run["tool"]["driver"]["rules"][0]["id"], "PWD-REUSE-001")
-        self.assertEqual(run["results"][0]["level"], "error")
-        self.assertEqual(
-            run["results"][0]["properties"]["category"],
-            "password_reuse",
-        )
-
     def test_html_dashboard_is_interactive_and_escapes_embedded_report_data(self):
         html = render_html(REPORT)
 
@@ -122,27 +101,20 @@ class ReportRendererTests(unittest.TestCase):
         self.assertNotIn("</script><img", html)
         self.assertNotIn("<script src=", html.lower())
 
-    def test_markdown_includes_findings_and_preserves_legacy_reports(self):
-        rendered = render_markdown(REPORT)
-        legacy_report = {key: value for key, value in REPORT.items() if key != "findings"}
-
-        self.assertIn("# Findings", rendered)
-        self.assertIn("**Crack rate:** 60.0%", rendered)
-        self.assertIn("[HIGH] PWD-REUSE-001", rendered)
-        self.assertIn("Require unique passwords.", rendered)
-        self.assertNotIn("# Findings", render_markdown(legacy_report))
-
-    def test_writer_uses_format_extension(self):
+    def test_findings_sidecar_keeps_its_json_envelope(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = write_report(Path(directory) / "audit.txt", REPORT, "yaml")
+            path = Path(directory) / "findings.json"
+            write_findings(path, REPORT["findings"])
 
-            self.assertEqual(path.suffix, ".yaml")
-            self.assertEqual(yaml.safe_load(path.read_text(encoding="utf-8")), REPORT)
+            self.assertEqual(
+                json.loads(path.read_text(encoding="utf-8")),
+                {"findings": REPORT["findings"]},
+            )
 
-    def test_analysis_workflow_writes_multiple_selected_formats(self):
+    def test_analysis_workflow_writes_html_and_findings_sidecar(self):
         with tempfile.TemporaryDirectory() as directory:
             mocks = self._patch_analysis_workflow()
-            output = Path(directory) / "audit.output"
+            output = Path(directory) / "audit.txt"
 
             analysis_workflow.analyse_passwords(
                 mapped_ntlm_passwords=None,
@@ -151,42 +123,17 @@ class ReportRendererTests(unittest.TestCase):
                 pass_policy="policy.txt",
                 enabled_users=None,
                 output_file=str(output),
-                report_formats=["json", "yaml", "sarif", "html"],
             )
 
-            self.assertTrue((Path(directory) / "audit.json").exists())
-            self.assertTrue((Path(directory) / "audit.yaml").exists())
-            self.assertTrue((Path(directory) / "audit.sarif").exists())
             self.assertTrue((Path(directory) / "audit.html").exists())
-            self.assertFalse((Path(directory) / "audit.md").exists())
+            for suffix in (".md", ".json", ".yaml", ".sarif"):
+                self.assertFalse((Path(directory) / f"audit{suffix}").exists())
             mocks["write_findings"].assert_called_once_with(
                 "password-audit-findings.json",
                 REPORT["findings"],
             )
 
-    def test_analysis_workflow_defaults_to_markdown_and_html(self):
-        with tempfile.TemporaryDirectory() as directory:
-            mocks = self._patch_analysis_workflow()
-            output = Path(directory) / "legacy.md"
-
-            analysis_workflow.analyse_passwords(
-                mapped_ntlm_passwords=None,
-                domain_admins=None,
-                company_words=None,
-                pass_policy="policy.txt",
-                enabled_users=None,
-                output_file=str(output),
-            )
-
-            self.assertTrue(output.exists())
-            self.assertIn("# Executive Summary", output.read_text(encoding="utf-8"))
-            self.assertTrue((Path(directory) / "legacy.html").exists())
-            mocks["write_findings"].assert_called_once_with(
-                "password-audit-findings.json",
-                REPORT["findings"],
-            )
-
-    def test_audit_cli_accepts_and_forwards_report_formats(self):
+    def test_audit_cli_forwards_without_report_format_option(self):
         arguments = [
             "password-audit",
             "audit",
@@ -194,7 +141,6 @@ class ReportRendererTests(unittest.TestCase):
             "-B", "bloodhound.zip",
             "-C", "config.json",
             "-G", "internal-password-audit",
-            "--format", "html", "sarif",
             "--resume",
         ]
         with (
@@ -204,21 +150,18 @@ class ReportRendererTests(unittest.TestCase):
             cli_main.main()
 
         parsed = run_audit_workflow.call_args.args[0]
-        self.assertEqual(parsed.report_formats, ["html", "sarif"])
         self.assertIsNone(parsed.company_words)
         self.assertTrue(parsed.resume)
+        self.assertFalse(hasattr(parsed, "report_formats"))
 
         args = parsed
         with patch.object(cli_audit, "run_audit") as run_audit:
             cli_audit.run_audit_workflow(args)
 
-        self.assertEqual(
-            run_audit.call_args.kwargs["report_formats"],
-            ["html", "sarif"],
-        )
+        self.assertNotIn("report_formats", run_audit.call_args.kwargs)
         self.assertTrue(run_audit.call_args.kwargs["resume"])
 
-    def test_audit_workflow_passes_report_formats_to_analysis(self):
+    def test_audit_workflow_uses_html_report_path(self):
         with tempfile.TemporaryDirectory() as directory:
             path_factory = lambda path: Path(directory) / path
             mocks = patch.multiple(
@@ -257,50 +200,29 @@ class ReportRendererTests(unittest.TestCase):
             values["has_enabled_phases"].return_value = True
             values["run_campaign"].return_value = {"phases": []}
 
-            audit_workflow.run_audit(
+            result = audit_workflow.run_audit(
                 ntds_file="company.ntds",
                 bloodhound_file="bloodhound.zip",
                 campaign_file="config.json",
                 campaign_name="internal-password-audit",
-                report_formats=["json"],
                 resume=True,
             )
 
             self.assertTrue(
                 values["run_campaign"].call_args.kwargs["resume"]
             )
-            self.assertEqual(
-                values["analyse_passwords"].call_args.kwargs["report_formats"],
-                ["json"],
+            self.assertNotIn(
+                "report_formats",
+                values["analyse_passwords"].call_args.kwargs,
             )
             self.assertEqual(
                 values["analyse_passwords"].call_args.kwargs["company_words"],
                 [Path(directory) / "password-audit" / "company-words.txt"],
             )
-
-    def test_cli_accepts_multiple_report_formats(self):
-        arguments = [
-            "password-audit",
-            "analyse",
-            "-M",
-            "mapped-passwords.txt",
-            "--format",
-            "html",
-            "sarif",
-            "--output",
-            "audit",
-        ]
-        with (
-            patch.object(sys, "argv", arguments),
-            patch.object(cli_main, "run_password_analysis") as run_analysis,
-        ):
-            cli_main.main()
-
-        parsed = run_analysis.call_args.args[0]
-        self.assertEqual(parsed.mapped_ntlm_passwords, "mapped-passwords.txt")
-        self.assertIsNone(parsed.company_words)
-        self.assertEqual(parsed.report_formats, ["html", "sarif"])
-        self.assertEqual(parsed.output, "audit")
+            self.assertEqual(
+                result["report"],
+                Path(directory) / "password-audit-report.html",
+            )
 
     def test_cli_help_uses_rich_formatter_and_keeps_examples(self):
         output = io.StringIO()
@@ -317,6 +239,20 @@ class ReportRendererTests(unittest.TestCase):
         self.assertIn("Options:", help_text)
         self.assertIn("Example:", help_text)
         self.assertIn("password-audit analyse", help_text)
+        self.assertNotIn("--format", help_text)
+
+    def test_audit_help_has_no_report_format_option(self):
+        output = io.StringIO()
+        arguments = ["password-audit", "audit", "--help"]
+        with (
+            patch.object(sys, "argv", arguments),
+            redirect_stdout(output),
+            self.assertRaises(SystemExit) as exit_info,
+        ):
+            cli_main.main()
+
+        self.assertEqual(exit_info.exception.code, 0)
+        self.assertNotIn("--format", output.getvalue())
 
     def test_rich_summary_displays_findings_and_output_paths(self):
         output = io.StringIO()
@@ -334,7 +270,7 @@ class ReportRendererTests(unittest.TestCase):
             analysis_workflow._print_console_summary(
                 results,
                 REPORT["findings"],
-                [Path("audit.html")],
+                Path("audit.html"),
             )
         finally:
             analysis_workflow.console = original_console
