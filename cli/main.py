@@ -173,15 +173,6 @@ def main():
         help="Enabled user accounts list",
     )
 
-    optional_audit_parser.add_argument(
-        "--resume",
-        action="store_true",
-        help=(
-            "Skip completed campaign phases and restart the interrupted phase; "
-            "legacy ntds-organiser results are not migrated"
-        ),
-    )
-
     audit_parser.set_defaults(
         func=run_audit_workflow,
     )

@@ -68,39 +68,6 @@ when reassessing the same company. Only its filename and file metadata are
 stored in `password-audit/.company-words-state.json` for this reminder; the
 curated terms are not copied into that state file. The curated list is optional.
 
-## Resume an audit
-
-If an audit is interrupted, rerun it with the same input files, filter,
-campaign configuration, and campaign name, adding `--resume`:
-
-```bash
-password-audit audit \
-    --ntds company.ntds \
-    --bloodhound bloodhound.zip \
-    --campaign campaign.json \
-    --campaign-name internal-audit \
-    --resume
-```
-
-The audit reorganises its inputs, then validates the resulting hash datasets
-and campaign inputs against the saved results. Completed NTLM and LM campaigns
-are reused, completed phases are skipped, and an interrupted phase starts over
-from the beginning. Hashcat checkpoints are not restored. Mapping, analysis,
-and report generation run again after the campaigns, so this also refreshes
-reports from existing recovered data.
-
-If no campaign results exist yet, that campaign starts from its first enabled
-phase. Resume is refused when saved results have a different compatibility
-fingerprint or were written by a version that did not record one.
-
-The fingerprint covers the hash datasets, campaign configuration, Hashcat
-binary, configured wordlists, and rule files. It does not hash the mutable
-potfile contents or files referenced only through free-form Hashcat flags;
-keep those inputs unchanged when resuming. Fingerprinting reads configured
-files in full, which can add startup time for very large wordlists. The
-campaign results journal is written atomically, and Ctrl+C records the active
-phase as interrupted.
-
 ## Workflow
 
 The audit runs the following stages:
@@ -134,7 +101,6 @@ the configured Hashcat potfile.
 | `-P`, `--pass-policy` | Domain password policy | `password-audit/domain-policy.txt` |
 | `-W`, `--company-words` | Optional curated terms added to the generated list | `./company-words.txt` when present; otherwise none |
 | `-E`, `--enabled-users` | Enabled account list | `password-audit/enabled-users.txt` |
-| `--resume` | Reuse completed campaigns/phases and restart an interrupted phase | Disabled |
 
 Paths are relative to the current working directory unless given as absolute
 paths. Use `password-audit audit --help` for the installed version's complete
@@ -145,9 +111,12 @@ option list.
 Organised datasets and campaign result files are written under
 `password-audit/`. Existing files in the former `ntds-organiser/` directory
 are left untouched and are not migrated or used as a fallback. An interrupted
-campaign stored there will not automatically resume with the new default
-directory. Campaign history is also archived in
+campaign cannot be resumed; use a new campaign name to start from its first
+phase. Campaign history is also archived in
 `~/.password-audit/history/` for the estimate and statistics commands.
+
+Hashcat phases display live progress, recovered counts, speed, and ETA. Status
+is refreshed every five seconds.
 
 For manual or partial workflows, these standalone commands remain available:
 

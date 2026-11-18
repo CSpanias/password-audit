@@ -40,7 +40,6 @@ def run_audit(
     company_words=None,
     enabled_users=None,
     pass_policy=None,
-    resume=False,
 ):
     """
     Execute an end-to-end password audit workflow.
@@ -75,9 +74,6 @@ def run_audit(
 
         pass_policy:
             Override domain password policy.
-
-        resume:
-            Skip completed campaign phases and restart the interrupted phase.
 
     Returns:
         dict:
@@ -201,7 +197,6 @@ def run_audit(
             config=ntlm_campaign,
             hash_file=output_dir / "ntlm-hashes.txt",
             campaign_name=campaign_name,
-            resume=resume,
         )
 
         print_summary(campaign_results)
@@ -217,7 +212,6 @@ def run_audit(
             config=lm_campaign,
             hash_file=output_dir / "lm-hashes.txt",
             campaign_name=f"{campaign_name}-lm",
-            resume=resume,
         )
 
         print_summary(lm_campaign_results)

@@ -7,16 +7,24 @@ statistics.
 """
 
 import os
+import re
 import subprocess
 import sys
 import time
-
 from pathlib import Path
-from rich.table import Table
 
-from common.console import info, warn, console
-from common.utils import human_time
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+)
+
+from common.console import console, info, warn
 from cracking.parsers import parse_recovery_statistics
+
+HASHCAT_STATUS_INTERVAL = 5
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +109,16 @@ def update_status(status, line):
         status["eta"] = line.split(":", 1)[1].strip()
 
     elif "Progress.........:" in line:
-        status["progress"] = line.split(":", 1)[1].strip()
+        progress = line.split(":", 1)[1].strip()
+        status["progress"] = progress
+        match = re.match(r"([\d,]+)/([\d,]+)", progress)
+        if match:
+            status["progress_completed"] = int(
+                match.group(1).replace(",", "")
+            )
+            status["progress_total"] = int(
+                match.group(2).replace(",", "")
+            )
 
 
 def status_complete(status):
@@ -125,10 +142,49 @@ def status_complete(status):
             "status",
             "recovered",
             "progress",
+            "progress_completed",
+            "progress_total",
             "speed",
             "eta"
         )
     )
+
+
+def live_status_flags(flags):
+    cleaned_flags = []
+    index = 0
+
+    while index < len(flags):
+        flag = flags[index]
+
+        if flag in {"--status", "--status-json"}:
+            index += 1
+            continue
+
+        if flag == "--status-timer":
+            if (
+                index + 1 >= len(flags)
+                or str(flags[index + 1]).startswith("-")
+            ):
+                raise ValueError("--status-timer requires a value.")
+            index += 2
+            continue
+
+        if (
+            isinstance(flag, str)
+            and flag.startswith("--status-timer=")
+        ):
+            index += 1
+            continue
+
+        cleaned_flags.append(flag)
+        index += 1
+
+    return [
+        *cleaned_flags,
+        "--status",
+        f"--status-timer={HASHCAT_STATUS_INTERVAL}",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -182,9 +238,7 @@ def run_phase(
             Rule file applied to the attack.
 
         session_name:
-            Hashcat session identifier for this execution. A retried phase
-            receives a new session because checkpoint restoration is not
-            performed.
+            Hashcat session identifier for this execution.
 
         flags:
             Additional Hashcat command-line arguments.
@@ -210,7 +264,7 @@ def run_phase(
     if rule:
         command.extend(["-r", windows_path(rule)])
 
-    command.extend(flags)
+    command.extend(live_status_flags(flags))
     command.extend(["--session", session_name])
 
     print()
@@ -232,35 +286,68 @@ def run_phase(
         print(" ".join(command))
         print()
 
-    process = subprocess.Popen(
-        command,
-        cwd=Path(hashcat_binary).parent,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True
-    )
-
     output = []
     status = {}
+    displayed_status = {}
 
-    for line in process.stdout or []:
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TextColumn(
+            "Recovered {task.fields[recovered]} | "
+            "Speed {task.fields[speed]} | ETA {task.fields[eta]}",
+            markup=False,
+        ),
+        console=console,
+    ) as progress:
+        task_id = progress.add_task(
+            f"Phase {phase_id}/{total_phases}",
+            total=None,
+            recovered="waiting",
+            speed="waiting",
+            eta="estimating",
+        )
+        process = subprocess.Popen(
+            command,
+            cwd=Path(hashcat_binary).parent,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
 
-        output.append(line)
-        update_status(status=status, line=line)
+        for line in process.stdout or []:
+            output.append(line)
+            update_status(status=status, line=line)
 
-        if "Progress.........:" in line and status_complete(status):
+            if status_complete(status) and status != displayed_status:
+                recovered_match = re.match(
+                    r"([\d,]+/[\d,]+\s+\([^)]*\))",
+                    status["recovered"],
+                )
+                eta_match = re.search(
+                    r"\(([^()]*)\)\s*$",
+                    status["eta"],
+                )
+                progress.update(
+                    task_id,
+                    total=status["progress_total"],
+                    completed=status["progress_completed"],
+                    recovered=(
+                        recovered_match.group(1)
+                        if recovered_match
+                        else status["recovered"].split(",", 1)[0]
+                    ),
+                    speed=status["speed"].split(" @ ", 1)[0].split(
+                        " (",
+                        1,
+                    )[0],
+                    eta=eta_match.group(1) if eta_match else status["eta"],
+                )
+                displayed_status = status.copy()
 
-                print()
-                print("    ---------------------------------------------------------------------------")
-                           
-                print(f"    Status    : {status['status']}")
-                print(f"    Recovered : {status['recovered']}")
-                print(f"    Progress  : {status['progress']}")
-                print(f"    Speed     : {status['speed']}")
-                print(f"    ETA       : {status['eta']}")
-                print("    ---------------------------------------------------------------------------")
-
-    process.wait()
+        process.wait()
 
     if process.returncode not in (0, 1):
 

@@ -8,16 +8,14 @@ results.
 
 import os
 import sys
-import uuid
 from datetime import datetime
 
-from common.console import ok, summary, warn
+from common.console import summary, warn
 from common.utils import human_time
 from cracking.constants import DEFAULT_HASHCAT_DIR
 from cracking.hashcat import run_phase, validate_file
 from cracking.loopback import generate_loopback_wordlist
 from cracking.results import archive_results, load_results, write_results
-from cracking.resume import build_resume_fingerprint
 from cracking.validation import validate_campaign
 
 
@@ -25,7 +23,6 @@ def run_campaign(
         config,
         hash_file,
         campaign_name,
-        resume=False,
         debug=False
     ):
     """
@@ -45,10 +42,6 @@ def run_campaign(
 
         campaign_name:
             Campaign identifier used for reporting.
-
-        resume:
-            Continue a previously interrupted campaign by skipping
-            completed phases. The interrupted phase starts over.
 
         debug:
             Display verbose execution information.
@@ -77,123 +70,40 @@ def run_campaign(
             campaign_name=campaign_name,
         )
 
-    if (
-        existing_results
-        and existing_results.get("state") in {"running", "interrupted"}
-        and not resume
-    ):
-
-        warn("Previous campaign appears to have been interrupted")
+    if existing_results and existing_results.get("state") in {
+        "running",
+        "interrupted",
+    }:
+        warn("Previous campaign did not complete")
         summary("Phase", existing_results.get("currentPhase"))
         summary("Session", existing_results.get("currentSession"))
         print()
-
         warn(
-            "Resume is available only through `password-audit audit --resume`; "
-            "standalone crack campaigns cannot be resumed. "
-            "The interrupted Hashcat phase will restart from the beginning."
+            "Campaign resume is not supported. Use a new campaign name "
+            "to start again from the first phase."
         )
         sys.exit(1)
-
-    if resume and existing_results:
-        if existing_results.get("state") not in {
-            "running",
-            "interrupted",
-            "completed",
-        }:
-            warn("Campaign results have an unknown state; refusing to resume")
-            sys.exit(1)
 
     validate_file(hash_file)
     validate_file(hashcat_binary)
 
-    try:
-        resume_fingerprint = build_resume_fingerprint(
-            config=config,
-            hash_file=hash_file,
-            campaign_name=campaign_name,
-            hashcat_binary=hashcat_binary,
-            hashcat_potfile=hashcat_potfile,
-            wordlist_dir=wordlist_dir,
-            rules_dir=rules_dir,
-        )
-    except OSError as exc:
-        warn(f"Unable to verify campaign inputs: {exc}")
-        sys.exit(1)
+    results = {
+        "campaign": campaign_name,
+        "hashMode": hash_mode,
+        "hashDataset": hash_file,
+        "started": datetime.now().isoformat(),
+        "state": "running",
+        "currentPhase": None,
+        "currentSession": None,
+        "phases": [],
+    }
 
-    completed_phases = set()
-    interrupted_phase = None
-
-    if resume and existing_results:
-
-        if existing_results.get("resumeFingerprint") != resume_fingerprint:
-            warn(
-                "Campaign inputs differ from the saved run, or its "
-                "results lack a compatibility fingerprint. Refusing to skip "
-                "completed phases. Use a new campaign name to start a new run."
-            )
-            sys.exit(1)
-
-        results = existing_results
-
-        if results.get("state") == "completed":
-            ok("Campaign already completed; reusing its recorded results")
-            return results
-
-        interrupted_phase = results.get("currentPhase")
-
-        completed_phases = {
-            phase["id"]
-            for phase in existing_results["phases"]
-        }
-
-        print()
-        ok("Continuing campaign from recorded results")
-
-        for phase in completed_phases:
-            summary("Skipping", phase)
-
-        if interrupted_phase and interrupted_phase not in completed_phases:
-            warn(
-                f"Interrupted phase '{interrupted_phase}' will restart from "
-                "the beginning. Hashcat checkpoint restoration is not performed."
-            )
-
-        results["state"] = "running"
-        results.pop("interruption", None)
-        write_results(results)
-
-        print()
-
-    else:
-
-        if resume:
-            warn(
-                "No prior campaign results found; starting this campaign "
-                "from its first enabled phase."
-            )
-
-        results = {
-            "campaign": campaign_name,
-            "hashMode": hash_mode,
-            "hashDataset": hash_file,
-            "started": datetime.now().isoformat(),
-            "state": "running",
-            "currentPhase": None,
-            "currentSession": None,
-            "resumeFingerprint": resume_fingerprint,
-            "phases": [],
-        }
-
-        write_results(results)
+    write_results(results)
 
     enabled_phases = [
         phase
         for phase in config["phases"]
-        if (
-            phase.get("enabled", True)
-            and phase["id"] not in completed_phases
-        )
+        if phase.get("enabled", True)
     ]
 
     phase_numbers = {
@@ -207,15 +117,6 @@ def run_campaign(
 
         phase_number = phase_numbers[phase["id"]]
         session_name = (f"{campaign_name}-{phase['id']}")
-
-        if (
-            resume
-            and phase["id"] == interrupted_phase
-            and phase["id"] not in completed_phases
-        ):
-            session_name = (
-                f"{session_name}-retry-{uuid.uuid4().hex[:8]}"
-            )
 
         results["currentPhase"] = phase["id"]
         results["currentSession"] = session_name
@@ -264,8 +165,8 @@ def run_campaign(
             print()
             warn("Campaign interrupted")
             warn(
-                "The current Hashcat phase will restart from the beginning "
-                "on resume; Hashcat checkpoint restoration is not performed."
+                "Campaign resume is not supported. Use a new campaign name "
+                "to start again from the first phase."
             )
             print()
 
@@ -312,10 +213,7 @@ def run_campaign(
     results["completed"] = datetime.now().isoformat()
     results["state"] = "completed"
 
-    output_file = write_results(results)
-    archive_file = archive_results(results)
-
-    # ok(f"Results written to: {output_file}")
-    # ok(f"Results archived to: {archive_file}")
+    write_results(results)
+    archive_results(results)
 
     return results

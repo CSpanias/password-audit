@@ -148,7 +148,6 @@ class HtmlReportTests(unittest.TestCase):
             "-B", "bloodhound.zip",
             "-C", "config.json",
             "-G", "internal-password-audit",
-            "--resume",
         ]
         with (
             patch.object(sys, "argv", arguments),
@@ -158,7 +157,7 @@ class HtmlReportTests(unittest.TestCase):
 
         parsed = run_audit_workflow.call_args.args[0]
         self.assertIsNone(parsed.company_words)
-        self.assertTrue(parsed.resume)
+        self.assertFalse(hasattr(parsed, "resume"))
         self.assertFalse(hasattr(parsed, "report_formats"))
 
         args = parsed
@@ -166,7 +165,7 @@ class HtmlReportTests(unittest.TestCase):
             cli_audit.run_audit_workflow(args)
 
         self.assertNotIn("report_formats", run_audit.call_args.kwargs)
-        self.assertTrue(run_audit.call_args.kwargs["resume"])
+        self.assertNotIn("resume", run_audit.call_args.kwargs)
 
     def test_audit_workflow_uses_html_report_path(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -212,11 +211,11 @@ class HtmlReportTests(unittest.TestCase):
                 bloodhound_file="bloodhound.zip",
                 campaign_file="config.json",
                 campaign_name="internal-password-audit",
-                resume=True,
             )
 
-            self.assertTrue(
-                values["run_campaign"].call_args.kwargs["resume"]
+            self.assertNotIn(
+                "resume",
+                values["run_campaign"].call_args.kwargs,
             )
             self.assertNotIn(
                 "report_formats",
@@ -247,6 +246,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("Example:", help_text)
         self.assertIn("password-audit analyse", help_text)
         self.assertNotIn("--format", help_text)
+        self.assertNotIn("--resume", help_text)
 
     def test_audit_help_has_no_report_format_option(self):
         output = io.StringIO()
@@ -259,7 +259,9 @@ class HtmlReportTests(unittest.TestCase):
             cli_main.main()
 
         self.assertEqual(exit_info.exception.code, 0)
-        self.assertNotIn("--format", output.getvalue())
+        help_text = output.getvalue()
+        self.assertNotIn("--format", help_text)
+        self.assertNotIn("--resume", help_text)
 
     def test_rich_summary_displays_findings_and_output_paths(self):
         output = io.StringIO()

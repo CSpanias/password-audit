@@ -101,8 +101,8 @@ both. To run both campaign types as part of one workflow, use `audit`.
 Results are written beside the hash dataset as
 `<campaign-name>-results.json`. A timestamped copy is archived under
 `~/.password-audit/history/`. Hashcat maintains its potfile in the configured
-Hashcat directory. Campaign resumption is provided by the end-to-end
-[`audit --resume`](audit.md#resume-an-audit) workflow, not by `crack run`.
+Hashcat directory. Campaigns cannot be resumed; use a new campaign name to
+start an interrupted campaign again from its first phase.
 
 ## Estimate duration
 

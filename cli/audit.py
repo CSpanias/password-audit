@@ -33,5 +33,4 @@ def run_audit_workflow(args):
         enabled_users=args.enabled_users,
         pass_policy=args.pass_policy,
         username_filter=args.filter,
-        resume=args.resume,
     )
