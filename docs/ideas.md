@@ -6,7 +6,8 @@ This page documents potential future enhancements. Features listed here are idea
 
 ### Campaign Resume
 
-The current resume functionality requires the original campaign parameters to be supplied again:
+`crack run --resume` continues a recorded interrupted campaign, but the
+original hash dataset, campaign file, and campaign name must be supplied again:
 
 ```bash
 password-audit crack run \
@@ -16,7 +17,8 @@ password-audit crack run \
     --resume
 ```
 
-Future versions may support automatic campaign recovery by parsing the most recent interrupted campaign from the history directory:
+Future versions may support selecting an interrupted campaign from its recorded
+results without re-entering those arguments:
 
 ```bash
 password-audit crack run --resume
@@ -40,8 +42,9 @@ The current privileged account analysis focuses on Domain Administrators. Future
 
 ### Additional Report Formats
 
-Support generating reports in formats other than Markdown for easier distribution and integration with existing reporting workflows:
+Additional export formats may improve compatibility with existing reporting
+workflows. The current report formats are Markdown, HTML, JSON, YAML, and
+SARIF.
 
-* HTML
 * PDF
 * DOCX

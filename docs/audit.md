@@ -1,162 +1,109 @@
-# Audit
+# End-to-end audit
 
-The `audit` module automates the [end-to-end](index.md#manual-workflow) workflow by orchestrating 
-the `organise`, `crack`, and `analyse` modules. It is intended as **the primary workflow** for most 
-engagements and automates the full password auditing process from data collection through to report 
-generation.
+The `audit` command is the recommended way to run a complete assessment. It
+validates inputs, organises NTDS and BloodHound data, runs configured Hashcat
+campaigns, maps recovered passwords, and generates analysis reports.
 
-```bash
-$ password-audit audit -h
-usage: password-audit audit [-h] -N NTDS -B BLOODHOUND -C CAMPAIGN -G CAMPAIGN_NAME [-F FILTER] [-M MAPPED_PASSWORDS] [-D DOMAIN_ADMINS] [-P PASS_POLICY] [-W COMPANY_WORDS] [-E ENABLED_USERS] [--format FORMAT [FORMAT ...]]
+Use it only with data you are authorised to assess. Hashcat campaigns consume
+the wordlists, rules, hardware, and other resources specified in the campaign
+configuration.
 
-options:
-  -h, --help            show this help message and exit
+## Prerequisites
 
-required arguments:
-  -N, --ntds NTDS       Secretsdump NTDS file
-  -B, --bloodhound BLOODHOUND
-                        BloodHound ZIP export
-  -C, --campaign CAMPAIGN
-                        Campaign configuration file
-  -G, --campaign-name CAMPAIGN_NAME
-                        Campaign identifier
+- An NTDS export and a BloodHound ZIP export.
+- Hashcat and the wordlists/rules referenced by the campaign.
+- A campaign JSON file with an `ntlm` section. An optional `lm` section enables
+  LM recovery when LM hashes are present.
 
-optional arguments:
-  -F, --filter FILTER   Comma-separated usernames to exclude (default: None)
-  -M, --mapped-ntlm-passwords MAPPED_NTLM_PASSWORDS
-                        Recovered NTLM passwords (default: ./ntds-organiser/mapped-ntlm-passwords.txt)
-  -U, --lm-users LM_USERS
-                        Accounts storing LM password hashes (default: ./ntds-organiser/lm-users.txt)
-  -L, --mapped-lm-passwords MAPPED_LM_PASSWORDS
-                        Recovered LM passwords (default: ./ntds-organiser/mapped-lm-passwords.txt)
-  -D, --domain-admins DOMAIN_ADMINS
-                        Domain Admin account list (default: ./ntds-organiser/domain-admins.txt)
-  -P, --pass-policy PASS_POLICY
-                        Domain password policy (default: ./ntds-organiser/domain-policy.txt)
-  -W, --company-words COMPANY_WORDS
-                        Organisation-related strings (default: ./ntds-organiser/company-words.txt)
-  -E, --enabled-users ENABLED_USERS
-                        Enabled user accounts list (default: ./ntds-organiser/enabled-users.txt)
-  --format FORMAT [FORMAT ...]
-                        One or more report formats to generate (default: markdown and html)
+See [Campaign configuration](crack.md#campaign-configuration) for the JSON
+structure. The repository includes
+[NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json)
+and
+[dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config-small.json)
+examples.
 
-Example:
-
-    password-audit audit \
-        -N company.ntds \
-        -B bloodhound.zip \
-        -C config.json \
-        -G internal-password-audit \
-        --format markdown html
-```
-
-The following inputs are required:
-
-* An NTDS dataset exported with SecretsDump
-* Domain data exported from a BloodHound collector
-* A campaign configuration file describing the cracking strategy
-
-The campaign name identifies the assessment and is used when writing campaign history and output 
-files. Meaningful names make it easier to distinguish between multiple engagements.
-
-!!! note
-
-    The audit workflow automatically performs LM password recovery and mapping,
-    including the required `hashcat --show` step. See the [LM](lm.md) module
-    for details.
+## Run an audit
 
 ```bash
 password-audit audit \
     --ntds company.ntds \
     --bloodhound bloodhound.zip \
-    --campaign config.json \
-    --campaign-name internal-password-audit
+    --campaign campaign.json \
+    --campaign-name internal-audit
 ```
 
-This will sequentially run the `organise`, `crack`, and `analyse` modules and produce Markdown and
-HTML reports by default. Use `--format` to select one or more formats: `markdown`, `json`, `yaml`,
-`sarif`, and `html`.
+By default, the command generates:
 
-1. **Organising Data**: Parses the NTDS dataset and extracts supporting artefacts.
-2. **Recovering NTLM Passwords**: Executes the configured NTLM cracking campaign.
-3. **Recovering LM Passwords**: Executes the configured LM cracking campaign.
-4. **Mapping Passwords**: Maps recovered NTLM and LM passwords back to user accounts.
-5. **Analysing Passwords**: Performs the dataset analysis and generates the report.
+- `password-audit-report.md`
+- `password-audit-report.html` — an offline dashboard with filters and
+  **Copy Markdown** controls for the report narrative
+- `password-audit-findings.json` — the findings sidecar
 
-```bash
-[*] Stage 1/5 - Organising Data
-
-      NTDS Summary
-
-| Object        | Count |
-|---------------|-------|
-| User Accounts |   273 |
-| NTLM Hashes   |   164 |
-| LM Hashes     |    88 |
-| Domain Admins |    23 |
-
-[*] Stage 2/5 - Recovering NTLM Passwords
-...
-                            Campaign Summary
-
-| Phase         | Duration | New Passwords | Total Passwords | ROI (pwd/min) |
-|---------------|----------|---------------|-----------------|---------------|
-| rockyou       |       2s |             0 |              87 |          0.00 |
-| loopback-rule |       2s |             0 |              87 |          0.00 |
-| Total         |       4s |             0 |              87 |             - |
-
-[*] Stage 3/5 - Recovering LM Passwords
-...
-
-[*] Stage 4/5 - Mapping Passwords
-
-  Password Mapping Summary
-
-| Object            | Count |
-|-------------------|-------|
-| Mapped Passwords  | 191   |
-
-[*] Stage 5/5 - Analysing Passwords
-
-[+] Audit Complete
-
-[+] Report written to: password-audit-report.md
-[+] Report written to: password-audit-report.html
-[+] Findings written to: password-audit-findings.json
-```
-
-The workflow also generates artefacts produced by the underlying modules, including:
-
-* `ntds-organiser/mapped-ntlm-passwords.txt`
-* `ntds-organiser/domain-admins.txt`
-* `ntds-organiser/company-words.txt`
-* `ntds-organiser/domain-policy.txt`
-* `ntds-organiser/enabled-users.txt`
-* `password-audit-report.md`
-* `password-audit-report.html`
-* `password-audit-findings.json`
-
-Where LM hashes are present, additional artefacts may also be generated:
-
-* `ntds-organiser/lm-users.txt`
-* `ntds-organiser/mapped-lm-passwords.txt`
-
-By default, the audit workflow automatically uses artefacts generated during earlier stages of the 
-workflow, but they can be overridden:
-
-* `--mapped-passwords`
-* `--domain-admins`
-* `--pass-policy`
-* `--company-words`
-* `--enabled-users`
-
-For example, the default password policy can be overridden as follows:
+Choose a different report set with `--format`. Supported values are `markdown`,
+`html`, `json`, `yaml`, and `sarif`. An explicit selection replaces the default:
 
 ```bash
 password-audit audit \
     --ntds company.ntds \
     --bloodhound bloodhound.zip \
-    --campaign config.json \
-    --campaign-name internal-password-audit \
-    --pass-policy custom-domain-policy.txt
+    --campaign campaign.json \
+    --campaign-name internal-audit \
+    --format json sarif
 ```
+
+The `--format` option accepts one or more formats. The findings JSON sidecar is
+written in addition to the selected report formats.
+
+## Workflow
+
+The audit runs the following stages:
+
+1. **Validate** the NTDS file, BloodHound export, and campaign configuration.
+2. **Organise** the datasets into `ntds-organiser/`, including NTLM hashes,
+   enabled users, Domain Administrators, and policy data.
+3. **Recover NTLM passwords** using the enabled NTLM campaign phases.
+4. **Recover LM passwords**, when LM hashes are present and an LM campaign is
+   configured. The workflow also uses Hashcat `--show` output to reconstruct
+   and map recovered LM passwords.
+5. **Map and analyse** recovered passwords, then write the requested reports.
+
+If LM hashes are present but no LM campaign is configured, the LM cracking
+stage is skipped. Existing LM recoveries can still be mapped when available in
+the configured Hashcat potfile.
+
+## Options
+
+| Option | Purpose | Default |
+| --- | --- | --- |
+| `-N`, `--ntds` | NTDS export | Required |
+| `-B`, `--bloodhound` | BloodHound ZIP export | Required |
+| `-C`, `--campaign` | Campaign JSON file | Required |
+| `-G`, `--campaign-name` | Identifier used for campaign results | Required |
+| `-F`, `--filter` | Comma-separated usernames to exclude | None |
+| `-M`, `--mapped-ntlm-passwords` | Recovered NTLM password mapping file | `ntds-organiser/mapped-ntlm-passwords.txt` |
+| `-U`, `--lm-users` | LM-hash account list | `ntds-organiser/lm-users.txt` |
+| `-L`, `--mapped-lm-passwords` | Recovered LM password mapping file | `ntds-organiser/mapped-lm-passwords.txt` |
+| `-D`, `--domain-admins` | Domain Administrator account list | `ntds-organiser/domain-admins.txt` |
+| `-P`, `--pass-policy` | Domain password policy | `ntds-organiser/domain-policy.txt` |
+| `-W`, `--company-words` | Organisation-related terms | `ntds-organiser/company-words.txt` |
+| `-E`, `--enabled-users` | Enabled account list | `ntds-organiser/enabled-users.txt` |
+| `--format` | One or more report formats | `markdown html` |
+
+Paths are relative to the current working directory unless given as absolute
+paths. Use `password-audit audit --help` for the installed version's complete
+option list.
+
+## Outputs and standalone commands
+
+Organised datasets and campaign result files are written under
+`ntds-organiser/`. Campaign history is also archived in
+`~/.password-audit/history/` for the estimate and statistics commands.
+
+For manual or partial workflows, run the modules independently:
+
+- [Organise](organise.md) prepares datasets and can map an existing NTLM
+  potfile.
+- [Crack](crack.md) runs and tracks a single campaign.
+- [Analyse](analyse.md) analyses mapped password datasets and renders reports.
+- [LM](lm.md) documents the standalone LM mapping and candidate-generation
+  commands.

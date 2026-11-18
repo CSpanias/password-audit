@@ -1,140 +1,63 @@
-# Organise
+# Organise datasets
 
-The `organise` module processes Active Directory datasets (NTDS dumps and BloodHound exports) and generates the artefacts required for password auditing and analysis. Recovered NTLM passwords can also be mapped to user accounts using a Hashcat potfile.
+The `organise` command parses a SecretsDump NTDS export and a BloodHound ZIP
+export, then writes the supporting datasets used by the cracking and analysis
+workflows. It can also use an existing Hashcat potfile to map recovered NTLM
+passwords to accounts.
 
-It performs two primary functions:
-
-1. Parses NTDS and BloodHound data and generate audit artefacts
-2. Maps recovered NTLM passwords back to user accounts using a Hashcat potfile
-
-```bash
-$ password-audit organise -h
-usage: main.py organise [-h] -N NTDS -B BLOODHOUND [-F FILTER] [-O OUTPUT] [-P POTFILE]
-
-Parse NTDS, BloodHound, and Hashcat datasets and generate analysis artefacts.
-
-options:
-  -h, --help            show this help message and exit
-
-required arguments:
-  -N, --ntds NTDS       Secretsdump NTDS file
-  -B, --bloodhound BLOODHOUND
-                        BloodHound ZIP export
-
-optional arguments:
-  -F, --filter FILTER   Comma-separated usernames to exclude (default: None)
-  -O, --output OUTPUT   Output directory (default: ntds-organiser)
-  -P, --potfile POTFILE
-                        Hashcat potfile containing recovered passwords (default: None)
-
-Example:
-
-    password-audit organise \
-        -N company.ntds \
-        -B bloodhound.zip
-```
-
-## Domain Data Parsing
-
-After collecting the NTDS dump and BloodHound data, the first step is to parse both datasets and extract the information required for password auditing:
+## Basic usage
 
 ```bash
-# Process NTDS and BloodHound data
-$ password-audit organise \
+password-audit organise \
     --ntds company.ntds \
     --bloodhound bloodhound.zip
-
-[*] Password Audit Organise
-
-        NTDS Summary
-
-| Object            | Value |
-|-------------------|-------|
-| Enabled Accounts  |   481 |
-| Disabled Accounts |    42 |
-| User Accounts     |   273 |
-| Machine Accounts  |   208 |
-| NTLM Hashes       |   164 |
-| LM Hashes         |    88 |
-| Domain Admins     |    23 |
-| Company Words     |     3 |
-
-[+] Output written to: ntds-organiser
 ```
 
-The following artefacts are generated:
+By default, output files are written to `ntds-organiser/`. Use `--output` to
+choose another directory.
 
-- `company-words.txt` containing organisation-specific words extracted from account names and group names
-- `domain-admins.txt` containing Domain Administrator accounts identified from BloodHound data
-- `domain-policy.txt` containing the domain password policy
-- `enabled-users.txt` containing enabled user accounts in `domain\username` format
-- `ntlm-hashes.txt` containing extracted NTLM hashes for password auditing
-- `ntds-users-clean.txt` containing enabled user accounts in SecretsDump format (`domain\username:rid:lm:nt:::`)
+## Options
 
-Hidden datasets are also generated for internal processing and troubleshooting:
+| Option | Purpose | Default |
+| --- | --- | --- |
+| `-N`, `--ntds` | SecretsDump NTDS export | Required |
+| `-B`, `--bloodhound` | BloodHound ZIP export | Required |
+| `-F`, `--filter` | Comma-separated usernames to exclude | None |
+| `-O`, `--output` | Output directory | `ntds-organiser` |
+| `-P`, `--potfile` | Hashcat potfile for NTLM password mapping | None |
 
-- `.ntds-enabled.txt` containing all enabled accounts
-- `.ntds-disabled.txt` containing all disabled accounts
-- `.ntds-machines.txt` containing machine accounts
+Use `password-audit organise --help` for the installed version's full help.
 
-The following datasets are generated only when applicable:
+## Generated files
 
-- `lm-hashes.txt` containing extracted LM hashes (only if LM hashes exist)
-- `lm-users.txt` containing accounts associated with LM hashes (only if LM hashes exist)
-- `mapped-ntlm-passwords.txt` containing recovered NTLM passwords mapped to user accounts (only when `-P` / `--potfile` is supplied)
-- `.testing-accounts.txt` containing accounts matching the supplied filter (only when `-F` / `--filter` is used)
+| File | Contents |
+| --- | --- |
+| `enabled-users.txt` | Enabled user accounts used by analysis. |
+| `ntlm-hashes.txt` | NTLM hashes extracted from the NTDS dataset. |
+| `ntds-users-clean.txt` | Normalized enabled-user records. |
+| `domain-admins.txt` | Domain Administrator accounts identified from BloodHound data, when available. |
+| `domain-policy.txt` | Password policy values extracted from BloodHound data, when available. |
+| `company-words.txt` | Organisation-related terms derived from the available domain and account data. |
+| `lm-hashes.txt`, `lm-users.txt` | LM hashes and associated accounts, when present. |
+| `mapped-ntlm-passwords.txt` | Recovered NTLM passwords mapped to accounts; written when a potfile is supplied and matches are found. |
+| `.ntds-enabled.txt`, `.ntds-disabled.txt`, `.ntds-machines.txt` | Intermediate records used by the workflow. |
+| `.testing-accounts.txt` | Accounts excluded by `--filter`, when any match. |
 
-```bash
-$ tree -a ntds-organiser
-ntds-organiser
-├── company-words.txt
-├── domain-admins.txt
-├── domain-policy.txt
-├── enabled-users.txt
-├── lm-hashes.txt
-├── lm-users.txt
-├── .ntds-disabled.txt
-├── .ntds-enabled.txt
-├── .ntds-machines.txt
-├── ntds-users-clean.txt
-└── ntlm-hashes.txt
-```
+The output includes password hashes and may include recovered plaintext
+passwords. Store it securely and restrict access to the assessment team.
 
-## Password Mapping
+## Map recovered NTLM passwords
 
-Providing a Hashcat potfile allows `organise` to map recovered NTLM passwords back to user accounts:
+After a Hashcat campaign, supply its potfile to map recovered passwords back to
+the NTDS accounts:
 
 ```bash
-$ password-audit organise \
+password-audit organise \
     --ntds company.ntds \
-    --potfile hashcat.potfile \
-    --bloodhound bloodhound.zip
-
-[*] Password Audit Organise
-
-        NTDS Summary
-
-| Object            | Value |
-|-------------------|-------|
-| Enabled Accounts  |   481 |
-| Disabled Accounts |    42 |
-| User Accounts     |   273 |
-| Machine Accounts  |   208 |
-| NTLM Hashes       |   164 |
-| LM Hashes         |    88 |
-| Domain Admins     |    23 |
-| Company Words     |     3 |
-| Mapped Passwords  |   191 |
-
-[+] Output written to: ntds-organiser
+    --bloodhound bloodhound.zip \
+    --potfile /path/to/hashcat.potfile
 ```
 
-This generates an additional dataset containing recovered NTLM passwords mapped to their corresponding user accounts:
-
-```bash
-$ ls ntds-organiser/mapped-ntlm-passwords.txt
-ntds-organiser/mapped-ntlm-passwords.txt
-
-$ head -1 ntds-organiser/mapped-ntlm-passwords.txt
-domain.local\mike:Welcome123!
-```
+The mapped dataset can then be analysed with
+[`analyse`](analyse.md#usage). The end-to-end [`audit`](audit.md) command
+performs organisation and mapping automatically.

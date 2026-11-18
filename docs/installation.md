@@ -1,56 +1,58 @@
 # Installation
 
-Password-Audit supports both user and development installations.
-
-## UV (Recommended)
-
-Recommended for most users who simply want to use the framework.
-
-```bash
-# Install UV
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install password-audit
-uv tool install git+https://github.com/CSpanias/password-audit
-
-# Verify installation
-password-audit -h
-
-# Update to the latest version
-uv tool upgrade password-audit
-```
-
-## Development Installation
-
-Recommended for contributors and anyone modifying the source code. 
-
-The editable installation (`-e`) links the installed package directly to the working directory, allowing code changes to take effect immediately without reinstalling the package.
-
-```bash
-# Clone repository
-git clone https://github.com/CSpanias/password-audit /opt/password-audit
-
-# Move into the directory
-cd /opt/password-audit
-
-# Create virtual environment
-uv venv
-
-# Install editable package
-uv pip install -e .
-
-# Verify installation
-password-audit -h
-```
+Password Audit is a Python command-line application. Install it with
+[uv](https://docs.astral.sh/uv/) as an isolated command-line tool, or install an
+editable copy when developing the project.
 
 ## Requirements
 
-### Core Requirements
+- Python 3.10 or later. `uv tool install` creates an isolated tool environment.
+- Hashcat for password-recovery campaigns and the end-to-end `audit` workflow.
+- For `audit` and `organise`, an NTDS export and a BloodHound ZIP export.
 
-* Python 3.10+
-* Hashcat (for password recovery campaigns)
+Analysis and report rendering do not require Hashcat. Configure the Hashcat
+binary and data directories in the campaign file; see
+[Campaign configuration](crack.md#campaign-configuration).
 
-### Inputs
+## Install for use
 
-* NTDS datasets
-* BloodHound ZIP exports
+Install `uv` using its [official instructions](https://docs.astral.sh/uv/getting-started/installation/),
+then install Password Audit:
+
+```bash
+uv tool install git+https://github.com/CSpanias/password-audit
+password-audit --help
+```
+
+To update the installation:
+
+```bash
+uv tool upgrade password-audit
+```
+
+## Development installation
+
+Clone the repository and install the project in editable mode with its
+documentation dependencies:
+
+```bash
+git clone https://github.com/CSpanias/password-audit
+cd password-audit
+uv venv
+uv pip install -e ".[docs]"
+```
+
+The editable install makes source changes available without reinstalling the
+package. Verify the CLI and run the test suite:
+
+```bash
+password-audit --help
+python -m unittest discover -s tests
+```
+
+Preview and build the documentation locally:
+
+```bash
+uv run mkdocs serve
+uv run mkdocs build --strict
+```

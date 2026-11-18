@@ -1,142 +1,66 @@
-# Documentation
+# Password Audit
 
-[Password-Audit](https://github.com/CSpanias/password-audit) is a modular Active Directory password auditing framework that combines dataset organisation, password recovery campaigns, and password analysis into a single toolkit.
+Password Audit is a command-line toolkit for organising Active Directory
+password data, running Hashcat campaigns, analysing recovered passwords, and
+generating reports. Use it only with data you are authorised to assess.
 
-It combines and extends the functionality of the following standalone projects:
+## At a glance
 
-* [`ntds-organiser`](https://github.com/CSpanias/ntds-organiser) parses and enriches AD hash datasets.
-* [`hashcat-scheduler`](https://github.com/CSpanias/hashcat-scheduler) executes and tracks Hashcat recovery campaigns.
-* [`password-analyser`](https://github.com/CSpanias/password-analyser) analyses recovered passwords and generates assessment reports.
+| Command | Purpose |
+| --- | --- |
+| `audit` | Run the end-to-end workflow and generate reports. |
+| `organise` | Parse NTDS and BloodHound exports; optionally map recovered NTLM passwords. |
+| `crack` | Run Hashcat campaigns and review historical campaign statistics. |
+| `analyse` | Analyse mapped passwords and export reports. |
+| `lm` | Map recovered LM passwords or generate case variants for Domain Administrator passwords. |
 
-The core ideas behind each script are discussed in the following articles:
+## Quick start
 
-* [Password Audits Part 2: Hash Organisation](https://mollysec.com/posts/password-audits-part-2/)
-* [Password Audits Part 3: Cracking Hashes](https://mollysec.com/posts/password-audits-part-3/)
-* [Password Audits Part 4: Analysing Results](https://mollysec.com/posts/password-audits-part-4/)
-
-## Getting Started
-
-* [Installation](installation.md) → Install Password Audit
-* [Audit](audit.md) → End-to-end password auditing workflow
-* [Organise](organise.md) → Parse NTDS and BloodHound datasets
-* [Crack](crack.md) → Execute password recovery campaigns
-* [LM](lm.md) → Process recovered LM passwords
-* [Analyse](analyse.md) → Generate audit reports
-* [Development](development.md) → Project structure and contribution guide
-
-## Quick Start
-
-The most efficient way to execute a complete password audit is via the use of the (aptly named!) [`audit`](audit.md) module:
-
-!!! tip
-    Example configuration files for [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json), [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json), or [both](https://github.com/CSpanias/password-audit/blob/main/example-dual-config-small.json) can be found on the GitHub root directory.
+Install the package and prepare an NTDS export, a BloodHound ZIP export, Hashcat,
+and a campaign configuration. See [Installation](installation.md) and
+[Campaign configuration](crack.md#campaign-configuration) for prerequisites.
 
 ```bash
 password-audit audit \
     --ntds company.ntds \
     --bloodhound bloodhound.zip \
-    --campaign config.json \
+    --campaign campaign.json \
     --campaign-name internal-audit
 ```
 
-## Workflow Diagram
+By default, the audit writes `password-audit-report.md`,
+`password-audit-report.html`, and `password-audit-findings.json`. To choose
+formats explicitly, use `--format` followed by one or more of `markdown`,
+`html`, `json`, `yaml`, or `sarif`.
 
-The high-level process of what's happening behind the scenes looks like this:
+!!! tip "Example campaigns"
+    The repository includes [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json),
+    [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json),
+    and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config-small.json)
+    campaign examples.
 
-!!! info
-    `password-audit` can also process, analyse, and include LM-related findings in the report (see [LM](lm.md)).
+## End-to-end workflow
 
-```markdown
-Extract NTDS (secretsdump) and collect BloodHound data (rusthound-ce)
-    |
-    +--> domain.ntds
-    +--> bloodhound.zip
-    | 
-    v
-Parse NTDS and BloodHound data (password-audit organise)
-    |
-    +--> domain-admins.txt
-    +--> company-words.txt
-    +--> domain-policy.txt
-    +--> enabled-users.txt
-    +--> .ntds-disabled.txt
-    +--> .ntds-enabled.txt
-    +--> .ntds-machines.txt
-    +--> ntds-users-clean.txt
-    +--> ntlm-hashes.txt
-    |
-    v
-Crack hashes (password-audit crack run)
-    |
-    +--> hashcat.potfile
-    +--> campaign-results.json
-    +--> loopback.txt
-    |
-    v
-Map recovered NTLM passwords back to user accounts (password-audit organise)
-    |
-    +--> mapped-ntlm-passwords.txt
-    |
-    v
-Analyse the results (password-audit analyse)
-    |
-    v
-    +--> report.md
-```
+The `audit` command orchestrates these stages:
 
-## Manual Workflow
+1. **Organise** NTDS and BloodHound data into `ntds-organiser/` artefacts.
+2. **Recover** NTLM passwords using the enabled phases in the NTLM campaign.
+3. **Recover LM passwords**, when LM hashes and an LM campaign are available.
+4. **Map** recovered passwords to accounts. LM results are reconstructed with
+   Hashcat `--show`.
+5. **Analyse** the mapped data and write the selected reports.
 
-!!! note
-    This demonstrates the underlying workflow used by the standalone modules. In most cases, the `audit` module should be preferred as it performs all of the steps below automatically.
+The campaign file must include an `ntlm` section. An optional `lm` section
+enables LM recovery; see the [Audit guide](audit.md) for the workflow details.
 
-Extract NTDS ([`secretsdump.py`](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py)) and BloodHound data ([`rusthound-ce`](https://github.com/g0h4n/RustHound-CE)):
+## Choose a workflow
 
-```bash
-# NTDS dump
-secretsdump.py \
-    <domain>/<username>:<password>@<dc-ip> \
-    -user-status \
-    -just-dc-ntlm \
-    -outputfile <domain>
-
-# BloodHound data
-rusthound-ce \
-    -u <username> \
-    -p <password> \
-    -d <domain> \
-    -i <dc-ip> \
-    -z
-```
-
-Process the generated `.ntds` and `.zip` files:
-
-```bash
-password-audit organise \
-    --ntds company.ntds \
-    --bloodhound bloodhound.zip
-```
-
-Recover passwords using the predefined configuration:
-
-```bash
-password-audit crack run \
-    --campaign config.json \
-    --hashes ntds-organiser/ntlm-hashes.txt \
-    --campaign-name internal-audit
-```
-
-Map recovered passwords back to user accounts:
-
-```bash
-password-audit organise \
-    --ntds company.ntds \
-    --potfile hashcat.potfile \
-    --bloodhound bloodhound.zip
-```
-
-Analyse the dataset and generate the audit report:
-
-```bash
-password-audit analyse \
-    --mapped-passwords ntds-organiser/mapped-ntlm-passwords.txt
-```
+| Guide | Use it to |
+| --- | --- |
+| [End-to-end audit](audit.md) | Run the recommended workflow from input validation to reports. |
+| [Organise](organise.md) | Prepare NTDS/BloodHound artefacts and map an existing Hashcat potfile. |
+| [Crack](crack.md) | Configure campaigns, run phases, resume work, and inspect statistics. |
+| [Analyse](analyse.md) | Review analysis coverage and select report formats. |
+| [LM](lm.md) | Understand LM mapping and candidate generation. |
+| [Installation](installation.md) | Install the CLI or set up a development environment. |
+| [Development](development.md) | Explore the codebase and build the documentation locally. |
