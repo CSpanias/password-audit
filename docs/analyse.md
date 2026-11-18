@@ -71,6 +71,9 @@ password-audit analyse \
 The output extension is selected for each format (`.md`, `.json`, `.yaml`,
 `.sarif`, or `.html`). The HTML dashboard works offline and provides search,
 severity/category filters, expandable finding details, and an audit summary.
+The Executive Summary, Technical Commentary, and Remediation Guidance sections
+each include a **Copy Markdown** button. References appear under Remediation
+Guidance as a level-three heading and are included when that section is copied.
 The existing `password-audit-findings.json` sidecar is still written for
 backwards compatibility.
 

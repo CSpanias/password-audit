@@ -46,6 +46,12 @@ def render_html(report):
     .narrative details {{ margin: .75rem 0; padding: 1rem; }}
     .narrative summary {{ cursor: pointer; font-weight: 650; }}
     .narrative .text {{ white-space: pre-line; line-height: 1.55; }}
+    .narrative h3 {{ margin: 1.25rem 0 .4rem; }}
+    .copy-controls {{ display: flex; align-items: center; gap: .75rem; margin: .75rem 0; }}
+    .copy-button {{ padding: .45rem .7rem; border: 1px solid #9aa8bb; border-radius: .35rem; background: #f3f6fa; color: inherit; cursor: pointer; }}
+    .copy-button:disabled {{ cursor: wait; opacity: .7; }}
+    .copy-status {{ color: #53647b; font-size: .9rem; }}
+    .copy-buffer {{ position: fixed; left: -9999px; top: 0; }}
     .empty {{ padding: 1rem; color: #53647b; }}
     footer {{ color: #53647b; margin: 2rem 0; font-size: .9rem; }}
   </style>
@@ -93,20 +99,79 @@ def render_html(report):
       `${{summary.lm_recovery_rate ?? 0}}%`;
 
     const narrative = document.getElementById("narrative");
-    for (const [key, title] of [
+    const narrativeSections = [
       ["executive_summary", "Executive Summary"],
       ["technical_commentary", "Technical Commentary"],
-      ["remediation_guidance", "Remediation Guidance"],
-      ["references", "References"]
-    ]) {{
-      if (!report[key]) continue;
+      ["remediation_guidance", "Remediation Guidance"]
+    ];
+
+    async function copyMarkdown(text) {{
+      if (navigator.clipboard?.writeText && window.isSecureContext) {{
+        await navigator.clipboard.writeText(text);
+        return;
+      }}
+
+      const buffer = document.createElement("textarea");
+      buffer.value = text;
+      buffer.className = "copy-buffer";
+      document.body.append(buffer);
+      buffer.select();
+      let copied;
+      try {{
+        copied = document.execCommand("copy");
+      }} finally {{
+        buffer.remove();
+      }}
+      if (!copied) throw new Error("Clipboard access is unavailable.");
+    }}
+
+    for (const [key, title] of narrativeSections) {{
+      const sectionText = report[key];
+      const references = key === "remediation_guidance" ? report.references : "";
+      if (!sectionText && !references) continue;
+
+      const markdown = [`# ${{title}}`, "", String(sectionText || "")];
+      if (references) markdown.push("", "### References", "", String(references));
+
       const section = document.createElement("details");
       const heading = document.createElement("summary");
       heading.textContent = title;
+      const controls = document.createElement("div");
+      controls.className = "copy-controls";
+      const copyButton = document.createElement("button");
+      copyButton.className = "copy-button";
+      copyButton.type = "button";
+      copyButton.textContent = "Copy Markdown";
+      const copyStatus = document.createElement("span");
+      copyStatus.className = "copy-status";
+      copyStatus.setAttribute("aria-live", "polite");
+      copyButton.addEventListener("click", async () => {{
+        copyButton.disabled = true;
+        copyStatus.textContent = "Copying...";
+        try {{
+          await copyMarkdown(markdown.join("\\n"));
+          copyStatus.textContent = "Copied Markdown to clipboard.";
+        }} catch {{
+          copyStatus.textContent = "Copy failed. Select and copy the text manually.";
+        }} finally {{
+          copyButton.disabled = false;
+        }}
+      }});
+      controls.append(copyButton, copyStatus);
+
       const text = document.createElement("p");
       text.className = "text";
-      text.textContent = report[key];
-      section.append(heading, text);
+      text.textContent = sectionText || "";
+      section.append(heading, controls, text);
+
+      if (references) {{
+        const referenceHeading = document.createElement("h3");
+        referenceHeading.textContent = "References";
+        const referenceText = document.createElement("p");
+        referenceText.className = "text";
+        referenceText.textContent = references;
+        section.append(referenceHeading, referenceText);
+      }}
       narrative.append(section);
     }}
 
