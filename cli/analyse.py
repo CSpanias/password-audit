@@ -6,7 +6,6 @@ datasets, generating analysis results, producing report
 content, and exporting the final Markdown report.
 """
 
-from common.console import ok
 from analysis.workflow import analyse_passwords
 
 
@@ -19,8 +18,8 @@ def run_password_analysis(args):
     subsequently transformed into executive summary, technical
     commentary, and remediation guidance sections.
 
-    The completed report is then rendered as Markdown and
-    written to disk.
+    The completed report is rendered in the requested formats
+    and written to disk.
 
     Returns:
         None
@@ -34,10 +33,7 @@ def run_password_analysis(args):
         pass_policy=args.pass_policy,
         enabled_users=args.enabled_users,
         lm_users=args.lm_users,
-        mapped_lm_passwords=args.mapped_lm_passwords
+        mapped_lm_passwords=args.mapped_lm_passwords,
+        output_file=args.output,
+        report_formats=getattr(args, "report_formats", None),
     )
-
-    print()
-    ok("Report written to: report.md")
-    ok("Findings written to: findings.json")
-    print()

@@ -6,16 +6,18 @@ dispatches execution to individual framework components.
 """
 
 import argparse
-
 from textwrap import dedent
+
+from rich_argparse import RawDescriptionRichHelpFormatter
 
 from cli.analyse import run_password_analysis
 from cli.audit import run_audit_workflow
 from cli.crack import run_cracking_campaign
-from cli.lm import run_lm_mapping, run_lm_candidates
+from cli.lm import run_lm_candidates, run_lm_mapping
 from cli.organise import run_ntds_organiser
-from cracking.statistics import print_phase_statistics
 from cracking.estimate import print_campaign_estimate
+from cracking.statistics import print_phase_statistics
+from reports.renderers import REPORT_RENDERERS
 
 
 def main():
@@ -32,13 +34,13 @@ def main():
     # Parsers configuration
     class CustomFormatter(
         argparse.ArgumentDefaultsHelpFormatter,
-        argparse.RawDescriptionHelpFormatter,
+        RawDescriptionRichHelpFormatter,
     ):
         pass
 
     parser = argparse.ArgumentParser(
         description="Password Audit Framework",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=CustomFormatter,
     )
 
     subparsers = parser.add_subparsers(
@@ -412,8 +414,8 @@ def main():
         description=(
             "Analyse recovered NTLM and LM passwords, "
             "identify common weaknesses, and generate "
-            "a Markdown report with findings and "
-            "remediation guidance."
+            "reports in Markdown, JSON, YAML, SARIF, or HTML "
+            "with findings and remediation guidance."
         ),
         formatter_class=CustomFormatter,
         epilog=dedent("""
@@ -436,7 +438,10 @@ def main():
     # Required arguments
     required_analyse_parser.add_argument(
         "-M",
+        "--mapped-passwords",
+        "--mapped-ntlm-passwords",
         "--mapped-ntlm_passwords",
+        dest="mapped_ntlm_passwords",
         required=True,
         help="Recovered NTLM passwords"
     )
@@ -482,6 +487,26 @@ def main():
         "--mapped-lm-passwords",
         #default="./ntds-organiser/mapped-lm-passwords.txt",
         help="Recovered LM passwords"
+    )
+
+    optional_analyse_parser.add_argument(
+        "-O",
+        "--output",
+        default="password-audit-report.md",
+        help=(
+            "Output report path; its extension is replaced with the "
+            "selected format extension"
+        ),
+    )
+
+    optional_analyse_parser.add_argument(
+        "--format",
+        dest="report_formats",
+        nargs="+",
+        metavar="FORMAT",
+        choices=tuple(REPORT_RENDERERS),
+        default=argparse.SUPPRESS,
+        help="One or more report formats to generate (default: markdown)",
     )
     
     analyse_parser.set_defaults(

@@ -36,6 +36,23 @@ def render_markdown(report):
     lines.append(report["executive_summary"])
     lines.append("")
 
+    summary = report.get("summary", {})
+    if summary:
+        lines.append("# Audit Summary")
+        lines.append("")
+        for label, key, suffix in (
+            ("Total passwords recovered", "total_passwords", ""),
+            ("Enabled users", "enabled_users", ""),
+            ("Unique passwords", "unique_passwords", ""),
+            ("Crack rate", "crack_rate", "%"),
+            ("Accounts with LM hashes", "lm_hashes", ""),
+            ("LM passwords recovered", "lm_passwords_recovered", ""),
+            ("LM recovery rate", "lm_recovery_rate", "%"),
+        ):
+            if key in summary:
+                lines.append(f"- **{label}:** {summary[key]}{suffix}")
+        lines.append("")
+
     lines.append("# Technical Commentary")
     lines.append("")
     lines.append(report["technical_commentary"])
@@ -50,6 +67,27 @@ def render_markdown(report):
     lines.append("")
     lines.append(report["references"])
     lines.append("")
+
+    findings = report.get("findings", [])
+    if findings:
+        lines.append("# Findings")
+        lines.append("")
+
+        for finding in findings:
+            severity = finding.get("severity", "info").upper()
+            category = finding.get("category", "general")
+            lines.append(
+                f"## [{severity}] {finding['id']} - {finding['title']}"
+            )
+            lines.append("")
+            lines.append(f"**Category:** {category}")
+            lines.append("")
+            lines.append(finding.get("description", ""))
+            lines.append("")
+            remediation = finding.get("remediation")
+            if remediation:
+                lines.append(f"**Remediation:** {remediation}")
+                lines.append("")
 
     return "\n".join(lines)
 

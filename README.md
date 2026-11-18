@@ -18,7 +18,8 @@ It combines and extends the functionality of the following, now deprecated and d
 * NTDS and BloodHound dataset processing (`organise`)
 * Hashcat campaign execution and tracking (`crack`)
 * LM password recovery support and candidate generation (`lm`)
-* Password analysis and report generation (`analyse`)
+* Rich-formatted CLI help, analysis progress, summary tables, and an offline HTML dashboard (`analyse`)
+* Markdown, JSON, YAML, SARIF, and HTML report exports
 * Campaign statistics and duration estimation (`crack`)
 
 ## Installation
@@ -115,7 +116,8 @@ Map recovered NTLM passwords back to user accounts (password-audit organise)
 Analyse the results & generate the report (password-audit analyse)
     |
     v
-    +--> report.md
+    +--> password-audit-report.md
+    +--> password-audit-findings.json
 ```
 
 For detailed examples and module-specific documentation, see:

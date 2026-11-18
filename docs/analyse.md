@@ -1,38 +1,10 @@
 # Analyse
 
-The `analyse` module identifies password security weaknesses and generates a Markdown-formatted report from recovered password datasets.
+The `analyse` module identifies password security weaknesses and generates
+reports from recovered password datasets.
 
 ```bash
-$ password-audit analyse -h
-usage: password-audit analyse [-h] -M MAPPED_PASSWORDS [-D DOMAIN_ADMINS] [-P PASS_POLICY] [-G COMPANY_WORDS] [-E ENABLED_USERS] [-U LM_USERS] [-L MAPPED_LM_PASSWORDS]
-
-Analyse recovered NTLM and LM passwords, identify common weaknesses, and generate a Markdown report with findings and remediation guidance.
-
-options:
-  -h, --help            show this help message and exit
-
-required arguments:
-  -M, --mapped-passwords MAPPED_PASSWORDS
-                        Recovered NTLM passwords
-
-optional arguments:
-  -D, --domain-admins DOMAIN_ADMINS
-                        Domain Admin account list (default: ./ntds-organiser/domain-admins.txt)
-  -P, --pass-policy PASS_POLICY
-                        Domain password policy (default: ./ntds-organiser/domain-policy.txt)
-  -G, --company-words COMPANY_WORDS
-                        Organisation-specific password analysis terms (default: ./ntds-organiser/company-words.txt)
-  -E, --enabled-users ENABLED_USERS
-                        Enabled user accounts list (default: ./ntds-organiser/enabled-users.txt)
-  -U, --lm-users LM_USERS
-                        Accounts storing LM password hashes (default: ./ntds-organiser/lm-users.txt)
-  -L, --mapped-lm-passwords MAPPED_LM_PASSWORDS
-                        Recovered LM passwords (default: ./ntds-organiser/mapped-lm-passwords.txt)
-
-Example:
-
-    password-audit analyse \
-        -M ntds-organiser/mapped-ntlm-passwords.txt
+password-audit analyse -h
 ```
 
 The current analysis includes:
@@ -57,16 +29,16 @@ The only required argument is the final NTLM dataset:
 $ password-audit analyse \
     -M ntds-organiser/mapped-ntlm-passwords.txt
 
-[+] Report written to: report.md
-[+] Findings written to: findings.json
+[+] Report written to: password-audit-report.md
+[+] Findings written to: password-audit-findings.json
 
 # NTLM + LM hashes
 $ password-audit analyse \
     -M ntds-organiser/mapped-ntlm-passwords.txt \
     -L ntds-organiser/mapped-lm-passwords.txt
 
-[+] Report written to: report.md
-[+] Findings written to: findings.json
+[+] Report written to: password-audit-report.md
+[+] Findings written to: password-audit-findings.json
 ```
 
 The generated report is divided into three sections:
@@ -74,6 +46,36 @@ The generated report is divided into three sections:
 1. Executive Summary (high-level assessment and key findings)
 2. Technical Commentary (detailed analysis of identified weaknesses)
 3. Remediation Guidance (recommendations for improving password security)
+
+## Report formats
+
+Markdown remains the default report format. The analysis command can also
+produce JSON, YAML, SARIF 2.1.0, or a self-contained HTML dashboard:
+
+```bash
+# Create an offline HTML dashboard
+password-audit analyse \
+    -M ntds-organiser/mapped-ntlm-passwords.txt \
+    --format html \
+    --output password-audit-report
+
+# Generate multiple formats in one analysis run
+password-audit analyse \
+    -M ntds-organiser/mapped-ntlm-passwords.txt \
+    --format markdown json yaml sarif html \
+    --output password-audit-report
+```
+
+The output extension is selected for each format (`.md`, `.json`, `.yaml`,
+`.sarif`, or `.html`). The HTML dashboard works offline and provides search,
+severity/category filters, expandable finding details, and an audit summary.
+The existing `password-audit-findings.json` sidecar is still written for
+backwards compatibility.
+
+All report formats use the same summary and finding data. SARIF maps findings
+into SARIF 2.1.0 form for compatible reporting tools. Findings currently
+include their configured descriptions and remediation; account-level evidence
+is not added by this report change.
 
 A simplified example report structure is shown below:
 
@@ -127,15 +129,19 @@ remediated where possible.
 
 ## Findings Export
 
-In addition to the Markdown report, the analysis workflow generates a machine-readable findings export (`findings.json`):
+The analysis workflow also generates a backwards-compatible machine-readable
+findings export (`password-audit-findings.json`):
 
 ```json
 {
     "findings": [
         {
-            "id": "password-audit",
+            "id": "PWD-AUDIT-001",
             "title": "Password Audit",
-            "description": "79 plaintext passwords were recovered from 273 enabled accounts (28.9%)."
+            "description": "79 plaintext passwords were recovered from 273 enabled accounts.",
+            "severity": "info",
+            "category": "general",
+            "remediation": "Review and prioritise the findings in this report."
         }
     ]
 }

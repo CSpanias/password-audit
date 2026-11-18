@@ -12,6 +12,7 @@ requires-python = ">=3.10"
 dependencies = [
     "PyYAML>=6.0",
     "rich>=13.0.0",
+    "rich-argparse>=1.7.1",
 ]
 
 [project.scripts]
