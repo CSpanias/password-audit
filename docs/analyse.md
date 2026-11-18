@@ -71,7 +71,8 @@ different name. Its extension is always `.html`. The findings sidecar
 The HTML report is self-contained and works offline. Its narrative sections
 include **Copy Markdown** buttons. The remediation section also contains
 References under a level-three heading; the references are included when that
-section is copied.
+section is copied as Markdown links. In the HTML report, each reference is a
+clickable link.
 
 The findings sidecar has this shape:
 

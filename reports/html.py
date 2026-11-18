@@ -52,6 +52,8 @@ def render_html(report):
     .copy-button:disabled {{ cursor: wait; opacity: .7; }}
     .copy-status {{ color: #53647b; font-size: .9rem; }}
     .copy-buffer {{ position: fixed; left: -9999px; top: 0; }}
+    .reference-list {{ padding-left: 1.25rem; overflow-wrap: anywhere; }}
+    .reference-list li {{ margin: .35rem 0; }}
     .empty {{ padding: 1rem; color: #53647b; }}
     footer {{ color: #53647b; margin: 2rem 0; font-size: .9rem; }}
   </style>
@@ -125,6 +127,27 @@ def render_html(report):
       if (!copied) throw new Error("Clipboard access is unavailable.");
     }}
 
+    function renderReferenceList(references) {{
+      const list = document.createElement("ul");
+      list.className = "reference-list";
+      for (const line of String(references).split(/\\r?\\n/)) {{
+        const entry = document.createElement("li");
+        const match = line.match(/^- \\[([^\\]]+)\\]\\((https?:\\/\\/.+)\\)$/);
+        if (match) {{
+          const link = document.createElement("a");
+          link.href = match[2];
+          link.textContent = match[1];
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          entry.append(link);
+        }} else {{
+          entry.textContent = line;
+        }}
+        list.append(entry);
+      }}
+      return list;
+    }}
+
     for (const [key, title] of narrativeSections) {{
       const sectionText = report[key];
       const references = key === "remediation_guidance" ? report.references : "";
@@ -167,10 +190,7 @@ def render_html(report):
       if (references) {{
         const referenceHeading = document.createElement("h3");
         referenceHeading.textContent = "References";
-        const referenceText = document.createElement("p");
-        referenceText.className = "text";
-        referenceText.textContent = references;
-        section.append(referenceHeading, referenceText);
+        section.append(referenceHeading, renderReferenceList(references));
       }}
       narrative.append(section);
     }}

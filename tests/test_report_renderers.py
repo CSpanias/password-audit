@@ -29,7 +29,11 @@ REPORT = {
     "executive_summary": "Executive summary text.",
     "technical_commentary": "Technical commentary text.",
     "remediation_guidance": "Remediation guidance text.",
-    "references": "Reference text.",
+    "references": (
+        "- [https://example.test/passwords](https://example.test/passwords)\n"
+        "- [https://example.test/policy(v=1)]"
+        "(https://example.test/policy(v=1))"
+    ),
     "findings": [{
         "id": "PWD-REUSE-001",
         "title": "</script><img src=x onerror=alert(1)>",
@@ -95,6 +99,9 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn('copyButton.textContent = "Copy Markdown"', html)
         self.assertIn("await navigator.clipboard.writeText(text)", html)
         self.assertIn('referenceHeading.textContent = "References"', html)
+        self.assertIn("function renderReferenceList(references)", html)
+        self.assertIn("link.href = match[2]", html)
+        self.assertIn('link.rel = "noopener noreferrer"', html)
         self.assertIn('markdown.push("", "### References", "", String(references))', html)
         self.assertNotIn('["references", "References"]', html)
         self.assertIn("\\u003c/script\\u003e\\u003cimg", html)
