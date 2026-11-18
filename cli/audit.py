@@ -32,5 +32,6 @@ def run_audit_workflow(args):
         company_words=args.company_words,
         enabled_users=args.enabled_users,
         pass_policy=args.pass_policy,
-        username_filter=args.filter
+        username_filter=args.filter,
+        report_formats=getattr(args, "report_formats", None),
     )

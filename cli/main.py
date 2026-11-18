@@ -58,7 +58,7 @@ def main():
         description=(
             "Perform an end-to-end password audit by "
             "orchestrating the organise, crack, and "
-            "analyse modules."
+            "analyse modules, then generate reports."
         ),
         formatter_class=CustomFormatter,
         epilog=dedent("""
@@ -68,7 +68,8 @@ def main():
                 -N company.ntds \\
                 -B bloodhound.zip \\
                 -C config.json \\
-                -G internal-password-audit
+                -G internal-password-audit \\
+                --format markdown html
         """)
     )
 
@@ -164,6 +165,19 @@ def main():
         "--enabled-users",
         default="./ntds-organiser/enabled-users.txt",
         help="Enabled user accounts list",
+    )
+
+    optional_audit_parser.add_argument(
+        "--format",
+        dest="report_formats",
+        nargs="+",
+        metavar="FORMAT",
+        choices=tuple(REPORT_RENDERERS),
+        default=argparse.SUPPRESS,
+        help=(
+            "One or more report formats to generate "
+            "(default: markdown and html)"
+        ),
     )
 
     audit_parser.set_defaults(
@@ -506,7 +520,10 @@ def main():
         metavar="FORMAT",
         choices=tuple(REPORT_RENDERERS),
         default=argparse.SUPPRESS,
-        help="One or more report formats to generate (default: markdown)",
+        help=(
+            "One or more report formats to generate "
+            "(default: markdown and html)"
+        ),
     )
     
     analyse_parser.set_defaults(

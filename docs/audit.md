@@ -7,7 +7,7 @@ generation.
 
 ```bash
 $ password-audit audit -h
-usage: password-audit audit [-h] -N NTDS -B BLOODHOUND -C CAMPAIGN -G CAMPAIGN_NAME [-F FILTER] [-M MAPPED_PASSWORDS] [-D DOMAIN_ADMINS] [-P PASS_POLICY] [-W COMPANY_WORDS] [-E ENABLED_USERS]
+usage: password-audit audit [-h] -N NTDS -B BLOODHOUND -C CAMPAIGN -G CAMPAIGN_NAME [-F FILTER] [-M MAPPED_PASSWORDS] [-D DOMAIN_ADMINS] [-P PASS_POLICY] [-W COMPANY_WORDS] [-E ENABLED_USERS] [--format FORMAT [FORMAT ...]]
 
 options:
   -h, --help            show this help message and exit
@@ -37,6 +37,8 @@ optional arguments:
                         Organisation-related strings (default: ./ntds-organiser/company-words.txt)
   -E, --enabled-users ENABLED_USERS
                         Enabled user accounts list (default: ./ntds-organiser/enabled-users.txt)
+  --format FORMAT [FORMAT ...]
+                        One or more report formats to generate (default: markdown and html)
 
 Example:
 
@@ -44,7 +46,8 @@ Example:
         -N company.ntds \
         -B bloodhound.zip \
         -C config.json \
-        -G internal-password-audit
+        -G internal-password-audit \
+        --format markdown html
 ```
 
 The following inputs are required:
@@ -70,8 +73,9 @@ password-audit audit \
     --campaign-name internal-password-audit
 ```
 
-This will sequentially run the `organise`, `crack`, and `analyse` modules and produce a 
-Markdown-based report when completed:
+This will sequentially run the `organise`, `crack`, and `analyse` modules and produce Markdown and
+HTML reports by default. Use `--format` to select one or more formats: `markdown`, `json`, `yaml`,
+`sarif`, and `html`.
 
 1. **Organising Data**: Parses the NTDS dataset and extracts supporting artefacts.
 2. **Recovering NTLM Passwords**: Executes the configured NTLM cracking campaign.
@@ -116,8 +120,9 @@ Markdown-based report when completed:
 
 [+] Audit Complete
 
-[+] Report written to: report.md
-[+] Findings written to: findings.json
+[+] Report written to: password-audit-report.md
+[+] Report written to: password-audit-report.html
+[+] Findings written to: password-audit-findings.json
 ```
 
 The workflow also generates artefacts produced by the underlying modules, including:
@@ -127,8 +132,9 @@ The workflow also generates artefacts produced by the underlying modules, includ
 * `ntds-organiser/company-words.txt`
 * `ntds-organiser/domain-policy.txt`
 * `ntds-organiser/enabled-users.txt`
-* `report.md`
-* `findings.json`
+* `password-audit-report.md`
+* `password-audit-report.html`
+* `password-audit-findings.json`
 
 Where LM hashes are present, additional artefacts may also be generated:
 

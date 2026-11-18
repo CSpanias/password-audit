@@ -78,7 +78,7 @@ def analyse_passwords(
     """
 
     if report_formats is None:
-        requested_formats = ["markdown"]
+        requested_formats = ["markdown", "html"]
     elif isinstance(report_formats, str):
         requested_formats = [report_formats]
     else:
@@ -282,18 +282,6 @@ def _print_console_summary(results, findings, report_paths):
 
     console.print(finding_table)
     console.print()
-
-    # Detail for the highest-priority findings.
-    important = [f for f in findings if f.get("severity") in ("critical", "high")]
-    if important:
-        console.print(Panel(
-            "[bold red]Critical / High Findings[/bold red]",
-            border_style="red",
-        ))
-        for f in important:
-            console.print(f"  [bold]{f['id']}[/bold] - {f['title']}")
-            console.print(f"    {f['description']}")
-        console.print()
 
     for path in report_paths:
         console.print(Text(f"Report written to: {path}", style="green"))

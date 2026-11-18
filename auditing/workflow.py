@@ -8,19 +8,20 @@ cracking, and analysis modules.
 
 
 import os
-
 from pathlib import Path
+
 from rich.table import Table
 
-from auditing.validation import validate_audit_inputs, has_enabled_phases
 from analysis.workflow import analyse_passwords
-from cracking.parsers import load_campaign
-from cracking.scheduler import run_campaign
+from auditing.validation import has_enabled_phases, validate_audit_inputs
+from common.console import console, info, ok, warn
 from cracking.constants import DEFAULT_HASHCAT_DIR
-from common.console import console, ok, info, warn
+from cracking.parsers import load_campaign
 from cracking.reporting import print_summary
+from cracking.scheduler import run_campaign
 from lm.workflow import generate_lm_results, map_lm_passwords
 from ntds.workflow import organise_dataset
+from reports.renderers import REPORT_RENDERERS
 
 
 def run_audit(
@@ -35,7 +36,8 @@ def run_audit(
     domain_admins=None,
     company_words=None,
     enabled_users=None,
-    pass_policy=None
+    pass_policy=None,
+    report_formats=None,
 ):
     """
     Execute an end-to-end password audit workflow.
@@ -70,6 +72,9 @@ def run_audit(
 
         pass_policy:
             Override domain password policy.
+
+        report_formats:
+            Report formats to generate.
 
     Returns:
         dict:
@@ -329,10 +334,15 @@ def run_audit(
         enabled_users=enabled_users,
         lm_users=lm_users,
         mapped_lm_passwords=mapped_lm_passwords,
+        report_formats=report_formats,
     )
 
-    report_file = Path("report.md")
-    findings_file = Path("findings.json")
+    selected_formats = report_formats or ("markdown", "html")
+    if isinstance(selected_formats, str):
+        selected_formats = (selected_formats,)
+    report_file = Path("password-audit-report").with_suffix(
+        REPORT_RENDERERS[selected_formats[0]][0]
+    )
     
     total_recovered = 0
 
@@ -341,9 +351,6 @@ def run_audit(
 
 
     ok("Audit Complete")
-    print()
-    ok(f"Report written to: {report_file}")
-    ok(f"Findings written to: {findings_file}")
 
     return {
         "campaign": campaign_results,
