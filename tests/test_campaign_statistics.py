@@ -121,7 +121,11 @@ class CampaignStatisticsTests(unittest.TestCase):
                     statistics.print_phase_statistics()
                 self.assertIn("public-words", display.getvalue())
                 self.assertIn("10.00%", display.getvalue())
-                self.assertIn("Broad Categories", display.getvalue())
+                self.assertIn("Other Attacks", display.getvalue())
+                self.assertIn("Phase order", display.getvalue())
+                self.assertIn("\n\nYield:", display.getvalue())
+                self.assertIn("\n\n", display.getvalue())
+                self.assertNotIn("(n=1)", display.getvalue())
 
                 renamed = copy.deepcopy(config)
                 renamed["phases"][0]["id"] = "renamed"
@@ -211,6 +215,11 @@ class CampaignStatisticsTests(unittest.TestCase):
                 config["phases"] = config["phases"][:1]
                 scheduler.run_campaign(config, root / "hashes.txt", "run")
                 self.assertEqual(statistics.local_statistics()[1], 1)
+                display = io.StringIO()
+                with patch.object(statistics, "console", Console(file=display, width=180)):
+                    statistics.print_phase_statistics()
+                self.assertIn("Excluded 1 phases with missing or invalid recovery counts.",
+                              display.getvalue())
                 with self.assertRaisesRegex(ValueError, "No measured"):
                     statistics.export_statistics(root / "share.json")
                 self.assertFalse((root / "share.json").exists())
@@ -246,7 +255,7 @@ class CampaignStatisticsTests(unittest.TestCase):
                 statistics.print_phase_statistics()
                 with self.assertRaisesRegex(ValueError, "No measured"):
                     statistics.export_statistics(Path(directory) / "share.json")
-            self.assertIn("Excluded 1 phases without usable statistics.", message.getvalue())
+            self.assertIn("No usable campaign statistics available.", message.getvalue())
             self.assertNotIn("old-phase", output.getvalue())
 
 

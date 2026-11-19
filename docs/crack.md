@@ -139,6 +139,10 @@ how long a phase runs.
 The statistics command groups measured phases by wordlist and rule filenames, hash mode,
 attack type and optimized-kernel setting. It shows sample counts, median
 recovery yield, median recoveries per minute, and observed phase positions.
+Phase order is the position among the campaign's enabled phases, starting at
+1; disabled phases do not count. A configured phase may still be skipped
+during a run. Multiple positions indicate the combination appeared at
+different points across runs.
 
 Yield is the number of newly recovered Hashcat digests divided by the digests
 remaining at the start of the phase. These are not account counts or
@@ -158,8 +162,8 @@ Prior phases, existing potfile entries, hardware and the input population
 affect the results, so these statistics indicate trends rather than prove the 
 best campaign order.
 
-Phases without usable statistics, including older history and phases with
-missing or inconsistent Hashcat recovery counts, are excluded rather than
+Older history without phase statistics is ignored. Phases with missing or
+inconsistent Hashcat recovery counts are reported and excluded rather than
 being counted as zero. Only completed campaigns are archived for statistics;
 partial campaign results remain beside the hash dataset if a run is interrupted.
 

@@ -153,6 +153,8 @@ def local_statistics():
         if campaign.get("state") != "completed":
             continue
         for phase in campaign.get("phases", []):
+            if "statistics" not in phase:
+                continue
             record = _record_from_phase(campaign, phase)
             if record is None:
                 skipped += 1
@@ -266,7 +268,7 @@ def print_phase_statistics(args=None):
             "Review filenames and counts for sensitive information before sharing."
         )
         if skipped:
-            print(f"Excluded {skipped} phases without usable statistics.")
+            print(f"Excluded {skipped} phases with missing or invalid recovery counts.")
         return
     if args is not None and getattr(args, "import_file", None):
         added, duplicates = import_statistics(args.import_file)
@@ -294,13 +296,19 @@ def print_phase_statistics(args=None):
         groups.setdefault(key, []).append(record)
 
     if not records and not skipped:
-        print("No campaign history available.")
+        print("No usable campaign statistics available.")
         return
+    console.print()
     if groups:
-        table = Table(title="Attack Statistics (matched by filename)")
-        for name in ("Hash", "Wordlist", "Rule", "Optimized", "Runs", "Median yield",
-                     "Median recovered/min", "Positions"):
-            table.add_column(name)
+        table = Table(title="Attack Statistics", title_style="bold cyan")
+        table.add_column("Hash", style="cyan")
+        table.add_column("Wordlist")
+        table.add_column("Rule")
+        table.add_column("Optimized")
+        table.add_column("Runs", justify="right")
+        table.add_column("Median yield", justify="right")
+        table.add_column("Median recovered/min", justify="right")
+        table.add_column("Phase order", justify="right")
         for key, items in sorted(groups.items(), key=lambda item: str(item[0])):
             mode, _, name, rule, optimized = key
             yields = [
@@ -312,21 +320,34 @@ def print_phase_statistics(args=None):
                 for item in items if item["duration"] > 0
             ]
             positions = sorted({item["position"] for item in items})
+            yield_text = f"{statistics.median(yields):.2f}%" if yields else "Unknown"
+            rate_text = f"{statistics.median(rates):.2f}" if rates else "Unknown"
+            if yields and len(yields) < len(items):
+                yield_text += f" (n={len(yields)})"
+            if rates and len(rates) < len(items):
+                rate_text += f" (n={len(rates)})"
             table.add_row(
                 {"1000": "NTLM", "3000": "LM"}.get(mode, mode),
                 Text(name), Text(rule if rule else "None"),
                 "Yes" if optimized else "No", str(len(items)),
-                f"{statistics.median(yields):.2f}% (n={len(yields)})" if yields else "Unknown",
-                f"{statistics.median(rates):.2f} (n={len(rates)})" if rates else "Unknown",
+                yield_text,
+                rate_text,
                 ", ".join(str(position) for position in positions),
             )
         console.print(table)
-        print("Yield is newly recovered Hashcat digests / digests remaining at phase start.")
-        print("Filenames do not verify contents; order, prior recoveries and hardware also matter.")
+        console.print()
+        console.print("Yield: newly recovered digests / digests remaining at phase start.")
+        console.print("Phase order: positions among enabled phases in the campaign.")
+        console.print("Filenames do not verify contents; prior recoveries and hardware also matter.")
     if unmatched:
-        table = Table(title="Broad Categories (different inputs, not identical attacks)")
-        for name in ("Hash", "Wordlist", "Rule", "Other flags", "Runs", "Median yield"):
-            table.add_column(name)
+        console.print()
+        table = Table(title="Other Attacks", title_style="bold cyan")
+        table.add_column("Hash", style="cyan")
+        table.add_column("Wordlist")
+        table.add_column("Rule")
+        table.add_column("Other flags")
+        table.add_column("Runs", justify="right")
+        table.add_column("Median yield", justify="right")
         for (mode, wordlist, rule, other), items in sorted(
             unmatched.items(), key=lambda item: str(item[0])
         ):
@@ -334,13 +355,19 @@ def print_phase_statistics(args=None):
                 100 * item["newRecovered"] / item["remainingBefore"]
                 for item in items if item["remainingBefore"] > 0
             ]
+            yield_text = f"{statistics.median(yields):.2f}%" if yields else "Unknown"
+            if yields and len(yields) < len(items):
+                yield_text += f" (n={len(yields)})"
             table.add_row(
                 {"1000": "NTLM", "3000": "LM"}.get(mode, mode),
                 Text(wordlist or "loopback"), Text(rule or "None"),
                 "Yes" if other else "No", str(len(items)),
-                f"{statistics.median(yields):.2f}% (n={len(yields)})" if yields else "Unknown",
+                yield_text,
             )
         console.print(table)
-        print("Broad-category observations may use different inputs and settings.")
+        console.print()
+        console.print("Loopback inputs and other flags may differ between runs.")
     if skipped:
-        print(f"Excluded {skipped} phases without usable statistics.")
+        console.print()
+        console.print(f"Excluded {skipped} phases with missing or invalid recovery counts.")
+    console.print()
