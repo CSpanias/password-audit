@@ -20,7 +20,10 @@ structure. The repository includes
 [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json)
 and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json)
 campaign examples for `audit`. Adjust paths, wordlists, rules, and Hashcat
-flags for your system.
+flags for your system. The
+[LM-only example](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json)
+is for standalone `crack run`; it cannot be used with `audit` unless an `ntlm`
+section is added.
 
 ## Run an audit
 
