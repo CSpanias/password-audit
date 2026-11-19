@@ -27,23 +27,19 @@ def campaign():
             {
                 "id": "client-sensitive-phase",
                 "type": "wordlist",
-                "wordlist": "client-private-file.txt",
-                "rule": "private-rule.rule",
-                "statistics": {
-                    "wordlist": {"name": "public-words", "version": "2026"},
-                    "rule": {"name": "public-rule", "version": "1"},
-                },
+                "wordlist": "client-directory/public-words.txt",
+                "rule": "client-directory\\public-rule.rule",
             },
             {
                 "id": "private-phase",
                 "type": "wordlist",
-                "wordlist": "client-private-file.txt",
+                "wordlist": "public-words.txt",
             },
             {
                 "id": "loopback",
                 "type": "loopback",
                 "wordlist": "client-private-loopback.txt",
-                "rule": "private-rule.rule",
+                "rule": "public-rule.rule",
             },
         ],
     }
@@ -74,7 +70,7 @@ class CampaignStatisticsTests(unittest.TestCase):
         self.assertIsNone(parse_recovery_details("All hashes found in potfile"))
         self.assertIsNone(parse_recovery_details("Recovered........: 1/2, 2/2"))
 
-    def test_export_import_and_estimates_use_labels_not_phase_ids(self):
+    def test_export_import_and_estimates_use_filenames_not_phase_ids(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             local = root / "local" / "history"
@@ -100,7 +96,7 @@ class CampaignStatisticsTests(unittest.TestCase):
                     redirect_stdout(io.StringIO()) as output,
                 ):
                     main()
-                self.assertIn("Review before sharing", output.getvalue())
+                self.assertIn("Review filenames and counts", output.getvalue())
                 self.assertEqual(json.loads(second_export.read_text()), json.loads(export.read_text()))
 
                 raw = export.read_text(encoding="utf-8")
@@ -112,10 +108,13 @@ class CampaignStatisticsTests(unittest.TestCase):
                 shared = json.loads(raw)["records"]
                 self.assertEqual(shared[0]["remainingBefore"], 100)
                 self.assertEqual(shared[1]["remainingBefore"], 90)
-                self.assertIsNone(shared[1]["wordlist"])
+                self.assertEqual(shared[0]["wordlist"], "public-words.txt")
+                self.assertEqual(shared[0]["rule"], "public-rule.rule")
+                self.assertEqual(shared[1]["wordlist"], "public-words.txt")
+                self.assertIsNone(shared[1]["rule"])
                 self.assertIsNone(shared[2]["wordlist"])
-                self.assertIsNone(shared[2]["rule"])
-                self.assertIsNone(statistics.attack_identity(shared[1]))
+                self.assertEqual(shared[2]["rule"], "public-rule.rule")
+                self.assertIsNotNone(statistics.attack_identity(shared[1]))
                 self.assertIsNone(statistics.attack_identity(shared[2]))
                 display = io.StringIO()
                 with patch.object(statistics, "console", Console(file=display, width=180)):
@@ -126,11 +125,14 @@ class CampaignStatisticsTests(unittest.TestCase):
 
                 renamed = copy.deepcopy(config)
                 renamed["phases"][0]["id"] = "renamed"
+                renamed["phases"][0]["wordlist"] = "another-dir/public-words.txt"
+                renamed["phases"][0]["rule"] = "another-dir/public-rule.rule"
                 with patch.object(estimate, "load_campaign", return_value={"ntlm": renamed}):
                     result = estimate.estimate_campaign("unused")["ntlm"]
                 self.assertEqual(result["estimates"][0]["duration"], 60)
                 self.assertEqual(result["estimates"][0]["runs"], 1)
-                self.assertIsNone(result["estimates"][1]["duration"])
+                self.assertEqual(result["estimates"][1]["duration"], 60)
+                self.assertIsNone(result["estimates"][2]["duration"])
                 archive = next(local.glob("*.json"))
                 older = json.loads(archive.read_text(encoding="utf-8"))
                 older["hardwareProfile"] = "previous-profile"
@@ -140,10 +142,12 @@ class CampaignStatisticsTests(unittest.TestCase):
                         estimate.estimate_campaign("unused")["ntlm"]["estimates"][0]["duration"],
                         60,
                     )
-                for change in ("version", "settings", "hash_mode"):
+                for change in ("wordlist", "rule", "settings", "hash_mode"):
                     modified = copy.deepcopy(renamed)
-                    if change == "version":
-                        modified["phases"][0]["statistics"]["wordlist"]["version"] = "2027"
+                    if change == "wordlist":
+                        modified["phases"][0]["wordlist"] = "other-words.txt"
+                    elif change == "rule":
+                        modified["phases"][0]["rule"] = "other-rule.rule"
                     elif change == "settings":
                         modified["parameters"]["flags"] = ["-O", "-w", "2"]
                     else:
@@ -178,6 +182,13 @@ class CampaignStatisticsTests(unittest.TestCase):
                 self.assertEqual(statistics._shared_file().read_text(encoding="utf-8"), before)
 
                 tampered = json.loads(raw)
+                tampered["records"][0]["wordlist"] = "private/path.txt"
+                bad.write_text(json.dumps(tampered), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "filename"):
+                    statistics.import_statistics(bad)
+                self.assertEqual(statistics._shared_file().read_text(encoding="utf-8"), before)
+
+                tampered = json.loads(raw)
                 tampered["records"][0]["newRecovered"] = 11
                 bad.write_text(json.dumps(tampered), encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "Conflicting"):
@@ -204,15 +215,19 @@ class CampaignStatisticsTests(unittest.TestCase):
                     statistics.export_statistics(root / "share.json")
                 self.assertFalse((root / "share.json").exists())
 
-    def test_private_or_unknown_settings_cannot_be_compared(self):
+    def test_unknown_settings_cannot_be_compared(self):
         config = campaign()
         validate_campaign(config)
         settings = statistics.describe_settings(["-O", "--runtime", "20"])
         self.assertTrue(settings["otherFlags"])
         self.assertIsNone(statistics.phase_identity(1000, config["phases"][0], settings))
-        config["phases"][0]["statistics"]["wordlist"]["name"] = "client/path"
-        with self.assertRaises(ValueError):
-            validate_campaign(config)
+        settings = statistics.describe_settings(["-O"])
+        self.assertIsNotNone(statistics.phase_identity(1000, config["phases"][0], settings))
+
+    def test_asset_filenames_exclude_windows_and_posix_directories(self):
+        for path in ("C:\\client\\words.txt", "C:words.txt", "/client/words.txt"):
+            with self.subTest(path=path):
+                self.assertEqual(statistics.asset_filename(path), "words.txt")
 
     def test_incompatible_history_is_excluded_without_counting_as_zero(self):
         with tempfile.TemporaryDirectory() as directory:

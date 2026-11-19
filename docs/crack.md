@@ -77,7 +77,6 @@ Wordlists and rules are resolved relative to `hashcatDir/wordlists/` and
 | `enabled` | Whether to run the phase; defaults to `true`. |
 | `wordlist` | Required for every phase. Used as input for `wordlist` phases and as a label for loopback phases. |
 | `rule` | Optional for `wordlist` phases and required for `loopback` phases; path is relative to `hashcatDir/rules/`. |
-| `statistics` | Optional public wordlist and rule labels for comparing phase statistics. |
 
 A `loopback` phase builds a temporary wordlist from passwords already in the
 Hashcat potfile. It is skipped when no passwords are available. 
@@ -85,32 +84,11 @@ Hashcat potfile. It is skipped when no passwords are available.
 Campaign configuration is validated before execution; invalid or duplicate 
 phase definitions are rejected.
 
-### Labels for statistics
-
-Add explicit labels only for **public** assets. Both a name and a version are
-required; use consistent labels across contributors. Names and versions are
-identifiers containing letters, digits, `.`, `_` or `-`, up to 64 characters.
-These example labels are placeholders; replace them with the versions actually
-used:
-
-```json
-{
-  "id": "my-phase",
-  "type": "wordlist",
-  "wordlist": "public-words.txt",
-  "rule": "public-rule.rule",
-  "statistics": {
-    "wordlist": {"name": "public-words", "version": "2026-01"},
-    "rule": {"name": "public-rule", "version": "v1"}
-  }
-}
-```
-
-Changing the phase ID does not change the statistical identity. Labels are
-contributor-reported and are not checked against file contents. A changed asset
-must receive a new version label. Unlabelled wordlists and rules are treated as
-private; loopback wordlists are always treated separately. Private and loopback
-inputs appear only in broad categories, not as identical attacks.
+Statistics use the configured wordlist and rule filenames automatically; no
+additional phase fields are needed. Changing a phase ID or directory does not
+change its statistical identity. Filenames are case-sensitive and do not
+verify file contents: different files with the same name are grouped together,
+while renamed copies are not. Use distinct filenames for different versions.
 
 ## Run a campaign
 
@@ -141,12 +119,12 @@ campaign again from its first phase.
 ## Estimate duration
 
 Estimates use the median duration of completed **local** phases with matching
-public labels, hash mode, phase position and Hashcat settings, including
+wordlist and rule filenames, hash mode, phase position and Hashcat settings, including
 device-selection flags. Imported statistics are not used for time estimates.
 
 Without comparable measured runs, the duration is
-`Unknown`. Unlabelled inputs, loopback phases and unrecognised Hashcat flags 
-are not matched. A total with missing phases is marked partial.
+`Unknown`. Loopback phases and unrecognised Hashcat flags are not matched.
+A total with missing phases is marked partial.
 
 ```bash
 password-audit crack estimate --campaign campaign.json
@@ -158,7 +136,7 @@ how long a phase runs.
 
 ## Review statistics
 
-The statistics command groups measured phases by public labels, hash mode,
+The statistics command groups measured phases by wordlist and rule filenames, hash mode,
 attack type and optimized-kernel setting. It shows sample counts, median
 recovery yield, median recoveries per minute, and observed phase positions.
 
@@ -173,8 +151,8 @@ password-audit crack stats
 
 Other Hashcat flags are recorded only as an indication that additional
 settings were used; phases with unrecognised flags are not treated as exact
-matches. Private and loopback inputs are shown as broad categories whose
-results may come from different wordlists and rules. 
+matches. Loopback inputs are shown as broad categories because the generated
+wordlists differ across runs.
 
 Prior phases, existing potfile entries, hardware and the input population 
 affect the results, so these statistics indicate trends rather than prove the 
@@ -195,14 +173,14 @@ password-audit crack stats --export stats-to-share.json
 password-audit crack stats --import stats-from-a-colleague.json
 ```
 
-Exports contain only a random record ID, hash mode, attack category, explicit
-public labels, selected settings, phase position, recovery counts and duration.
-They do **not** contain passwords, hashes, customer names, paths, campaign or
-phase IDs, raw flags or exact timestamps.
+Exports contain only a random record ID, hash mode, attack category, wordlist
+and rule filenames, selected settings, phase position, recovery counts and
+duration. Directory paths, passwords, hashes, campaign and phase IDs, raw flags
+and exact timestamps are excluded.
 
-Never put private information in a public label. Counts and combinations of 
-fields can still be sensitive or linkable, especially for small assessments; 
-review the file and your sharing requirements before sending it.
+**Review the export before sharing:** filenames may contain customer names or
+other sensitive information. Counts and combinations of fields can also be
+sensitive or linkable, especially for small assessments.
 
 Imported records are stored locally in `~/.password-audit/imported-statistics.json`
 and included in `crack stats`. Re-importing the same records does not count
@@ -210,6 +188,8 @@ them twice; conflicting records are rejected.
 
 Exports contain local runs only, not records imported from others. Existing 
 output files are not overwritten.
+The filename-based exchange format is version 2; older shared exports must be
+re-exported using the current version.
 
 Use `password-audit crack --help` or a subcommand's `--help` option for the
 installed version's complete argument list.

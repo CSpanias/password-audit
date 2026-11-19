@@ -6,23 +6,10 @@ execution to ensure required settings and phases are
 present and correctly defined.
 """
 
-import re
-
 VALID_PHASE_TYPES = {
     "wordlist",
     "loopback",
 }
-
-LABEL_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
-
-
-def validate_public_label(label):
-    if not isinstance(label, dict) or set(label) != {"name", "version"}:
-        raise ValueError("Public labels must contain only name and version.")
-    if any(not isinstance(value, str) or not LABEL_PATTERN.fullmatch(value)
-           for value in label.values()):
-        raise ValueError("Public label names and versions must be short identifiers.")
-
 
 def validate_campaign(config):
     """
@@ -113,13 +100,3 @@ def validate_campaign(config):
                 raise ValueError(
                     f"Loopback phase '{phase_id}' is missing a rule."
                 )
-
-        labels = phase.get("statistics", {})
-        if not isinstance(labels, dict) or set(labels) - {"wordlist", "rule"}:
-            raise ValueError(f"Invalid statistics labels in phase '{phase_id}'.")
-        for label in labels.values():
-            validate_public_label(label)
-        if "wordlist" in labels and phase_type != "wordlist":
-            raise ValueError("Loopback wordlists cannot have a public label.")
-        if "rule" in labels and not phase.get("rule"):
-            raise ValueError("A rule label requires a rule.")

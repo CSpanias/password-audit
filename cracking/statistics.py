@@ -3,17 +3,30 @@
 import hashlib
 import json
 import math
+import ntpath
 import statistics
 from pathlib import Path
 from uuid import UUID
 
 from rich.table import Table
+from rich.text import Text
 
 from common.console import console
 from cracking.constants import HISTORY_DIR
 from cracking.hashcat import live_status_flags
 from cracking.results import _write_json_atomically
-from cracking.validation import validate_public_label
+
+EXCHANGE_VERSION = 2
+
+
+def asset_filename(path):
+    """Return a filename without including Windows or POSIX directory paths."""
+    if not isinstance(path, str):
+        raise TypeError("Wordlist and rule paths must be strings.")
+    name = ntpath.basename(path.replace("\\", "/"))
+    if not name or name in (".", "..") or any(ord(char) < 32 for char in name):
+        raise ValueError("Wordlist and rule paths must end in a valid filename.")
+    return name
 
 
 def describe_settings(flags):
@@ -83,11 +96,14 @@ def _validate_record(record):
         raise ValueError("Invalid statistics settings.")
     for key in ("wordlist", "rule"):
         if record[key] is not None:
-            validate_public_label(record[key])
+            if asset_filename(record[key]) != record[key]:
+                raise ValueError(f"Statistics {key} must be a filename, not a path.")
+    if record["type"] == "wordlist" and record["wordlist"] is None:
+        raise ValueError("Wordlist statistics require a filename.")
     if record["type"] == "loopback" and record["wordlist"] is not None:
-        raise ValueError("Loopback wordlists cannot have a public label.")
-    if record["rule"] is not None and not record["hasRule"]:
-        raise ValueError("A rule label requires a rule.")
+        raise ValueError("Loopback statistics cannot identify a wordlist.")
+    if (record["rule"] is not None) != record["hasRule"]:
+        raise ValueError("Statistics rule and hasRule disagree.")
     if record["type"] == "loopback" and not record["hasRule"]:
         raise ValueError("A loopback attack requires a rule.")
     for key in ("position", "totalHashes", "remainingBefore", "newRecovered"):
@@ -115,9 +131,9 @@ def _record_from_phase(campaign, phase):
         "id": data["id"],
         "hashMode": str(campaign["hashMode"]),
         "type": data["type"],
-        "wordlist": data["wordlist"],
-        "rule": data["rule"],
-        "hasRule": data["hasRule"],
+        "wordlist": asset_filename(phase["wordlist"]) if data["type"] == "wordlist" else None,
+        "rule": asset_filename(phase["rule"]) if phase.get("rule") else None,
+        "hasRule": bool(phase.get("rule")),
         "position": data["position"],
         "optimized": settings["optimized"],
         "otherFlags": settings["otherFlags"],
@@ -157,8 +173,10 @@ def _read_exchange(path):
         data = json.load(handle)
     if not isinstance(data, dict) or set(data) != {"version", "records"}:
         raise ValueError("Invalid statistics exchange file.")
-    if type(data["version"]) is not int or data["version"] != 1:
-        raise ValueError("Unsupported statistics exchange version.")
+    if type(data["version"]) is not int or data["version"] != EXCHANGE_VERSION:
+        raise ValueError(
+            "Unsupported statistics exchange version; re-export using the current version."
+        )
     if not isinstance(data["records"], list):
         raise TypeError("Statistics records must be a list.")
     records = {}
@@ -191,7 +209,7 @@ def export_statistics(path):
     records = _merge_records(record for record, _ in entries)
     if not records:
         raise ValueError("No measured local statistics are available to export.")
-    data = {"version": 1, "records": list(records.values())}
+    data = {"version": EXCHANGE_VERSION, "records": list(records.values())}
     with Path(path).open("x", encoding="utf-8") as handle:
         json.dump(data, handle, indent=2, allow_nan=False)
         handle.write("\n")
@@ -208,37 +226,32 @@ def import_statistics(path):
     if added:
         target = _shared_file()
         target.parent.mkdir(parents=True, exist_ok=True)
-        _write_json_atomically(target, {"version": 1, "records": list(
+        _write_json_atomically(target, {"version": EXCHANGE_VERSION, "records": list(
             _merge_records(existing.values(), added.values()).values()
         )})
     return len(added), len(incoming) - len(added)
 
 
 def attack_identity(record):
-    """Return an exact, contributor-labelled identity, or None if incomparable."""
+    """Return a filename-based identity, or None if inputs are not comparable."""
     if (
         record["wordlist"] is None
         or (record["hasRule"] and record["rule"] is None)
         or record["otherFlags"]
     ):
         return None
-    wordlist = record["wordlist"]
-    rule = record["rule"]
     return (
-        record["hashMode"], record["type"],
-        wordlist["name"], wordlist["version"],
-        rule["name"] if rule else None, rule["version"] if rule else None,
-        record["optimized"],
+        record["hashMode"], record["type"], record["wordlist"],
+        record["rule"], record["optimized"],
     )
 
 
 def phase_identity(hash_mode, phase, settings):
-    labels = phase.get("statistics", {})
     return attack_identity({
         "hashMode": str(hash_mode),
         "type": phase["type"],
-        "wordlist": labels.get("wordlist"),
-        "rule": labels.get("rule"),
+        "wordlist": asset_filename(phase["wordlist"]) if phase["type"] == "wordlist" else None,
+        "rule": asset_filename(phase["rule"]) if phase.get("rule") else None,
         "hasRule": bool(phase.get("rule")),
         "otherFlags": settings["otherFlags"],
         "optimized": settings["optimized"],
@@ -248,7 +261,10 @@ def phase_identity(hash_mode, phase, settings):
 def print_phase_statistics(args=None):
     if args is not None and getattr(args, "export_file", None):
         count, skipped = export_statistics(args.export_file)
-        print(f"Exported {count} local phase records to {args.export_file}. Review before sharing.")
+        print(
+            f"Exported {count} local phase records to {args.export_file}. "
+            "Review filenames and counts for sensitive information before sharing."
+        )
         if skipped:
             print(f"Excluded {skipped} phases without usable statistics.")
         return
@@ -269,9 +285,8 @@ def print_phase_statistics(args=None):
             category = (
                 record["hashMode"],
                 "loopback" if record["type"] == "loopback" else
-                ("public" if record["wordlist"] else "custom"),
-                "none" if not record["hasRule"] else
-                ("public" if record["rule"] else "custom"),
+                record["wordlist"],
+                record["rule"],
                 record["otherFlags"],
             )
             unmatched.setdefault(category, []).append(record)
@@ -282,12 +297,12 @@ def print_phase_statistics(args=None):
         print("No campaign history available.")
         return
     if groups:
-        table = Table(title="Comparable Attack Statistics (contributor-labelled)")
+        table = Table(title="Attack Statistics (matched by filename)")
         for name in ("Hash", "Wordlist", "Rule", "Optimized", "Runs", "Median yield",
                      "Median recovered/min", "Positions"):
             table.add_column(name)
         for key, items in sorted(groups.items(), key=lambda item: str(item[0])):
-            mode, _, name, version, rule, rule_version, optimized = key
+            mode, _, name, rule, optimized = key
             yields = [
                 100 * item["newRecovered"] / item["remainingBefore"]
                 for item in items if item["remainingBefore"] > 0
@@ -299,7 +314,7 @@ def print_phase_statistics(args=None):
             positions = sorted({item["position"] for item in items})
             table.add_row(
                 {"1000": "NTLM", "3000": "LM"}.get(mode, mode),
-                f"{name} ({version})", f"{rule} ({rule_version})" if rule else "None",
+                Text(name), Text(rule if rule else "None"),
                 "Yes" if optimized else "No", str(len(items)),
                 f"{statistics.median(yields):.2f}% (n={len(yields)})" if yields else "Unknown",
                 f"{statistics.median(rates):.2f} (n={len(rates)})" if rates else "Unknown",
@@ -307,19 +322,22 @@ def print_phase_statistics(args=None):
             )
         console.print(table)
         print("Yield is newly recovered Hashcat digests / digests remaining at phase start.")
-        print("Order, prior recoveries, hardware and contributor labels affect comparisons.")
+        print("Filenames do not verify contents; order, prior recoveries and hardware also matter.")
     if unmatched:
         table = Table(title="Broad Categories (different inputs, not identical attacks)")
         for name in ("Hash", "Wordlist", "Rule", "Other flags", "Runs", "Median yield"):
             table.add_column(name)
-        for (mode, wordlist, rule, other), items in sorted(unmatched.items()):
+        for (mode, wordlist, rule, other), items in sorted(
+            unmatched.items(), key=lambda item: str(item[0])
+        ):
             yields = [
                 100 * item["newRecovered"] / item["remainingBefore"]
                 for item in items if item["remainingBefore"] > 0
             ]
             table.add_row(
                 {"1000": "NTLM", "3000": "LM"}.get(mode, mode),
-                wordlist, rule, "Yes" if other else "No", str(len(items)),
+                Text(wordlist or "loopback"), Text(rule or "None"),
+                "Yes" if other else "No", str(len(items)),
                 f"{statistics.median(yields):.2f}% (n={len(yields)})" if yields else "Unknown",
             )
         console.print(table)

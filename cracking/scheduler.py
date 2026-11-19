@@ -213,9 +213,6 @@ def run_campaign(
                 "statistics": {
                     "id": str(uuid4()),
                     "type": phase["type"],
-                    "wordlist": phase.get("statistics", {}).get("wordlist"),
-                    "rule": phase.get("statistics", {}).get("rule"),
-                    "hasRule": bool(phase.get("rule")),
                     "position": phase_number,
                     "settings": describe_settings(flags),
                     "recovery": result.get("recoveryDetails"),

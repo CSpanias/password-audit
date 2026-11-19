@@ -152,7 +152,7 @@ def print_campaign_estimate(args):
 
         console.print(table)
         print(
-            "Local medians require matching attack labels, settings and phase position. "
+            "Local medians require matching filenames, settings and phase position. "
             "Hardware and prior recoveries can affect duration."
         )
         print()
