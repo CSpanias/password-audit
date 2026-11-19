@@ -16,7 +16,7 @@ export, Hashcat, a campaign configuration, and the wordlists and rules
 referenced by that configuration. See the [audit guide](../audit.md) for
 the tool's prerequisites.
 
-!!! Info
+!!! info
    [ad-kit](https://github.com/CSpanias/ad-kit) can collect both datasets through
    its interactive `enum` command.
 
