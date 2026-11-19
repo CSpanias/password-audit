@@ -41,9 +41,10 @@ password-audit audit \
     --campaign-name internal-audit
 ```
 
-Each audit creates a unique timestamped directory under `password-audit/` and
-prints its path. Organised datasets, campaign results and reports for that run
-are kept together there. By default, the reports are:
+Each audit creates a timestamped directory under `password-audit/` and prints
+its path. If that name already exists, a numeric suffix is added. Organised
+datasets, campaign results and reports for that run are kept together there.
+By default, the reports are:
 
 - `password-audit-report.html`, an offline dashboard with filters and
   Copy Markdown controls used for reporting (always generated)

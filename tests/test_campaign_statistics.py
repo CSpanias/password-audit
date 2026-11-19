@@ -21,7 +21,6 @@ def campaign():
         "parameters": {
             "hashMode": 1000,
             "hashcatDir": "client-secret-path",
-            "hardwareProfile": "private-workstation",
             "flags": ["-O", "-w", "3", "-d", "1"],
         },
         "phases": [
@@ -89,7 +88,8 @@ class CampaignStatisticsTests(unittest.TestCase):
                 patch.object(scheduler, "run_phase", side_effect=fake_phase),
                 patch.object(scheduler, "generate_loopback_wordlist", return_value="secret.txt"),
             ):
-                scheduler.run_campaign(config, root / "hashes.txt", "secret-client")
+                run = scheduler.run_campaign(config, root / "hashes.txt", "secret-client")
+                self.assertNotIn("hardwareProfile", run)
                 self.assertEqual(statistics.export_statistics(export), (3, 0))
                 with self.assertRaises(FileExistsError):
                     statistics.export_statistics(export)
@@ -105,7 +105,7 @@ class CampaignStatisticsTests(unittest.TestCase):
 
                 raw = export.read_text(encoding="utf-8")
                 for private in (
-                    "client", "secret", "private-workstation", "localFingerprint",
+                    "client", "secret", "localFingerprint",
                     "hashDataset", "hashcatDir", "session", "started",
                 ):
                     self.assertNotIn(private, raw)
@@ -131,18 +131,23 @@ class CampaignStatisticsTests(unittest.TestCase):
                 self.assertEqual(result["estimates"][0]["duration"], 60)
                 self.assertEqual(result["estimates"][0]["runs"], 1)
                 self.assertIsNone(result["estimates"][1]["duration"])
-                for change in ("profile", "version", "settings", "hash_mode", "no_profile"):
+                archive = next(local.glob("*.json"))
+                older = json.loads(archive.read_text(encoding="utf-8"))
+                older["hardwareProfile"] = "previous-profile"
+                archive.write_text(json.dumps(older), encoding="utf-8")
+                with patch.object(estimate, "load_campaign", return_value={"ntlm": renamed}):
+                    self.assertEqual(
+                        estimate.estimate_campaign("unused")["ntlm"]["estimates"][0]["duration"],
+                        60,
+                    )
+                for change in ("version", "settings", "hash_mode"):
                     modified = copy.deepcopy(renamed)
-                    if change == "profile":
-                        modified["parameters"]["hardwareProfile"] = "other"
-                    elif change == "version":
+                    if change == "version":
                         modified["phases"][0]["statistics"]["wordlist"]["version"] = "2027"
                     elif change == "settings":
                         modified["parameters"]["flags"] = ["-O", "-w", "2"]
-                    elif change == "hash_mode":
-                        modified["parameters"]["hashMode"] = 3000
                     else:
-                        modified["parameters"].pop("hardwareProfile")
+                        modified["parameters"]["hashMode"] = 3000
                     with patch.object(estimate, "load_campaign", return_value={"ntlm": modified}):
                         self.assertIsNone(
                             estimate.estimate_campaign("unused")["ntlm"]["estimates"][0]["duration"]
@@ -209,7 +214,7 @@ class CampaignStatisticsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_campaign(config)
 
-    def test_legacy_history_remains_visible_but_cannot_be_exported(self):
+    def test_incompatible_history_is_excluded_without_counting_as_zero(self):
         with tempfile.TemporaryDirectory() as directory:
             history = Path(directory) / "history"
             history.mkdir()
@@ -221,13 +226,13 @@ class CampaignStatisticsTests(unittest.TestCase):
             with (
                 patch.object(statistics, "HISTORY_DIR", history),
                 patch.object(statistics, "console", Console(file=output, width=180)),
-                redirect_stdout(io.StringIO()),
+                redirect_stdout(io.StringIO()) as message,
             ):
                 statistics.print_phase_statistics()
                 with self.assertRaisesRegex(ValueError, "No measured"):
                     statistics.export_statistics(Path(directory) / "share.json")
-            self.assertIn("Legacy Phase-ID Statistics", output.getvalue())
-            self.assertIn("old-phase", output.getvalue())
+            self.assertIn("Excluded 1 phases without usable statistics.", message.getvalue())
+            self.assertNotIn("old-phase", output.getvalue())
 
 
 if __name__ == "__main__":

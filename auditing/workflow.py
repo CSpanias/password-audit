@@ -8,7 +8,6 @@ cracking, and analysis modules.
 
 
 import os
-import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -27,6 +26,21 @@ from cracking.reporting import print_summary
 from cracking.scheduler import run_campaign
 from lm.workflow import generate_lm_results, map_lm_passwords
 from ntds.workflow import organise_dataset
+
+
+def create_audit_directory(output_root):
+    output_root.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    suffix = 0
+    while True:
+        name = f"{timestamp}-{suffix}" if suffix else timestamp
+        output_dir = output_root / name
+        try:
+            output_dir.mkdir()
+        except FileExistsError:
+            suffix += 1
+        else:
+            return output_dir
 
 
 def run_audit(
@@ -112,11 +126,7 @@ def run_audit(
         return
 
     output_root = Path("password-audit")
-    output_root.mkdir(parents=True, exist_ok=True)
-    output_dir = Path(tempfile.mkdtemp(
-        prefix=datetime.now().strftime("%Y%m%d-%H%M%S-"),
-        dir=output_root,
-    ))
+    output_dir = create_audit_directory(output_root)
     ok(f"Audit output directory: {output_dir}")
 
     #---------------------------------------------------------------------------

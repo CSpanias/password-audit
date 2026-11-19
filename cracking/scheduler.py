@@ -97,7 +97,6 @@ def run_campaign(
         "campaign": campaign_name,
         "hashMode": hash_mode,
         "runId": str(uuid4()),
-        "hardwareProfile": parameters.get("hardwareProfile"),
         "hashDataset": hash_file,
         "started": datetime.now().isoformat(),
         "state": "running",

@@ -53,7 +53,6 @@ def estimate_campaign(path):
         if enabled_phases:
             validate_campaign(campaign)
         parameters = campaign["parameters"]
-        profile = parameters.get("hardwareProfile")
         settings = describe_settings(parameters.get("flags", []))
 
         for position, phase in enumerate(enabled_phases, start=1):
@@ -61,9 +60,8 @@ def estimate_campaign(path):
             identity = phase_identity(parameters["hashMode"], phase, settings)
             samples = [
                 record["duration"]
-                for record, previous_profile, fingerprint in history
-                if profile and profile == previous_profile
-                and fingerprint == settings["localFingerprint"]
+                for record, fingerprint in history
+                if fingerprint == settings["localFingerprint"]
                 and identity is not None and identity == attack_identity(record)
                 and record["position"] == position
             ]
@@ -154,7 +152,7 @@ def print_campaign_estimate(args):
 
         console.print(table)
         print(
-            "Local medians require the same hardware profile, attack labels, "
-            "settings and phase position. Duration can still vary with prior recoveries."
+            "Local medians require matching attack labels, settings and phase position. "
+            "Hardware and prior recoveries can affect duration."
         )
         print()

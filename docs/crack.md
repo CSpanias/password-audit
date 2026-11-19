@@ -72,7 +72,6 @@ Wordlists and rules are resolved relative to `hashcatDir/wordlists/` and
 | `hashcatDir` | Hashcat data directory; defaults to `/mnt/c/pentest/tools/hashcat`. |
 | `hashcatBinary` | Hashcat executable; defaults to `hashcat.exe` under `hashcatDir`. |
 | `flags` | Additional Hashcat arguments as a JSON list of strings. |
-| `hardwareProfile` | Optional local label for the machine and Hashcat devices used for duration estimates. |
 | `id` | Required, unique phase identifier. |
 | `type` | `wordlist` or `loopback`. |
 | `enabled` | Whether to run the phase; defaults to `true`. |
@@ -113,10 +112,6 @@ must receive a new version label. Unlabelled wordlists and rules are treated as
 private; loopback wordlists are always treated separately. Private and loopback
 inputs appear only in broad categories, not as identical attacks.
 
-For duration estimates, optionally set `"hardwareProfile": "my-gpu"` in the
-campaign parameters. Choose a new profile when the hardware changes; this label
-is kept locally and is not included in shared summaries.
-
 ## Run a campaign
 
 ```bash
@@ -146,25 +141,27 @@ campaign again from its first phase.
 ## Estimate duration
 
 Estimates use the median duration of completed **local** phases with matching
-public labels, hash mode, phase position, Hashcat settings and hardware
-profile. Imported statistics are not used for time estimates. Without a
-hardware profile or comparable measured runs, the duration is `Unknown`.
-Unlabelled inputs, loopback phases and unrecognised Hashcat flags are not
-matched. A total with missing phases is marked partial.
+public labels, hash mode, phase position and Hashcat settings, including
+device-selection flags. Imported statistics are not used for time estimates.
+
+Without comparable measured runs, the duration is
+`Unknown`. Unlabelled inputs, loopback phases and unrecognised Hashcat flags 
+are not matched. A total with missing phases is marked partial.
 
 ```bash
 password-audit crack estimate --campaign campaign.json
 ```
 
-The profile is a user-provided label, not automatic hardware detection. Even
-matching runs may differ because the number of hashes and earlier recoveries
-affect how long a phase runs.
+Hardware is not tracked, so changing machines or devices can make local
+estimates less representative. Hash counts and earlier recoveries also affect
+how long a phase runs.
 
 ## Review statistics
 
 The statistics command groups measured phases by public labels, hash mode,
 attack type and optimized-kernel setting. It shows sample counts, median
 recovery yield, median recoveries per minute, and observed phase positions.
+
 Yield is the number of newly recovered Hashcat digests divided by the digests
 remaining at the start of the phase. These are not account counts or
 necessarily complete passwords; LM mode works with hash halves. A zero
@@ -177,13 +174,14 @@ password-audit crack stats
 Other Hashcat flags are recorded only as an indication that additional
 settings were used; phases with unrecognised flags are not treated as exact
 matches. Private and loopback inputs are shown as broad categories whose
-results may come from different wordlists and rules. Prior phases, existing
-potfile entries, hardware and the input population affect the results, so
-these statistics indicate trends rather than prove the best campaign order.
+results may come from different wordlists and rules. 
 
-Older history remains visible in a separate phase-ID table. It lacks the
-context needed for the new comparisons and is not exported. A phase with
-missing or inconsistent Hashcat recovery counts is also excluded rather than
+Prior phases, existing potfile entries, hardware and the input population 
+affect the results, so these statistics indicate trends rather than prove the 
+best campaign order.
+
+Phases without usable statistics, including older history and phases with
+missing or inconsistent Hashcat recovery counts, are excluded rather than
 being counted as zero. Only completed campaigns are archived for statistics;
 partial campaign results remain beside the hash dataset if a run is interrupted.
 
@@ -200,15 +198,18 @@ password-audit crack stats --import stats-from-a-colleague.json
 Exports contain only a random record ID, hash mode, attack category, explicit
 public labels, selected settings, phase position, recovery counts and duration.
 They do **not** contain passwords, hashes, customer names, paths, campaign or
-phase IDs, hardware profiles, raw flags or exact timestamps. Never put private
-information in a public label. Counts and combinations of fields can still be
-sensitive or linkable, especially for small assessments; review the file and
-your sharing requirements before sending it.
+phase IDs, raw flags or exact timestamps.
+
+Never put private information in a public label. Counts and combinations of 
+fields can still be sensitive or linkable, especially for small assessments; 
+review the file and your sharing requirements before sending it.
 
 Imported records are stored locally in `~/.password-audit/imported-statistics.json`
 and included in `crack stats`. Re-importing the same records does not count
-them twice; conflicting records are rejected. Exports contain local runs only,
-not records imported from others. Existing output files are not overwritten.
+them twice; conflicting records are rejected. 
+
+Exports contain local runs only, not records imported from others. Existing 
+output files are not overwritten.
 
 Use `password-audit crack --help` or a subcommand's `--help` option for the
 installed version's complete argument list.

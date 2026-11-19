@@ -65,10 +65,6 @@ def validate_campaign(config):
     if not isinstance(flags, list) or not all(isinstance(flag, str) for flag in flags):
         raise ValueError("Campaign flags must be a list of strings.")
 
-    profile = parameters.get("hardwareProfile")
-    if profile is not None and (not isinstance(profile, str) or not profile.strip()):
-        raise ValueError("hardwareProfile must be a non-empty string.")
-
     if not phases:
         raise ValueError("Campaign does not contain any phases.")
 

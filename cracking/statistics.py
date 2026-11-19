@@ -10,7 +10,6 @@ from uuid import UUID
 from rich.table import Table
 
 from common.console import console
-from common.utils import human_time
 from cracking.constants import HISTORY_DIR
 from cracking.hashcat import live_status_flags
 from cracking.results import _write_json_atomically
@@ -144,7 +143,6 @@ def local_statistics():
                 continue
             entries.append((
                 record,
-                campaign.get("hardwareProfile"),
                 phase["statistics"]["settings"]["localFingerprint"],
             ))
     return entries, skipped
@@ -190,7 +188,7 @@ def _merge_records(*collections):
 
 def export_statistics(path):
     entries, skipped = local_statistics()
-    records = _merge_records(record for record, _, _ in entries)
+    records = _merge_records(record for record, _ in entries)
     if not records:
         raise ValueError("No measured local statistics are available to export.")
     data = {"version": 1, "records": list(records.values())}
@@ -204,7 +202,7 @@ def import_statistics(path):
     incoming = _read_exchange(path)
     existing = imported_statistics()
     local, _ = local_statistics()
-    known = _merge_records(existing.values(), (record for record, _, _ in local))
+    known = _merge_records(existing.values(), (record for record, _ in local))
     _merge_records(known.values(), incoming.values())
     added = {key: value for key, value in incoming.items() if key not in known}
     if added:
@@ -252,7 +250,7 @@ def print_phase_statistics(args=None):
         count, skipped = export_statistics(args.export_file)
         print(f"Exported {count} local phase records to {args.export_file}. Review before sharing.")
         if skipped:
-            print(f"Excluded {skipped} legacy or unmeasured phase records.")
+            print(f"Excluded {skipped} phases without usable statistics.")
         return
     if args is not None and getattr(args, "import_file", None):
         added, duplicates = import_statistics(args.import_file)
@@ -261,7 +259,7 @@ def print_phase_statistics(args=None):
 
     local, skipped = local_statistics()
     records = _merge_records(
-        (record for record, _, _ in local), imported_statistics().values()
+        (record for record, _ in local), imported_statistics().values()
     )
     groups = {}
     unmatched = {}
@@ -327,24 +325,4 @@ def print_phase_statistics(args=None):
         console.print(table)
         print("Broad-category observations may use different inputs and settings.")
     if skipped:
-        print(f"Excluded {skipped} legacy or unmeasured phases from comparable statistics.")
-        legacy = {}
-        for campaign in load_history():
-            if campaign.get("state") != "completed":
-                continue
-            for phase in campaign.get("phases", []):
-                if "statistics" in phase:
-                    continue
-                key = (str(campaign.get("hashMode", "unknown")), phase["id"])
-                legacy.setdefault(key, []).append(phase)
-        if legacy:
-            table = Table(title="Legacy Phase-ID Statistics (not comparable)")
-            for name in ("Hash", "Phase", "Runs", "Avg duration", "Avg recovered"):
-                table.add_column(name)
-            for (mode, phase_id), phases in sorted(legacy.items()):
-                table.add_row(
-                    mode, phase_id, str(len(phases)),
-                    human_time(sum(phase["duration"] for phase in phases) / len(phases)),
-                    f"{sum(phase['newRecovered'] for phase in phases) / len(phases):.2f}",
-                )
-            console.print(table)
+        print(f"Excluded {skipped} phases without usable statistics.")

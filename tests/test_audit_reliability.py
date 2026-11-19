@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import DEFAULT, patch
 from types import SimpleNamespace
@@ -17,6 +18,20 @@ from ntds.workflow import organise_dataset
 
 
 class AuditReliabilityTests(unittest.TestCase):
+    def test_run_directory_uses_timestamp_and_numbers_only_for_collisions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "password-audit"
+            with patch.object(audit, "datetime") as clock:
+                clock.now.return_value = datetime(2026, 11, 19, 21, 18, 11)
+                first = audit.create_audit_directory(root)
+                (first / "previous.txt").write_text("keep", encoding="utf-8")
+                (root / "20261119-211811-1").write_text("existing", encoding="utf-8")
+                second = audit.create_audit_directory(root)
+            self.assertEqual(first.name, "20261119-211811")
+            self.assertEqual(second.name, "20261119-211811-2")
+            self.assertEqual((first / "previous.txt").read_text(encoding="utf-8"), "keep")
+            self.assertEqual((root / "20261119-211811-1").read_text(), "existing")
+
     def test_hashcat_show_failure_does_not_replace_results(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "lm-results.txt"
