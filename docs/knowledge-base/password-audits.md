@@ -17,8 +17,8 @@ referenced by that configuration. See the [audit guide](../audit.md) for
 the tool's prerequisites.
 
 !!! info " "
-   [ad-kit](https://github.com/CSpanias/ad-kit) can collect both datasets through
-   its interactive `enum` command.
+    [ad-kit](https://github.com/CSpanias/ad-kit) can collect both datasets through
+    its interactive `enum` command.
 
 ## Workflow
 

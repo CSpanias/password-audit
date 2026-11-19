@@ -11,7 +11,7 @@ configuration.
 ## Prerequisites
 
 !!! important " "
-  Remember to adjust paths, wordlists, rules, and Hashcat flags for your system.
+    Remember to adjust paths, wordlists, rules, and Hashcat flags for your system.
 
 - An NTDS export and a BloodHound ZIP export.
 - Hashcat and the wordlists/rules referenced by the campaign.
