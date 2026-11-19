@@ -16,11 +16,17 @@ binary and data directories in the campaign file; see
 
 ## Install for use
 
-Install `uv` using its [official instructions](https://docs.astral.sh/uv/getting-started/installation/),
-then install Password Audit:
+Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) and 
+then `password-audit`:
 
 ```bash
+# Install UV
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install password-audit
 uv tool install git+https://github.com/CSpanias/password-audit
+
+# Check installation
 password-audit --help
 ```
 
@@ -29,9 +35,3 @@ To update the installation:
 ```bash
 uv tool upgrade password-audit
 ```
-
-## Recommended workflow
-
-Continue with the [end-to-end audit guide](audit.md) for the recommended
-assessment workflow. The standalone modules are available for advanced or
-partial workflows.

@@ -9,8 +9,10 @@ available hardware, and time budget.
 
 For UK-based Active Directory assessments, HashMob Combined Full,
 `weakpass_4a.policy`, and `weakpass_4.merged` are useful starting points
-before larger corpora. Actual results vary by organisation, so review
-recovery rates and runtime rather than assuming a dataset will perform best.
+before larger corpora.
+
+Actual results vary by organisation, so review recovery rates and runtime 
+rather than assuming a dataset will perform best.
 
 The following sizes are indicative snapshots in GB; downloads and extracted
 datasets can change over time and may require different amounts of disk space.
@@ -25,14 +27,15 @@ datasets can change over time and may require different amounts of disk space.
 
 ## Rules
 
-Rules can substantially increase the coverage of a wordlist, but large
-rulesets also increase runtime and may generate duplicate candidates.
-`OneRuleToRuleThemStill` is a strong established starting point;
+Rules can substantially increase the coverage of a wordlist, but large rulesets 
+also increase runtime and may generate duplicate candidates.
+
+`OneRuleToRuleThemStill` is a strong established starting point; 
 `hashmob.50k.rule` is a promising alternative, particularly with HashMob
 wordlists, but should be benchmarked against the established choice for the
 assessment. `best66` is a smaller option for a fast baseline.
 
-Sizes and rule counts below are indicative snapshots and may change with
+Sizes and rule counts below are indicative snapshots and may change with 
 upstream versions.
 
 | Rule | Size (bytes) | Rule count | Notes |

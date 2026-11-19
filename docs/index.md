@@ -7,9 +7,18 @@ generates reports.
 
 ## Recommended workflow
 
-Install the package and prepare an NTDS export, a BloodHound ZIP export, Hashcat,
-and a campaign configuration. See [Installation](installation.md) and
-[Campaign configuration](crack.md#campaign-configuration) for prerequisites.
+[Install](installation.md) the package and prepare an NTDS export, a BloodHound ZIP export, Hashcat,
+and a [campaign configuration](crack.md#campaign-configuration).
+
+!!! tip "Example campaigns"
+    The repository includes
+    [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json),
+    [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json),
+    and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json)
+    campaign examples. 
+    
+    The campaign file must include an `ntlm` section. An optional `lm` section 
+    enables LM recovery; see the [Audit guide](audit.md) for the workflow details.
 
 ```bash
 password-audit audit \
@@ -24,32 +33,25 @@ For the strongest organisation-specific analysis, optionally prepare
 company. The audit adds these terms to its basic domain/account-derived list
 and reminds you if the curated file appears unchanged since the previous run.
 This list is optional; the generated terms are still used without it. See
-[Company-specific terms](audit.md#company-specific-terms).
+[Company-specific terms](audit.md#company-specific-terms) for more details.
 
 The audit writes `password-audit-report.html` and the structured
-`password-audit-findings.json` sidecar. Add `--csacyber` to export findings
-as SureFormat XML instead; see [Reports](analyse.md#reports).
+`password-audit-findings.json` sidecar. 
 
-!!! tip "Example campaigns"
-    The repository includes
-    [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json),
-    [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json),
-    and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json)
-    campaign examples.
+!!! info "CSACyber & SureCloud Format"
+    Add `--csacyber` to export findings as SureFormat XML instead of JSON; see 
+    [Reports](analyse.md#reports) for more details.
 
 ## End-to-end workflow
 
-The `audit` command orchestrates these stages:
+The `audit` command orchestrates the following stages:
 
-1. **Organise** NTDS and BloodHound data into `password-audit/` artefacts.
-2. **Recover** NTLM passwords using the enabled phases in the NTLM campaign.
-3. **Recover LM passwords**, when LM hashes and an LM campaign are available.
-4. **Map** recovered passwords to accounts. LM results are reconstructed with
-   Hashcat `--show`.
-5. **Analyse** the mapped data and write the selected reports.
-
-The campaign file must include an `ntlm` section. An optional `lm` section
-enables LM recovery; see the [Audit guide](audit.md) for the workflow details.
+1. Organise NTDS and BloodHound data into `password-audit/` artefacts.
+2. Recover NTLM (and optionally LM) passwords using the enabled phases in the 
+   NTLM campaign.
+3. Map recovered passwords to accounts.
+4. Analyse the mapped data
+5. Export the selected reports.
 
 ## Advanced standalone workflows
 

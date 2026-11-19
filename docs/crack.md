@@ -1,8 +1,7 @@
 # Crack campaigns
 
 The `crack` commands run Hashcat campaigns, provide an estimate command based
-on prior runs, and summarise campaign history. Use them only for hashes you are
-authorised to assess.
+on prior runs, and summarise campaign history.
 
 | Command | Purpose |
 | --- | --- |
@@ -16,6 +15,14 @@ For guidance on choosing datasets and mutation rules, see
 [Wordlists and rules](knowledge-base/wordlists-and-rules.md).
 
 ## Campaign configuration
+
+!!! tip "Example campaigns"
+    The repository includes separate
+    [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json)
+    and [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json)
+    campaign examples. Adjust paths, wordlists, rules, and Hashcat flags for
+    your system. For combined recovery with `audit`, use the
+    [dual campaign example](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json).
 
 Campaigns are JSON files with an `ntlm` section and, optionally, an `lm`
 section. Each section contains parameters and an ordered list of phases.
@@ -50,11 +57,12 @@ section. Each section contains parameters and an ordered list of phases.
 ```
 
 Set `hashcatDir` and `hashcatBinary` to match the local Hashcat installation.
-The current default directory is `/mnt/c/pentest/tools/hashcat`; set both
+The current default directory is `/mnt/c/tools/hashcat`; set both
 values explicitly on systems where that path or the default `hashcat.exe`
-name does not apply. Wordlists and rules are resolved relative to
-`hashcatDir/wordlists/` and `hashcatDir/rules/`, respectively. Common hash
-modes are `1000` for NTLM and `3000` for LM.
+name does not apply. 
+
+Wordlists and rules are resolved relative to `hashcatDir/wordlists/` and 
+`hashcatDir/rules/`, respectively.
 
 ### Parameters and phases
 
@@ -71,17 +79,10 @@ modes are `1000` for NTLM and `3000` for LM.
 | `rule` | Optional for `wordlist` phases and required for `loopback` phases; path is relative to `hashcatDir/rules/`. |
 
 A `loopback` phase builds a temporary wordlist from passwords already in the
-Hashcat potfile. It is skipped when no passwords are available. Campaign
-configuration is validated before execution; invalid or duplicate phase
-definitions are rejected.
+Hashcat potfile. It is skipped when no passwords are available. 
 
-!!! tip "Example campaigns"
-    The repository includes separate
-    [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json)
-    and [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json)
-    campaign examples. Adjust paths, wordlists, rules, and Hashcat flags for
-    your system. For combined recovery with `audit`, use the
-    [dual campaign example](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json).
+Campaign configuration is validated before execution; invalid or duplicate 
+phase definitions are rejected.
 
 ## Run a campaign
 
@@ -102,18 +103,21 @@ both. To run both campaign types as part of one workflow, use `audit`.
 | `-G`, `--campaign-name` | Identifier for campaign sessions and results. |
 | `--debug` | Show verbose Hashcat output. |
 
-Results are written beside the hash dataset as
-`<campaign-name>-results.json`. A timestamped copy is archived under
-`~/.password-audit/history/`. Hashcat maintains its potfile in the configured
-Hashcat directory. Campaigns cannot be resumed; use a new campaign name to
-start an interrupted campaign again from its first phase.
+Results are written beside the hash dataset as `<campaign-name>-results.json`. 
+A timestamped copy is archived under `~/.password-audit/history/`. Hashcat 
+maintains its potfile in the configured Hashcat directory.
+
+Campaigns cannot be resumed; use a new campaign name to start an interrupted 
+campaign again from its first phase.
 
 ## Estimate duration
 
 The estimator is intended to use average phase durations from prior campaign
-history. **Known limitation:** campaign statistics are keyed by both hash mode
+history.
+
+A known limitation is that campaign statistics are keyed by both hash mode
 and phase ID, while the estimator looks them up by phase ID alone. As a result,
-phase durations currently appear as unknown. This command and `stats` are
+phase durations currently appear as `unknown`. This command and `stats` are
 experimental; use `stats` only for an exploratory view of recorded history.
 
 ```bash

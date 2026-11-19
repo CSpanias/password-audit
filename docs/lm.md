@@ -2,24 +2,28 @@
 
 The `lm` command provides standalone workflows for mapping recovered LM
 passwords to accounts and generating case variants for Domain Administrator
-passwords. The end-to-end [`audit`](audit.md) workflow automates LM result
-reconstruction and mapping when LM hashes are present.
+passwords.
 
-LM data and recovered passwords are sensitive assessment outputs. Handle them
-in accordance with the engagement's access and retention requirements.
+The end-to-end [`audit`](audit.md) workflow automates LM result
+reconstruction and mapping when LM hashes are present.
 
 ## Why Hashcat `--show` is needed
 
-LM hashes are made from two independently hashed seven-character password
-halves. Hashcat's LM mode (`3000`) records recovered halves in its potfile, but
-the account-mapping workflow needs the full LM hash and the reconstructed
-password. The potfile's half-hash entries therefore cannot be joined directly
-to the full LM hashes in the NTDS data.
+LM hashes are made from two independently hashed seven-character password 
+halves.
+
+![LM Hash Design and Reconstruction](./images/lm-hashing.jpg)
+
+Hashcat's LM mode (`3000`) records recovered halves in its potfile, but the 
+account-mapping workflow needs the full LM hash and the reconstructed password. 
+The potfile's half-hash entries therefore cannot be joined directly to the full 
+LM hashes in the NTDS data.
 
 Run Hashcat with `--show` against the original full LM hashes to combine any
-recovered halves into results keyed by the full LM hash. The
-`password-audit lm map` command uses those results to map recovered passwords
-back to accounts.
+recovered halves into results keyed by the full LM hash.
+
+The `password-audit lm map` command uses those results to map recovered 
+passwords back to accounts.
 
 ## LM recovery and mapping
 

@@ -10,13 +10,15 @@ policies, account practices, and privileged-account protection.
 Collecting data for an Active Directory password audit typically requires
 access to a domain controller and a Domain Administrator account. The exact
 permissions and access depend on the collection method and environment.
-[ad-kit](https://github.com/CSpanias/ad-kit) can collect both datasets through
-its interactive `enum` command.
 
 The Password Audit workflow also requires an NTDS export, a BloodHound ZIP
 export, Hashcat, a campaign configuration, and the wordlists and rules
 referenced by that configuration. See the [audit guide](../audit.md) for
 the tool's prerequisites.
+
+!!! Info
+   [ad-kit](https://github.com/CSpanias/ad-kit) can collect both datasets through
+   its interactive `enum` command.
 
 ## Workflow
 
@@ -41,5 +43,4 @@ the tool's prerequisites.
    provides further context on analysis.
 
 The recommended [`audit`](../audit.md) command orchestrates organisation,
-recovery, mapping, and analysis after the data has been collected. The
-[tools reference](tools.md) covers the tools used throughout the process.
+recovery, mapping, and analysis after the data has been collected.

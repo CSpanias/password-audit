@@ -10,6 +10,9 @@ configuration.
 
 ## Prerequisites
 
+!!! Important
+  Remember to adjust paths, wordlists, rules, and Hashcat flags for your system.
+
 - An NTDS export and a BloodHound ZIP export.
 - Hashcat and the wordlists/rules referenced by the campaign.
 - A campaign JSON file with an `ntlm` section. An optional `lm` section enables
@@ -19,13 +22,16 @@ See [Campaign configuration](crack.md#campaign-configuration) for the JSON
 structure. The repository includes
 [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json)
 and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json)
-campaign examples for `audit`. Adjust paths, wordlists, rules, and Hashcat
-flags for your system. The
+campaign examples for `audit`. The
 [LM-only example](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json)
 is for standalone `crack run`; it cannot be used with `audit` unless an `ntlm`
 section is added.
 
 ## Run an audit
+
+!!! info "CSACyber & SureCloud Format"
+    Add `--csacyber` to export findings as SureFormat XML instead of JSON; see 
+    [Reports](analyse.md#reports) for more details.
 
 ```bash
 password-audit audit \
@@ -38,21 +44,20 @@ password-audit audit \
 By default, the command generates:
 
 - `password-audit-report.html`, an offline dashboard with filters and
-  **Copy Markdown** controls for the report narrative
+  Copy Markdown controls used for reporting (always generated)
 - `password-audit-findings.json`, the findings sidecar
-
-The offline HTML report is always generated. Pass `--csacyber` to write
-`password-audit-findings.xml` in SureFormat instead of the JSON sidecar.
-See [Reports](analyse.md#reports) for requirements and mapping limitations.
 
 ## Company-specific terms
 
 The organiser generates a basic `password-audit/company-words.txt` list from
 domain and account data. It does not infer a realistic company vocabulary.
+
 For more useful organisation-specific password analysis, you can optionally
 create `./company-words.txt` with roughly 10–20 terms tailored to the company
-under assessment. The audit automatically adds that file when present; you can
-also provide another path with `--company-words`:
+under assessment. 
+
+The audit automatically adds that file when present; you can also provide 
+another path with `--company-words`:
 
 ```text
 password-audit audit \
@@ -65,31 +70,36 @@ password-audit audit \
 
 Curated terms supplement the generated list and are deduplicated
 case-insensitively. The audit does not modify or regenerate your curated file.
+
 It prints a reminder when no curated list is found and warns when the file's
 name, size, and modification time appear unchanged since the previous audit.
+Only its filename and file metadata are stored in 
+`password-audit/.company-words-state.json` for this reminder; the curated terms 
+are not copied into that state file. The curated list is optional.
+
 Review the list for each assessment; using the same list can be appropriate
-when reassessing the same company. Only its filename and file metadata are
-stored in `password-audit/.company-words-state.json` for this reminder; the
-curated terms are not copied into that state file. The curated list is optional.
+when reassessing the same company. 
 
 ## Workflow
 
 The audit runs the following stages:
 
-1. **Validate** the NTDS file, BloodHound export, and campaign configuration.
-2. **Organise** the datasets into `password-audit/`, including NTLM hashes,
+1. Validate the NTDS file, BloodHound export, and campaign configuration.
+2. Organise the datasets into `password-audit/`, including NTLM hashes,
    enabled users, Domain Administrators, and policy data.
-3. **Recover NTLM passwords** using the enabled NTLM campaign phases.
-4. **Recover LM passwords**, when LM hashes are present and an LM campaign is
-   configured. The workflow also uses Hashcat `--show` output to reconstruct
-   and map recovered LM passwords.
-5. **Map and analyse** recovered passwords, then write the requested reports.
+3. Recover NTLM passwords using the enabled NTLM, and optionally LM, campaign phases.
+4. Map and analyse recovered passwords.
+5. Write the requested reports.
 
 If LM hashes are present but no LM campaign is configured, the LM cracking
 stage is skipped. Existing LM recoveries can still be mapped when available in
 the configured Hashcat potfile.
 
 ## Options
+
+Paths are relative to the current working directory unless given as absolute
+paths. Use `password-audit audit --help` for the installed version's complete
+option list.
 
 | Option | Purpose | Default |
 | --- | --- | --- |
@@ -107,17 +117,13 @@ the configured Hashcat potfile.
 | `-E`, `--enabled-users` | Enabled account list | `password-audit/enabled-users.txt` |
 | `--csacyber` | Export SureFormat XML findings instead of JSON | Disabled |
 
-Paths are relative to the current working directory unless given as absolute
-paths. Use `password-audit audit --help` for the installed version's complete
-option list.
-
 ## Outputs and advanced standalone commands
 
 Organised datasets and campaign result files are written under
-`password-audit/`. Existing files in the former `ntds-organiser/` directory
-are left untouched and are not migrated or used as a fallback. An interrupted
-campaign cannot be resumed; use a new campaign name to start from its first
-phase. Campaign history is also archived in
+`password-audit/`.
+
+An interrupted campaign cannot be resumed; use a new campaign name to start 
+from its first phase. Campaign history is also archived in
 `~/.password-audit/history/` for the estimate and statistics commands.
 
 Hashcat phases display live progress, recovered counts, speed, and ETA. Status

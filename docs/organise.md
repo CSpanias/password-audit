@@ -13,7 +13,7 @@ password-audit organise \
     --bloodhound bloodhound.zip
 ```
 
-By default, output files are written to `password-audit/`. Use `--output` to
+By default, output files are written to `password-audit/`; use `--output` to
 choose another directory.
 
 ## Options
@@ -63,6 +63,4 @@ password-audit organise \
     --potfile /path/to/hashcat.potfile
 ```
 
-The mapped dataset can then be analysed with
-[`analyse`](analyse.md#usage). The end-to-end [`audit`](audit.md) command
-performs organisation and mapping automatically.
+The mapped dataset can then be analysed with [`analyse`](analyse.md#usage).
