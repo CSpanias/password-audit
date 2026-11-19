@@ -53,4 +53,8 @@ nav:
       - Crack: crack.md
       - Analyse: analyse.md
       - LM: lm.md
+  - Knowledge Base:
+      - Password Audits: knowledge-base/password-audits.md
+      - Tools: knowledge-base/tools.md
+      - Wordlists and Rules: knowledge-base/wordlists-and-rules.md
       

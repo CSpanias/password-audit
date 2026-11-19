@@ -12,6 +12,8 @@ authorised to assess.
 
 For combined NTLM and LM recovery, use the end-to-end
 [`audit`](audit.md) workflow.
+For guidance on choosing datasets and mutation rules, see
+[Wordlists and rules](knowledge-base/wordlists-and-rules.md).
 
 ## Campaign configuration
 

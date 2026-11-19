@@ -61,3 +61,10 @@ They remain available independently; for a typical assessment, start with
 | [Crack](crack.md) | Run a single campaign or inspect experimental campaign statistics. |
 | [Analyse](analyse.md) | Re-analyse mapped passwords and regenerate reports. |
 | [LM](lm.md) | Map recovered LM passwords or generate LM-derived candidates. |
+
+## Knowledge base
+
+For assessment background and practical resources, see the
+[password audit overview](knowledge-base/password-audits.md),
+[tools](knowledge-base/tools.md), and
+[wordlists and rules](knowledge-base/wordlists-and-rules.md).
