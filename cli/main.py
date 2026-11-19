@@ -173,6 +173,12 @@ def main():
         help="Enabled user accounts list",
     )
 
+    optional_audit_parser.add_argument(
+        "--csacyber",
+        action="store_true",
+        help="Export SureFormat XML instead of JSON findings",
+    )
+
     audit_parser.set_defaults(
         func=run_audit_workflow,
     )
@@ -499,6 +505,12 @@ def main():
         help=(
             "HTML report output path"
         ),
+    )
+
+    optional_analyse_parser.add_argument(
+        "--csacyber",
+        action="store_true",
+        help="Export SureFormat XML instead of JSON findings",
     )
     
     analyse_parser.set_defaults(

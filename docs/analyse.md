@@ -32,6 +32,7 @@ curated list. Curated terms supplement generated terms.
 | `-E`, `--enabled-users` | Enabled account list used for summary statistics. |
 | `-U`, `--lm-users` | Accounts associated with LM hashes. |
 | `-O`, `--output` | HTML report output path. |
+| `--csacyber` | Export SureFormat XML findings instead of JSON. |
 
 Use `password-audit analyse --help` for all aliases and default paths.
 
@@ -53,7 +54,8 @@ findings; the report does not calculate an overall risk score.
 
 ## Reports
 
-Analysis writes a self-contained HTML report and a JSON findings sidecar.
+Analysis writes a self-contained HTML report and, by default, a JSON findings
+sidecar.
 
 ```bash
 password-audit analyse \
@@ -65,8 +67,23 @@ password-audit analyse \
 ```
 
 The default report is `password-audit-report.html`; `--output` can set a
-different name. Its extension is always `.html`. The findings sidecar
-`password-audit-findings.json` is written in every case.
+different name. Its extension is always `.html`. By default, findings are written to
+`password-audit-findings.json` in the current working directory.
+
+Add `--csacyber` to `audit` or `analyse` to write
+`password-audit-findings.xml` in SureFormat instead of the JSON sidecar:
+
+```bash
+password-audit analyse \
+    --mapped-ntlm-passwords password-audit/mapped-ntlm-passwords.txt \
+    --csacyber
+```
+
+The XML uses the domain from the `Domain` field in the password policy as
+the item hostname; the field must contain a domain name. Findings without a
+SureCloud mapping are omitted with a warning. Currently this includes
+`PWD-REUSE-002` and `DOMAIN-ADMIN-002`. The HTML report still includes all
+findings. Previously generated JSON or XML files are not removed.
 
 The HTML report is self-contained and works offline. Each narrative section's
 **Copy Markdown** button copies its content without the section title.
@@ -75,7 +92,7 @@ titles. Remediation references are included as Markdown links under a
 level-three References heading in both copy options. In the HTML report,
 each reference is a clickable link.
 
-The findings sidecar has this shape:
+The default JSON findings sidecar has this shape:
 
 ```json
 {

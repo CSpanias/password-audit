@@ -27,7 +27,8 @@ This list is optional; the generated terms are still used without it. See
 [Company-specific terms](audit.md#company-specific-terms).
 
 The audit writes `password-audit-report.html` and the structured
-`password-audit-findings.json` sidecar.
+`password-audit-findings.json` sidecar. Add `--csacyber` to export findings
+as SureFormat XML instead; see [Reports](analyse.md#reports).
 
 !!! tip "Example campaigns"
     The repository includes

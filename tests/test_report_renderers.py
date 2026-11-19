@@ -1,8 +1,10 @@
 import io
 import json
+import os
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import DEFAULT, patch
@@ -12,9 +14,11 @@ from rich.console import Console
 import analysis.workflow as analysis_workflow
 import auditing.workflow as audit_workflow
 import cli.audit as cli_audit
+import cli.analyse as cli_analyse
 import cli.main as cli_main
 from reports.html import render_html
 from reports.json import write_findings
+from reports.sureformat import write_sureformat
 
 REPORT = {
     "summary": {
@@ -80,6 +84,7 @@ class HtmlReportTests(unittest.TestCase):
             "crack_rate": 60.0,
             "lm_hashes": {"count": 2},
             "lm_passwords": {"count": 1, "recoveryRate": 50.0},
+            "domain_name": "example.test",
         }
         values["executive_summary"].return_value = "Executive summary."
         values["technical_commentary"].return_value = "Technical commentary."
@@ -140,6 +145,160 @@ class HtmlReportTests(unittest.TestCase):
                 "password-audit-findings.json",
                 REPORT["findings"],
             )
+
+    def test_sureformat_export_matches_adapter_and_warns_for_unmapped(self):
+        mappings = [
+            ("PWD-AUDIT-001", "SC-1930"),
+            ("DOMAIN-ADMIN-001", "SC-2113"),
+            ("PWD-REUSE-001", "SC-1708"),
+            ("PWD-PATTERN-003", "SC-2201"),
+            ("PWD-PATTERN-005", "SC-2203"),
+            ("PWD-PATTERN-002", "SC-2204"),
+            ("PWD-PATTERN-001", "SC-2200"),
+            ("PWD-PATTERN-004", "SC-2205"),
+            ("PWD-STATS-001", "SC-2206"),
+            ("PWD-POLICY-001", "SC-3307"),
+            ("LM-AUTH-001", "SC-1801"),
+        ]
+        findings = [
+            {"id": finding_id, "description": f"{finding_id} < B & C"}
+            for finding_id, _ in mappings
+        ]
+        findings.append({"id": "PWD-REUSE-002", "description": "No mapping."})
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "findings.xml"
+            with patch("reports.sureformat.warn") as warning:
+                write_sureformat(path, "example.test", findings)
+            warning.assert_called_once_with(
+                "No SureFormat mapping found for finding: PWD-REUSE-002"
+            )
+            root = ET.parse(path).getroot()
+            self.assertEqual(root.tag, "items")
+            self.assertEqual(root.attrib, {"source": "SureFormat", "version": "1.0.0"})
+            item = root.find("item")
+            self.assertEqual(item.attrib, {"ipaddress": "", "hostname": "example.test"})
+            service = item.find("services/service")
+            self.assertEqual(service.attrib, {"name": "", "port": "", "protocol": "tcp"})
+            vulnerabilities = service.findall("vulnerabilities/vulnerability")
+            self.assertEqual(
+                [(v.attrib["id"], v.findtext("information")) for v in vulnerabilities],
+                [(vuln_id, f"{finding_id} < B & C") for finding_id, vuln_id in mappings],
+            )
+
+    def test_analysis_csacyber_writes_xml_instead_of_json(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mocks = self._patch_analysis_workflow()
+            output = Path(directory) / "audit.html"
+            xml_path = Path(directory) / "findings.xml"
+            with patch.object(
+                analysis_workflow, "write_sureformat",
+                side_effect=lambda path, domain, findings: write_sureformat(
+                    xml_path, domain, findings
+                ),
+            ) as write_xml:
+                analysis_workflow.analyse_passwords(
+                    mapped_ntlm_passwords=None,
+                    domain_admins=None,
+                    company_words=None,
+                    pass_policy="policy.txt",
+                    enabled_users=None,
+                    output_file=str(output),
+                    csacyber=True,
+                )
+            write_xml.assert_called_once_with(
+                "password-audit-findings.xml", "example.test", REPORT["findings"]
+            )
+            mocks["write_findings"].assert_not_called()
+            self.assertTrue(output.exists())
+            root = ET.parse(xml_path).getroot()
+            self.assertEqual(root.find("item").attrib["hostname"], "example.test")
+            mocks["_print_console_summary"].assert_called_once_with(
+                mocks["build_results"].return_value, REPORT["findings"], output,
+                "password-audit-findings.xml",
+            )
+
+    def test_csacyber_requires_domain_before_writing_reports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            mocks = self._patch_analysis_workflow()
+            mocks["build_results"].return_value["domain_name"] = None
+            output = Path(directory) / "audit.html"
+            with self.assertRaisesRegex(ValueError, "requires a domain name"):
+                analysis_workflow.analyse_passwords(
+                    mapped_ntlm_passwords=None,
+                    domain_admins=None,
+                    company_words=None,
+                    pass_policy="policy.txt",
+                    enabled_users=None,
+                    output_file=str(output),
+                    csacyber=True,
+                )
+            self.assertFalse(output.exists())
+            mocks["write_findings"].assert_not_called()
+
+    def test_csacyber_flag_is_forwarded_by_both_commands(self):
+        for command, args, handler, forward in (
+            ("audit", ["-N", "input.ntds", "-B", "input.zip", "-C", "config.json",
+                       "-G", "test"], "run_audit_workflow", "audit"),
+            ("analyse", ["-M", "passwords.txt"], "run_password_analysis", "analyse"),
+        ):
+            with self.subTest(command=command):
+                with (
+                    patch.object(sys, "argv", ["password-audit", command, *args, "--csacyber"]),
+                    patch.object(cli_main, handler) as run_command,
+                ):
+                    cli_main.main()
+                parsed = run_command.call_args.args[0]
+                self.assertTrue(parsed.csacyber)
+                if forward == "audit":
+                    with patch.object(cli_audit, "run_audit") as run:
+                        cli_audit.run_audit_workflow(parsed)
+                else:
+                    with patch.object(cli_analyse, "analyse_passwords") as run:
+                        cli_analyse.run_password_analysis(parsed)
+                self.assertTrue(run.call_args.kwargs["csacyber"])
+
+    def test_analyse_cli_generates_selected_findings_format(self):
+        with tempfile.TemporaryDirectory() as directory:
+            original_cwd = os.getcwd()
+            try:
+                for csacyber in (False, True):
+                    run_dir = Path(directory) / ("xml" if csacyber else "json")
+                    run_dir.mkdir()
+                    (run_dir / "mapped.txt").write_text(
+                        "alice:Password123!\n", encoding="utf-8"
+                    )
+                    (run_dir / "policy.txt").write_text(
+                        "Domain: example.test\nMinimum Password Length: 12\n",
+                        encoding="utf-8",
+                    )
+                    (run_dir / "admins.txt").write_text("", encoding="utf-8")
+                    (run_dir / "users.txt").write_text("alice\n", encoding="utf-8")
+                    os.chdir(run_dir)
+                    args = [
+                        "password-audit", "analyse", "-M", "mapped.txt",
+                        "-P", "policy.txt", "-D", "admins.txt", "-E", "users.txt",
+                    ]
+                    if csacyber:
+                        args.append("--csacyber")
+                    with patch.object(sys, "argv", args):
+                        cli_main.main()
+                    self.assertTrue((run_dir / "password-audit-report.html").exists())
+                    json_path = run_dir / "password-audit-findings.json"
+                    xml_path = run_dir / "password-audit-findings.xml"
+                    self.assertEqual(json_path.exists(), not csacyber)
+                    self.assertEqual(xml_path.exists(), csacyber)
+                    if csacyber:
+                        root = ET.parse(xml_path).getroot()
+                        self.assertEqual(root.find("item").attrib["hostname"], "example.test")
+                        ids = {
+                            node.attrib["id"]
+                            for node in root.findall(".//vulnerability")
+                        }
+                        self.assertIn("SC-1930", ids)
+                    else:
+                        self.assertTrue(json.loads(json_path.read_text(encoding="utf-8"))["findings"])
+            finally:
+                os.chdir(original_cwd)
 
     def test_audit_cli_forwards_without_report_format_option(self):
         arguments = [
@@ -212,8 +371,10 @@ class HtmlReportTests(unittest.TestCase):
                 bloodhound_file="bloodhound.zip",
                 campaign_file="config.json",
                 campaign_name="internal-password-audit",
+                csacyber=True,
             )
 
+            self.assertTrue(values["analyse_passwords"].call_args.kwargs["csacyber"])
             self.assertNotIn(
                 "resume",
                 values["run_campaign"].call_args.kwargs,
@@ -281,6 +442,7 @@ class HtmlReportTests(unittest.TestCase):
                 results,
                 REPORT["findings"],
                 Path("audit.html"),
+                "password-audit-findings.json",
             )
         finally:
             analysis_workflow.console = original_console

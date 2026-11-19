@@ -40,6 +40,7 @@ def run_audit(
     company_words=None,
     enabled_users=None,
     pass_policy=None,
+    csacyber=False,
 ):
     """
     Execute an end-to-end password audit workflow.
@@ -74,6 +75,9 @@ def run_audit(
 
         pass_policy:
             Override domain password policy.
+
+        csacyber:
+            Export SureFormat XML instead of JSON findings.
 
     Returns:
         dict:
@@ -334,6 +338,7 @@ def run_audit(
         enabled_users=enabled_users,
         lm_users=lm_users,
         mapped_lm_passwords=mapped_lm_passwords,
+        csacyber=csacyber,
     )
 
     if company_word_snapshot:

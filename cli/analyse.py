@@ -20,8 +20,7 @@ def run_password_analysis(args):
     subsequently transformed into executive summary, technical
     commentary, and remediation guidance sections.
 
-    The completed HTML report and JSON findings sidecar are
-    written to disk.
+    The completed HTML report and findings sidecar are written to disk.
 
     Returns:
         None
@@ -51,4 +50,5 @@ def run_password_analysis(args):
         lm_users=args.lm_users,
         mapped_lm_passwords=args.mapped_lm_passwords,
         output_file=args.output,
+        csacyber=args.csacyber,
     )

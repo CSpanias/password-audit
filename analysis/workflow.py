@@ -28,6 +28,7 @@ from analysis.technical_commentary import technical_commentary
 from common.console import console, warn
 from reports.html import render_html
 from reports.json import write_findings
+from reports.sureformat import write_sureformat
 
 
 def analyse_passwords(
@@ -39,6 +40,7 @@ def analyse_passwords(
     lm_users=None,
     mapped_lm_passwords=None,
     output_file="password-audit-report.html",
+    csacyber=False,
 ):
     """
     Analyse recovered passwords and generate a report.
@@ -68,6 +70,9 @@ def analyse_passwords(
         mapped_lm_passwords:
             Recovered LM passwords.
 
+        csacyber:
+            Export SureFormat XML instead of JSON findings.
+
     Returns:
         dict:
             Password analysis results.
@@ -93,6 +98,15 @@ def analyse_passwords(
         )
         progress.advance(task_id)
 
+        if csacyber:
+            domain_name = results.get("domain_name")
+            if not isinstance(domain_name, str) or domain_name.strip().lower() in {
+                "", "none",
+            }:
+                raise ValueError(
+                    "SureFormat export requires a domain name in the domain password policy."
+                )
+
         progress.update(task_id, description="Building report")
         findings = build_findings_dict(results)
         report = {
@@ -116,10 +130,15 @@ def analyse_passwords(
         progress.update(task_id, description="Writing report files")
         report_path = Path(output_file).with_suffix(".html")
         report_path.write_text(render_html(report), encoding="utf-8")
-        write_findings("password-audit-findings.json", findings)
+        if csacyber:
+            findings_path = "password-audit-findings.xml"
+            write_sureformat(findings_path, domain_name.strip(), findings)
+        else:
+            findings_path = "password-audit-findings.json"
+            write_findings(findings_path, findings)
         progress.advance(task_id)
 
-    _print_console_summary(results, findings, report_path)
+    _print_console_summary(results, findings, report_path, findings_path)
 
     return results
 
@@ -177,7 +196,7 @@ def _build_analysis_results(
     )
 
 
-def _print_console_summary(results, findings, report_path):
+def _print_console_summary(results, findings, report_path, findings_path):
     """
     Display a rich-formatted console summary of the password audit results.
 
@@ -188,6 +207,9 @@ def _print_console_summary(results, findings, report_path):
             List of finding dictionaries.
         report_path:
             Path to the generated HTML report.
+
+        findings_path:
+            Path to the generated findings export.
     """
     console.print()
     console.print(Panel.fit(
@@ -255,8 +277,5 @@ def _print_console_summary(results, findings, report_path):
     console.print()
 
     console.print(Text(f"Report written to: {report_path}", style="green"))
-    console.print(Text(
-        "Findings written to: password-audit-findings.json",
-        style="green",
-    ))
+    console.print(Text(f"Findings written to: {findings_path}", style="green"))
     console.print()

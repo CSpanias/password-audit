@@ -38,8 +38,9 @@ By default, the command generates:
   **Copy Markdown** controls for the report narrative
 - `password-audit-findings.json`, the findings sidecar
 
-The offline HTML report is the only report format. The findings JSON sidecar
-is always written separately for integrations such as the SureCloud adapter.
+The offline HTML report is always generated. Pass `--csacyber` to write
+`password-audit-findings.xml` in SureFormat instead of the JSON sidecar.
+See [Reports](analyse.md#reports) for requirements and mapping limitations.
 
 ## Company-specific terms
 
@@ -101,6 +102,7 @@ the configured Hashcat potfile.
 | `-P`, `--pass-policy` | Domain password policy | `password-audit/domain-policy.txt` |
 | `-W`, `--company-words` | Optional curated terms added to the generated list | `./company-words.txt` when present; otherwise none |
 | `-E`, `--enabled-users` | Enabled account list | `password-audit/enabled-users.txt` |
+| `--csacyber` | Export SureFormat XML findings instead of JSON | Disabled |
 
 Paths are relative to the current working directory unless given as absolute
 paths. Use `password-audit audit --help` for the installed version's complete

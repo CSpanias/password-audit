@@ -19,7 +19,7 @@ It combines and extends the functionality of the following, now deprecated and d
 * Advanced standalone Hashcat campaign execution (`crack`)
 * LM password recovery support and candidate generation (`lm`)
 * Rich-formatted CLI help, analysis progress, summary tables, and an offline HTML dashboard
-* Self-contained HTML reports and a JSON findings sidecar for integrations
+* Self-contained HTML reports and JSON findings, with optional SureFormat XML via `--csacyber`
 * Experimental campaign statistics and duration estimation (`crack`)
 
 ## Installation
