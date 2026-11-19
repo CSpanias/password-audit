@@ -10,6 +10,8 @@ policies, account practices, and privileged-account protection.
 Collecting data for an Active Directory password audit typically requires
 access to a domain controller and a Domain Administrator account. The exact
 permissions and access depend on the collection method and environment.
+[ad-kit](https://github.com/CSpanias/ad-kit) can collect both datasets through
+its interactive `enum` command.
 
 The Password Audit workflow also requires an NTDS export, a BloodHound ZIP
 export, Hashcat, a campaign configuration, and the wordlists and rules
@@ -18,10 +20,12 @@ the tool's prerequisites.
 
 ## Workflow
 
-1. **Extract:** Collect an NTDS hash export and a BloodHound dataset. The
-   hashes provide the input for password recovery, while the domain data adds
-   account and policy context. For more on NTDS extraction methods, read
-   [Password Audits Part 1](https://mollysec.com/posts/password-audits-part-1/).
+1. **Extract:** Run `ad-kit enum` and select RustHound collection and the
+   NTDS dump to obtain a BloodHound ZIP and an NTDS hash export. The hashes
+   provide the input for password recovery, while the domain data adds
+   account and policy context. The [tools reference](tools.md#ad-kit-enumeration)
+   describes the collection commands; for more on NTDS extraction methods,
+   read [Password Audits Part 1](https://mollysec.com/posts/password-audits-part-1/).
 2. **Organise:** Prepare the hashes and supporting account data for the
    remaining stages. The [Organise guide](../organise.md) describes the
    generated datasets; [Password Audits Part 2](https://mollysec.com/posts/password-audits-part-2/)

@@ -1,53 +1,78 @@
 # Password audit tools
 
-These tools can be used throughout an Active Directory password
-assessment. Collection is performed separately from the Password Audit
-workflow; Password Audit does not launch SecretsDump or RustHound-CE.
+These tools can be used throughout an Active Directory password assessment.
+Use ad-kit to collect the inputs before running Password Audit; Password
+Audit does not launch the collection tools itself.
 
 | Tool | Purpose |
 | --- | --- |
+| [ad-kit](https://github.com/CSpanias/ad-kit) | Coordinates domain enumeration and collection of NTDS and BloodHound data. |
+| [NetExec](https://github.com/Pennyw0rth/NetExec) | Discovers domain information, validates accounts, and exports user and computer lists during enumeration. |
 | [Impacket SecretsDump](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py) | Extracts password hashes from Active Directory. |
 | [RustHound-CE](https://github.com/g0h4n/RustHound-CE) | Collects Active Directory relationship and policy data for BloodHound. |
 | [Hashcat](https://github.com/hashcat/hashcat) | Recovers plaintext passwords from extracted hashes. |
 | [Password Audit](https://github.com/CSpanias/password-audit) | Organises datasets, runs recovery campaigns, and analyses and reports on recovered credentials. |
 
-## SecretsDump
+## ad-kit enumeration
 
-[SecretsDump](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py)
-can retrieve domain credential data through the domain controller's directory
-replication interface. The following is an example collection command, run
-separately before Password Audit:
+Run ad-kit's interactive enumeration workflow:
 
 ```bash
-secretsdump.py -just-dc -outputfile company 'DOMAIN/username@dc'
+ad-kit enum
 ```
 
-Replace the domain, username, and domain controller with the appropriate
-values. SecretsDump prompts for a password when one is not supplied. The
-`-just-dc` option limits collection to domain data, and `-outputfile`
-specifies the output prefix. Use the resulting `company.ntds` hash export as
-the `--ntds` input; this is a text export, not the raw `NTDS.dit` database.
-For more on extraction methods, see
+Provide the domain controller IP and account details when prompted, then
+select **Run RustHound collection** and **Dump NTDS hashes**. The NTDS
+option is offered when Domain Admin validation is selected and requires a
+successfully validated Domain Admin account. ad-kit uses NetExec to discover
+the domain, validate accounts, and enumerate domain data before collection.
+
+The resulting NTDS export and BloodHound ZIP are written under `ad-kit/`.
+Supply the `.ntds` file to `--ntds` and the ZIP to `--bloodhound` in
+Password Audit. The NTDS file is a text hash export, not the raw `NTDS.dit`
+database. For the full workflow and prerequisites, see the
+[ad-kit enumeration guide](https://cspanias.github.io/ad-kit/commands/enum/).
+
+### SecretsDump
+
+For the NTDS dump, ad-kit invokes
+[SecretsDump](https://github.com/fortra/impacket/blob/master/examples/secretsdump.py)
+from its `ad-kit/` artefacts directory with this command shape:
+
+```text
+secretsdump.py <domain>/<da_user>:<da_password>@<dc_ip> \
+    -user-status -just-dc-ntlm -outputfile <domain>
+```
+
+`-user-status` includes account status in the export, which Password Audit
+uses to identify enabled accounts. `-just-dc-ntlm` limits the dump to domain
+NTLM-related hash data, and `-outputfile` uses the discovered domain as the
+output prefix, producing `<domain>.ntds`. SecretsDump uses the domain
+controller's directory replication interface for this collection. For more
+on extraction methods, see
 [Password Audits Part 1](https://mollysec.com/posts/password-audits-part-1/).
 
-## RustHound-CE
+### RustHound-CE
 
 [RustHound-CE](https://github.com/g0h4n/RustHound-CE) collects directory
 objects and relationships for BloodHound. Password Audit reads the resulting
 ZIP to identify supporting information such as enabled users, Domain
 Administrators, and domain password policy.
 
-For example, run the collector separately with:
+ad-kit runs the collector from its `ad-kit/` artefacts directory:
 
-```bash
-rusthound-ce -d DOMAIN.LOCAL -u USERNAME@DOMAIN.LOCAL -z
+```text
+rusthound-ce -d <domain> -u <ldap_user> -p <ldap_password> \
+    -i <dc_ip> -c LdapOnly -z
 ```
 
-The `-z` option creates a ZIP of the collected JSON files. Supply that
-archive as the `--bloodhound` input. Authentication and collection options
-depend on the environment; consult the
-[RustHound-CE documentation](https://github.com/g0h4n/RustHound-CE/blob/main/HELP.md)
-for details.
+It uses the validated standard user when available, otherwise the validated
+Domain Admin account. `-i` selects the domain controller, `-c LdapOnly`
+limits collection to LDAP, and `-z` creates the ZIP of JSON files. If LDAP
+requires stronger authentication, ad-kit retries with `--ldaps`.
+
+The commands above show what ad-kit runs; the placeholder credentials are
+supplied through its prompts rather than entered as commands.
 
 ## Hashcat
 
@@ -86,11 +111,14 @@ campaign together:
 
 ```bash
 password-audit audit \
-    --ntds company.ntds \
-    --bloodhound bloodhound.zip \
+    --ntds ad-kit/DOMAIN.LOCAL.ntds \
+    --bloodhound ad-kit/bloodhound.zip \
     --campaign campaign.json \
     --campaign-name internal-audit
 ```
+
+Replace the example paths with the actual `.ntds` and ZIP filenames produced
+by ad-kit.
 
 It organises the exports, runs the configured NTLM and, when applicable, LM
 phases, maps recovered passwords to accounts, and generates the analysis
