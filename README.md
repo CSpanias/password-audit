@@ -20,7 +20,7 @@ It combines and extends the functionality of the following, now deprecated and d
 * LM password recovery support and candidate generation (`lm`)
 * Rich-formatted CLI help, analysis progress, summary tables, and an offline HTML dashboard
 * Self-contained HTML reports and JSON findings, with optional SureFormat XML via `--csacyber`
-* Experimental campaign statistics and duration estimation (`crack`)
+* Local campaign statistics, opt-in summary sharing, and duration estimation (`crack`)
 
 ## Installation
 
@@ -77,6 +77,9 @@ password-audit audit \
     --campaign config.json \
     --campaign-name internal-audit
 ```
+
+Each audit keeps its datasets, campaign results and reports in a new
+timestamped directory under `password-audit/`.
 
 Company-specific password analysis is stronger with a curated wordlist. You
 can optionally create `./company-words.txt` with around 10–20 terms tailored

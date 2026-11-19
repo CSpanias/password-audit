@@ -9,6 +9,7 @@ results.
 import os
 import sys
 from datetime import datetime
+from uuid import uuid4
 
 from common.console import summary, warn
 from common.utils import human_time
@@ -16,6 +17,7 @@ from cracking.constants import DEFAULT_HASHCAT_DIR
 from cracking.hashcat import run_phase, validate_file
 from cracking.loopback import generate_loopback_wordlist
 from cracking.results import archive_results, load_results, write_results
+from cracking.statistics import describe_settings
 from cracking.validation import validate_campaign
 
 
@@ -23,7 +25,8 @@ def run_campaign(
         config,
         hash_file,
         campaign_name,
-        debug=False
+        debug=False,
+        session_prefix=None,
     ):
     """
     Execute a password recovery campaign.
@@ -45,6 +48,9 @@ def run_campaign(
 
         debug:
             Display verbose execution information.
+
+        session_prefix:
+            Optional prefix for Hashcat session names.
 
     Returns:
         dict:
@@ -90,6 +96,8 @@ def run_campaign(
     results = {
         "campaign": campaign_name,
         "hashMode": hash_mode,
+        "runId": str(uuid4()),
+        "hardwareProfile": parameters.get("hardwareProfile"),
         "hashDataset": hash_file,
         "started": datetime.now().isoformat(),
         "state": "running",
@@ -116,7 +124,7 @@ def run_campaign(
     for phase in enabled_phases:
 
         phase_number = phase_numbers[phase["id"]]
-        session_name = (f"{campaign_name}-{phase['id']}")
+        session_name = f"{session_prefix or campaign_name}-{phase['id']}"
 
         results["currentPhase"] = phase["id"]
         results["currentSession"] = session_name
@@ -202,7 +210,17 @@ def run_campaign(
                 "newRecovered": result["newRecovered"],
                 "totalRecovered": result["totalRecovered"],
                 "returnCode": result["returncode"],
-                "passwordsPerMinute": passwords_per_minute
+                "passwordsPerMinute": passwords_per_minute,
+                "statistics": {
+                    "id": str(uuid4()),
+                    "type": phase["type"],
+                    "wordlist": phase.get("statistics", {}).get("wordlist"),
+                    "rule": phase.get("statistics", {}).get("rule"),
+                    "hasRule": bool(phase.get("rule")),
+                    "position": phase_number,
+                    "settings": describe_settings(flags),
+                    "recovery": result.get("recoveryDetails"),
+                },
             }
         )
 

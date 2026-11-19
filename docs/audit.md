@@ -41,7 +41,9 @@ password-audit audit \
     --campaign-name internal-audit
 ```
 
-By default, the command generates:
+Each audit creates a unique timestamped directory under `password-audit/` and
+prints its path. Organised datasets, campaign results and reports for that run
+are kept together there. By default, the reports are:
 
 - `password-audit-report.html`, an offline dashboard with filters and
   Copy Markdown controls used for reporting (always generated)
@@ -49,7 +51,7 @@ By default, the command generates:
 
 ## Company-specific terms
 
-The organiser generates a basic `password-audit/company-words.txt` list from
+The organiser generates a basic `password-audit/<run-id>/company-words.txt` list from
 domain and account data. It does not infer a realistic company vocabulary.
 
 For more useful organisation-specific password analysis, you can optionally
@@ -85,7 +87,7 @@ when reassessing the same company.
 The audit runs the following stages:
 
 1. Validate the NTDS file, BloodHound export, and campaign configuration.
-2. Organise the datasets into `password-audit/`, including NTLM hashes,
+2. Organise the datasets into the run directory, including NTLM hashes,
    enabled users, Domain Administrators, and policy data.
 3. Recover NTLM passwords using the enabled NTLM, and optionally LM, campaign phases.
 4. Map and analyse recovered passwords.
@@ -93,7 +95,8 @@ The audit runs the following stages:
 
 If LM hashes are present but no LM campaign is configured, the LM cracking
 stage is skipped. Existing LM recoveries can still be mapped when available in
-the configured Hashcat potfile.
+the NTLM campaign's Hashcat potfile. When an LM campaign is configured, its
+Hashcat binary and potfile are used to reconstruct LM recoveries.
 
 ## Options
 
@@ -108,22 +111,25 @@ option list.
 | `-C`, `--campaign` | Campaign JSON file | Required |
 | `-G`, `--campaign-name` | Identifier used for campaign results | Required |
 | `-F`, `--filter` | Comma-separated usernames to exclude | None |
-| `-M`, `--mapped-ntlm-passwords` | Recovered NTLM password mapping file | `password-audit/mapped-ntlm-passwords.txt` |
-| `-U`, `--lm-users` | LM-hash account list | `password-audit/lm-users.txt` |
-| `-L`, `--mapped-lm-passwords` | Recovered LM password mapping file | `password-audit/mapped-lm-passwords.txt` |
-| `-D`, `--domain-admins` | Domain Administrator account list | `password-audit/domain-admins.txt` |
-| `-P`, `--pass-policy` | Domain password policy | `password-audit/domain-policy.txt` |
+| `-M`, `--mapped-ntlm-passwords` | Recovered NTLM password mapping file | `password-audit/<run-id>/mapped-ntlm-passwords.txt` |
+| `-U`, `--lm-users` | LM-hash account list | `password-audit/<run-id>/lm-users.txt` |
+| `-L`, `--mapped-lm-passwords` | Recovered LM password mapping file | `password-audit/<run-id>/mapped-lm-passwords.txt` |
+| `-D`, `--domain-admins` | Domain Administrator account list | `password-audit/<run-id>/domain-admins.txt` |
+| `-P`, `--pass-policy` | Domain password policy | `password-audit/<run-id>/domain-policy.txt` |
 | `-W`, `--company-words` | Optional curated terms added to the generated list | `./company-words.txt` when present; otherwise none |
-| `-E`, `--enabled-users` | Enabled account list | `password-audit/enabled-users.txt` |
+| `-E`, `--enabled-users` | Enabled account list | `password-audit/<run-id>/enabled-users.txt` |
 | `--csacyber` | Export SureFormat XML findings instead of JSON | Disabled |
 
 ## Outputs and advanced standalone commands
 
-Organised datasets and campaign result files are written under
-`password-audit/`.
+Organised datasets, campaign result files and reports are written under
+`password-audit/<run-id>/`. Existing files in `password-audit/` or previous
+run directories are not used as defaults. Hashcat potfiles remain in their
+configured directories and may contain recoveries from previous campaigns.
 
-An interrupted campaign cannot be resumed; use a new campaign name to start 
-from its first phase. Campaign history is also archived in
+An interrupted campaign cannot be resumed; a new audit starts in a new run
+directory from its first phase. Hashcat session names include the run ID.
+Campaign history is also archived in
 `~/.password-audit/history/` for the estimate and statistics commands.
 
 Hashcat phases display live progress, recovered counts, speed, and ETA. Status

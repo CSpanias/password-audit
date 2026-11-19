@@ -86,11 +86,12 @@ A phase with a rule has the following command shape:
 ```text
 <hashcat_binary> -m <hash_mode> <hash_file> <wordlist> \
     --potfile-path <potfile> -r <rule> <configured_flags> \
-    --status --status-timer=5 --session <campaign_name>-<phase_id>
+    --status --status-timer=5 --session <campaign_name>-<run_id>-<phase_id>
 ```
 
 The `-r` arguments are omitted when a wordlist phase has no rule. NTLM uses
-mode `1000` and LM uses mode `3000`.
+mode `1000` and LM uses mode `3000`. Standalone `crack run` sessions omit the
+run ID.
 
 `password-audit` executes phases in order, tracks their progress and recovery 
 statistics, and uses the potfile to map recoveries. A loopback phase builds a 

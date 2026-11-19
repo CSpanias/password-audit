@@ -67,6 +67,8 @@ def organise_dataset(
         hash_lookup=hash_lookup,
     )
 
+    results["domain_admins_available"] = bool(users_json and groups_json)
+
     export_results(results, output_dir)
 
     return results

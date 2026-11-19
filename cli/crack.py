@@ -78,4 +78,4 @@ def show_cracking_statistics(args):
         None
     """
 
-    print_phase_statistics()
+    print_phase_statistics(args)

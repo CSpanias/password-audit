@@ -1,16 +1,23 @@
 """
 Campaign duration estimation.
 
-This module estimates campaign duration based on
-historical execution statistics.
+This module estimates campaign duration from compatible local runs.
 """
+
+from statistics import median
 
 from rich.table import Table
 
 from common.console import console
 from common.utils import human_time
 from cracking.parsers import load_campaign
-from cracking.statistics import calculate_phase_statistics
+from cracking.statistics import (
+    attack_identity,
+    describe_settings,
+    local_statistics,
+    phase_identity,
+)
+from cracking.validation import validate_campaign
 
 
 def estimate_campaign(path):
@@ -27,7 +34,7 @@ def estimate_campaign(path):
     """
 
     campaigns = load_campaign(path)
-    statistics = calculate_phase_statistics()
+    history, _ = local_statistics()
 
     results = {}
 
@@ -43,11 +50,25 @@ def estimate_campaign(path):
             if phase.get("enabled", True)
         ]
 
-        for phase in enabled_phases:
+        if enabled_phases:
+            validate_campaign(campaign)
+        parameters = campaign["parameters"]
+        profile = parameters.get("hardwareProfile")
+        settings = describe_settings(parameters.get("flags", []))
 
+        for position, phase in enumerate(enabled_phases, start=1):
             phase_id = phase["id"]
+            identity = phase_identity(parameters["hashMode"], phase, settings)
+            samples = [
+                record["duration"]
+                for record, previous_profile, fingerprint in history
+                if profile and profile == previous_profile
+                and fingerprint == settings["localFingerprint"]
+                and identity is not None and identity == attack_identity(record)
+                and record["position"] == position
+            ]
 
-            if phase_id not in statistics:
+            if not samples:
 
                 estimates.append(
                     {
@@ -60,13 +81,13 @@ def estimate_campaign(path):
                 incomplete = True
                 continue
 
-            duration = statistics[phase_id]["averageDuration"]
+            duration = median(samples)
 
             estimates.append(
                 {
                     "id": phase_id,
                     "duration": duration,
-                    "runs": statistics[phase_id]["runs"],
+                    "runs": len(samples),
                 }
             )
 
@@ -121,11 +142,19 @@ def print_campaign_estimate(args):
         table.add_row(
             "Estimated Total",
             (
-                f"{human_time(campaign['total_duration'])}"
-                f"{' (partial)' if campaign['incomplete'] else ''}"
+                "Unknown" if campaign["incomplete"] and not any(
+                    phase["duration"] is not None for phase in campaign["estimates"]
+                ) else (
+                    f"{human_time(campaign['total_duration'])}"
+                    f"{' (partial)' if campaign['incomplete'] else ''}"
+                )
             ),
             "-",
         )
 
         console.print(table)
+        print(
+            "Local medians require the same hardware profile, attack labels, "
+            "settings and phase position. Duration can still vary with prior recoveries."
+        )
         print()

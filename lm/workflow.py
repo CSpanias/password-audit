@@ -17,6 +17,7 @@ def map_lm_passwords(
     potfile,
     lm_results,
     output_dir,
+    username_filter=None,
 ):
     """
     Map recovered LM passwords back to user accounts.
@@ -35,6 +36,9 @@ def map_lm_passwords(
         output_dir:
             Output directory.
 
+        username_filter:
+            Comma-separated usernames to exclude.
+
     Returns:
         dict:
             Generated results.
@@ -51,6 +55,7 @@ def map_lm_passwords(
 
     results = build_results(
         entries=entries,
+        username_filter=username_filter,
         hash_lookup=load_potfile(potfile),
         lm_lookup=load_lm_results(lm_results),
     )
@@ -106,6 +111,13 @@ def generate_lm_results(
         capture_output=True,
         text=True,
     )
+
+    if result.returncode != 0:
+        detail = result.stderr.strip()
+        message = f"Hashcat LM --show failed (exit code {result.returncode})"
+        if detail:
+            message += f": {detail}"
+        raise RuntimeError(message)
 
     output_file = Path(output_file)
 

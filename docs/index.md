@@ -34,8 +34,8 @@ and reminds you if the curated file appears unchanged since the previous run.
 This list is optional; the generated terms are still used without it. See
 [Company-specific terms](audit.md#company-specific-terms) for more details.
 
-The audit writes `password-audit-report.html` and the structured
-`password-audit-findings.json` sidecar. 
+Each audit writes its datasets, `password-audit-report.html` and structured
+`password-audit-findings.json` sidecar to a new directory under `password-audit/`.
 
 !!! info "CSACyber & SureCloud Format"
     Add `--csacyber` to export findings as SureFormat XML instead of JSON; see 
@@ -45,7 +45,7 @@ The audit writes `password-audit-report.html` and the structured
 
 The `audit` command orchestrates the following stages:
 
-1. Organise NTDS and BloodHound data into `password-audit/` artefacts.
+1. Organise NTDS and BloodHound data into a new `password-audit/<run-id>/` directory.
 2. Recover NTLM (and optionally LM) passwords using the enabled phases in the 
    NTLM campaign.
 3. Map recovered passwords to accounts.
@@ -61,7 +61,7 @@ They remain available independently; for a typical assessment, start with
 | Guide | Use it to |
 | --- | --- |
 | [Organise](organise.md) | Prepare NTDS/BloodHound artefacts or map an existing Hashcat potfile. |
-| [Crack](crack.md) | Run a single campaign or inspect experimental campaign statistics. |
+| [Crack](crack.md) | Run a single campaign or review and share campaign statistics. |
 | [Analyse](analyse.md) | Re-analyse mapped passwords and regenerate reports. |
 | [LM](lm.md) | Map recovered LM passwords or generate LM-derived candidates. |
 

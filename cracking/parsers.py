@@ -13,6 +13,36 @@ import re
 # Hashcat Output Parsing
 # ---------------------------------------------------------------------------
 
+def parse_recovery_details(output):
+    """Return Hashcat's final unique-digest recovery counts, if available."""
+    matches = []
+    for line in output.splitlines():
+        if line.startswith("Recovered"):
+            match = re.search(
+                r"Recovered\.+:\s+([\d,]+)/([\d,]+).*?,\s+([\d,]+)/([\d,]+)",
+                line,
+            )
+            if match:
+                matches.append(tuple(int(value.replace(",", "")) for value in match.groups()))
+
+    if not matches:
+        return None
+
+    total_recovered, total_hashes, new_recovered, new_total = matches[-1]
+    if (
+        total_hashes != new_total
+        or new_recovered > total_recovered
+        or total_recovered > total_hashes
+    ):
+        return None
+    return {
+        "newRecovered": new_recovered,
+        "totalRecovered": total_recovered,
+        "totalHashes": total_hashes,
+        "remainingBefore": total_hashes - total_recovered + new_recovered,
+    }
+
+
 def parse_recovery_statistics(output):
     """
     Extract password recovery statistics from Hashcat output.
@@ -31,26 +61,9 @@ def parse_recovery_statistics(output):
             total number of recovered passwords.
     """
 
-    matches = []
-
-    for line in output.splitlines():
-
-        if line.startswith("Recovered"):
-
-            match = re.search(
-                r"Recovered\.+:\s+(\d+)/(\d+).*?,\s+(\d+)/(\d+)",
-                line
-            )
-
-            if match:
-                matches.append(match.groups())
-
-    if matches:
-
-        total_recovered = int(matches[-1][0])
-        new_recovered = int(matches[-1][2])
-
-        return new_recovered, total_recovered
+    details = parse_recovery_details(output)
+    if details is not None:
+        return details["newRecovered"], details["totalRecovered"]
 
     return 0, 0
 

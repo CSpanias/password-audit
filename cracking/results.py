@@ -94,7 +94,7 @@ def archive_results(results):
 
     archive_file = (
         HISTORY_DIR
-        / f"{timestamp}-{results['campaign']}.json"
+        / f"{timestamp}-{results['campaign']}-{results['runId']}.json"
     )
 
     _write_json_atomically(archive_file, results)

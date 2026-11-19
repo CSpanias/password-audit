@@ -41,6 +41,7 @@ def analyse_passwords(
     mapped_lm_passwords=None,
     output_file="password-audit-report.html",
     csacyber=False,
+    findings_file=None,
 ):
     """
     Analyse recovered passwords and generate a report.
@@ -72,6 +73,9 @@ def analyse_passwords(
 
         csacyber:
             Export SureFormat XML instead of JSON findings.
+
+        findings_file:
+            Optional findings output path.
 
     Returns:
         dict:
@@ -131,10 +135,10 @@ def analyse_passwords(
         report_path = Path(output_file).with_suffix(".html")
         report_path.write_text(render_html(report), encoding="utf-8")
         if csacyber:
-            findings_path = "password-audit-findings.xml"
+            findings_path = findings_file or "password-audit-findings.xml"
             write_sureformat(findings_path, domain_name.strip(), findings)
         else:
-            findings_path = "password-audit-findings.json"
+            findings_path = findings_file or "password-audit-findings.json"
             write_findings(findings_path, findings)
         progress.advance(task_id)
 

@@ -22,7 +22,7 @@ from rich.progress import (
 )
 
 from common.console import console, info, warn
-from cracking.parsers import parse_recovery_statistics
+from cracking.parsers import parse_recovery_details
 
 HASHCAT_STATUS_INTERVAL = 5
 
@@ -357,7 +357,9 @@ def run_phase(
 
     output = "".join(output)
 
-    new_recovered, total_recovered = parse_recovery_statistics(output)
+    recovery_details = parse_recovery_details(output)
+    new_recovered = recovery_details["newRecovered"] if recovery_details else 0
+    total_recovered = recovery_details["totalRecovered"] if recovery_details else 0
     duration = time.time() - start
 
     print()
@@ -368,5 +370,6 @@ def run_phase(
         "returncode": process.returncode,
         "output": output,
         "newRecovered": new_recovered,
-        "totalRecovered": total_recovered
+        "totalRecovered": total_recovered,
+        "recoveryDetails": recovery_details,
     }

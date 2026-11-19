@@ -124,35 +124,30 @@ def main():
     optional_audit_parser.add_argument(
         "-M",
         "--mapped-ntlm-passwords",
-        default="./password-audit/mapped-ntlm-passwords.txt",
         help="Recovered NTLM passwords",
     )
 
     optional_audit_parser.add_argument(
             "-U",
             "--lm-users",
-            default="./password-audit/lm-users.txt",
             help="Accounts storing LM password hashes",
         )
 
     optional_audit_parser.add_argument(
             "-L",
             "--mapped-lm-passwords",
-            default="./password-audit/mapped-lm-passwords.txt",
             help="Recovered LM passwords",
         )
 
     optional_audit_parser.add_argument(
         "-D",
         "--domain-admins",
-        default="./password-audit/domain-admins.txt",
         help="Domain Admin account list",
     )
 
     optional_audit_parser.add_argument(
         "-P",
         "--pass-policy",
-        default="./password-audit/domain-policy.txt",
         help="Domain password policy",
     )
 
@@ -169,7 +164,6 @@ def main():
     optional_audit_parser.add_argument(
         "-E",
         "--enabled-users",
-        default="./password-audit/enabled-users.txt",
         help="Enabled user accounts list",
     )
 
@@ -260,8 +254,7 @@ def main():
         "crack",
         help="Advanced standalone password recovery campaigns",
         description=(
-            "Advanced standalone Hashcat campaigns. Campaign estimates and "
-            "historical statistics are experimental; use audit for the "
+            "Advanced standalone Hashcat campaigns. Use audit for the "
             "recommended end-to-end workflow."
         ),
         epilog="""
@@ -291,7 +284,7 @@ def main():
 
     estimate_parser = crack_subparsers.add_parser(
         "estimate",
-        help="Experimental campaign duration estimate",
+        help="Estimate duration from comparable local campaigns",
         description=(
             "Estimate the duration of a cracking campaign "
             "before execution using the supplied configuration "
@@ -393,11 +386,12 @@ def main():
 
     stats_parser = crack_subparsers.add_parser(
         "stats",
-        help="Experimental historical cracking statistics",
+        help="Review or share cracking statistics",
         description=(
             "Display statistics for previously executed "
             "cracking campaigns, including password recovery "
-            "counts, attack performance, and campaign history."
+            "counts, attack performance, and campaign history. Exports are "
+            "local files for review; no data is uploaded."
         ),
         formatter_class=CustomFormatter,
         epilog=dedent("""
@@ -405,6 +399,16 @@ def main():
 
             password-audit crack stats
         """)
+    )
+
+    stats_sharing = stats_parser.add_mutually_exclusive_group()
+    stats_sharing.add_argument(
+        "--export", dest="export_file", metavar="FILE",
+        help="Export local statistics to a new JSON file for review",
+    )
+    stats_sharing.add_argument(
+        "--import", dest="import_file", metavar="FILE",
+        help="Import a shared statistics JSON file",
     )
 
     stats_parser.set_defaults(

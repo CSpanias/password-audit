@@ -317,6 +317,11 @@ class HtmlReportTests(unittest.TestCase):
 
         parsed = run_audit_workflow.call_args.args[0]
         self.assertIsNone(parsed.company_words)
+        for field in (
+            "mapped_ntlm_passwords", "mapped_lm_passwords", "lm_users",
+            "domain_admins", "pass_policy", "enabled_users",
+        ):
+            self.assertIsNone(getattr(parsed, field))
         self.assertFalse(hasattr(parsed, "resume"))
         self.assertFalse(hasattr(parsed, "report_formats"))
 
@@ -372,9 +377,25 @@ class HtmlReportTests(unittest.TestCase):
                 campaign_file="config.json",
                 campaign_name="internal-password-audit",
                 csacyber=True,
+                mapped_ntlm_passwords="custom-ntlm.txt",
+                mapped_lm_passwords="custom-lm.txt",
+                lm_users="custom-lm-users.txt",
+                domain_admins="custom-admins.txt",
+                pass_policy="custom-policy.txt",
+                enabled_users="custom-users.txt",
             )
 
-            self.assertTrue(values["analyse_passwords"].call_args.kwargs["csacyber"])
+            analysis_args = values["analyse_passwords"].call_args.kwargs
+            self.assertTrue(analysis_args["csacyber"])
+            for field, path in (
+                ("mapped_ntlm_passwords", "custom-ntlm.txt"),
+                ("mapped_lm_passwords", "custom-lm.txt"),
+                ("lm_users", "custom-lm-users.txt"),
+                ("domain_admins", "custom-admins.txt"),
+                ("pass_policy", "custom-policy.txt"),
+                ("enabled_users", "custom-users.txt"),
+            ):
+                self.assertEqual(analysis_args[field], path)
             self.assertNotIn(
                 "resume",
                 values["run_campaign"].call_args.kwargs,
@@ -385,11 +406,15 @@ class HtmlReportTests(unittest.TestCase):
             )
             self.assertEqual(
                 values["analyse_passwords"].call_args.kwargs["company_words"],
-                [Path(directory) / "password-audit" / "company-words.txt"],
+                [result["outputDir"] / "company-words.txt"],
             )
             self.assertEqual(
                 result["report"],
-                Path(directory) / "password-audit-report.html",
+                result["outputDir"] / "password-audit-report.html",
+            )
+            self.assertEqual(
+                values["analyse_passwords"].call_args.kwargs["findings_file"],
+                result["outputDir"] / "password-audit-findings.xml",
             )
 
     def test_cli_help_uses_rich_formatter_and_keeps_examples(self):

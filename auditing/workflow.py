@@ -8,6 +8,8 @@ cracking, and analysis modules.
 
 
 import os
+import tempfile
+from datetime import datetime
 from pathlib import Path
 
 from rich.table import Table
@@ -84,13 +86,6 @@ def run_audit(
             Workflow execution results.
     """
 
-    output_dir = Path("password-audit")
-
-    output_dir.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
     #---------------------------------------------------------------------------
     # Pre-flight checks
     #---------------------------------------------------------------------------
@@ -116,6 +111,13 @@ def run_audit(
 
         return
 
+    output_root = Path("password-audit")
+    output_root.mkdir(parents=True, exist_ok=True)
+    output_dir = Path(tempfile.mkdtemp(
+        prefix=datetime.now().strftime("%Y%m%d-%H%M%S-"),
+        dir=output_root,
+    ))
+    ok(f"Audit output directory: {output_dir}")
 
     #---------------------------------------------------------------------------
     # Organising
@@ -130,6 +132,12 @@ def run_audit(
             bloodhound_file=bloodhound_file,
         )
 
+    if (
+        organise_results.get("domain_admins_available")
+        and not organise_results["domain_admins"]
+    ):
+        (output_dir / "domain-admins.txt").write_text("", encoding="utf-8")
+
     campaign = load_campaign(campaign_file)
 
     parameters = campaign["ntlm"]["parameters"]
@@ -142,11 +150,6 @@ def run_audit(
     hashcat_potfile = os.path.join(
         hashcat_dir,
         "hashcat.potfile",
-    )
-
-    hashcat_binary = parameters.get(
-        "hashcatBinary",
-        os.path.join(hashcat_dir, "hashcat.exe"),
     )
 
     # Summary output
@@ -201,6 +204,7 @@ def run_audit(
             config=ntlm_campaign,
             hash_file=output_dir / "ntlm-hashes.txt",
             campaign_name=campaign_name,
+            session_prefix=f"{campaign_name}-{output_dir.name}",
         )
 
         print_summary(campaign_results)
@@ -216,6 +220,7 @@ def run_audit(
             config=lm_campaign,
             hash_file=output_dir / "lm-hashes.txt",
             campaign_name=f"{campaign_name}-lm",
+            session_prefix=f"{campaign_name}-lm-{output_dir.name}",
         )
 
         print_summary(lm_campaign_results)
@@ -248,11 +253,17 @@ def run_audit(
     if organise_results["lm_hashes"]:
 
         lm_results_file = (output_dir / "lm-results.txt")
+        lm_parameters = lm_campaign["parameters"] if lm_campaign else parameters
+        lm_hashcat_dir = lm_parameters.get("hashcatDir", DEFAULT_HASHCAT_DIR)
+        lm_hashcat_binary = lm_parameters.get(
+            "hashcatBinary", os.path.join(lm_hashcat_dir, "hashcat.exe")
+        )
+        lm_hashcat_potfile = os.path.join(lm_hashcat_dir, "hashcat.potfile")
 
         generate_lm_results(
-            hashcat_binary=hashcat_binary,
+            hashcat_binary=lm_hashcat_binary,
             hash_file=output_dir / "lm-hashes.txt",
-            potfile=hashcat_potfile,
+            potfile=lm_hashcat_potfile,
             output_file=lm_results_file,
         )
 
@@ -261,6 +272,7 @@ def run_audit(
             potfile=hashcat_potfile,
             lm_results=lm_results_file,
             output_dir=output_dir,
+            username_filter=username_filter,
         )
 
     # Create table
@@ -307,7 +319,7 @@ def run_audit(
     company_word_sources, company_word_snapshot = prepare_company_word_sources(
         generated_path=output_dir / "company-words.txt",
         custom_path=company_words,
-        state_path=output_dir / ".company-words-state.json",
+        state_path=output_root / ".company-words-state.json",
     )
 
     pass_policy = (
@@ -338,16 +350,20 @@ def run_audit(
         enabled_users=enabled_users,
         lm_users=lm_users,
         mapped_lm_passwords=mapped_lm_passwords,
+        output_file=output_dir / "password-audit-report.html",
+        findings_file=output_dir / (
+            "password-audit-findings.xml" if csacyber else "password-audit-findings.json"
+        ),
         csacyber=csacyber,
     )
 
     if company_word_snapshot:
         save_company_word_snapshot(
-            output_dir / ".company-words-state.json",
+            output_root / ".company-words-state.json",
             company_word_snapshot,
         )
 
-    report_file = Path("password-audit-report.html")
+    report_file = output_dir / "password-audit-report.html"
     
     total_recovered = 0
 
@@ -362,4 +378,5 @@ def run_audit(
         "mappedPasswords": mapped_ntlm_passwords,
         "recoveredPasswords": total_recovered,
         "report": report_file,
+        "outputDir": output_dir,
     }

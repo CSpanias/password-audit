@@ -60,6 +60,7 @@ def validate_audit_inputs(
     if not ntlm_enabled:
         warn("NTLM campaign contains no enabled phases")
 
+    lm_enabled = False
     if "lm" in campaign:
 
         ok("LM campaign validated")
