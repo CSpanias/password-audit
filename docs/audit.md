@@ -18,9 +18,9 @@ configuration.
 See [Campaign configuration](crack.md#campaign-configuration) for the JSON
 structure. The repository includes
 [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json)
-and
-[dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config-small.json)
-examples.
+and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json)
+campaign examples for `audit`. Adjust paths, wordlists, rules, and Hashcat
+flags for your system.
 
 ## Run an audit
 

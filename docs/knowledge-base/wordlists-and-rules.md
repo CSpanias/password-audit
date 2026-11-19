@@ -3,8 +3,7 @@
 Wordlists supply candidate passwords; rules mutate those candidates to cover
 additional patterns. Neither a single wordlist nor a single ruleset is best
 for every environment. Select combinations according to the assessment,
-available hardware, and time budget, and use only data you are authorised to
-assess.
+available hardware, and time budget.
 
 ## Wordlists
 

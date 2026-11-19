@@ -30,9 +30,10 @@ The audit writes `password-audit-report.html` and the structured
 `password-audit-findings.json` sidecar.
 
 !!! tip "Example campaigns"
-    The repository includes [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json),
+    The repository includes
+    [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json),
     [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json),
-    and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config-small.json)
+    and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json)
     campaign examples.
 
 ## End-to-end workflow

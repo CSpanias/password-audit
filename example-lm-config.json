@@ -1,60 +1,45 @@
 {
   "lm": {
     "parameters": {
-        "hashcatDir": "/mnt/c/tools/hashcat",
-        "hashMode": "3000",
-        "flags": [
-          "-O",
-          "-w", "3",
-          "-d", "1",
-          "--status",
-          "--status-timer", "300"
-        ]
-    },
-
-      "phases": [
-        {
-          "id": "rockyou",
-          "type": "wordlist",
-          "wordlist": "rockyou.txt",
-          "rule": "",
-          "enabled": true
-        },
-        {
-          "id": "rockyou-rule",
-          "type": "wordlist",
-          "wordlist": "rockyou.txt",
-          "rule": "best66.rule",
-          "enabled": true
-        },
-        {
-          "id": "hashmob-rule",
-          "type": "wordlist",
-          "wordlist": "hashmob.net_2026-06-07.combined.txt",
-          "rule": "OneRuleToRuleThemStill.rule",
-          "enabled": true
-        },
-        {
-          "id": "weakpass-rule",
-          "type": "wordlist",
-          "wordlist": "weakpass_4a.txt",
-          "rule": "OneRuleToRuleThemStill.rule",
-          "enabled": false
-        },
-        {
-          "id": "rockyou2024-rule",
-          "type": "wordlist",
-          "wordlist": "rockyou2024.txt",
-          "rule": "OneRuleToRuleThemStill.rule",
-          "enabled": false
-        },
-        {
-          "id": "loopback-rule",
-          "type": "loopback",
-          "wordlist": "loopback.txt",
-          "rule": "OneRuleToRuleThemStill.rule",
-          "enabled": true
-        }
+      "hashcatDir": "/mnt/c/tools/hashcat",
+      "hashMode": "3000",
+      "flags": [
+        "-O",
+        "-w", "3",
+        "-d", "1",
+        "--status",
+        "--status-timer", "300"
       ]
+    },
+    "phases": [
+      {
+        "id": "company-words-hashmob50k-rule",
+        "type": "wordlist",
+        "wordlist": "company-words.txt",
+        "rule": "hashmob.50k.rule",
+        "enabled": true
+      },
+      {
+        "id": "weakpass-4a-policy-hashmob50k-rule",
+        "type": "wordlist",
+        "wordlist": "weakpass_4a.policy.txt",
+        "rule": "hashmob.50k.rule",
+        "enabled": true
+      },
+      {
+        "id": "hashmob-full-hashmob50k-rule",
+        "type": "wordlist",
+        "wordlist": "hashmob.net_2026-06-07.combined.txt",
+        "rule": "hashmob.50k.rule",
+        "enabled": true
+      },
+      {
+        "id": "loopback-hashmob50k-rule",
+        "type": "loopback",
+        "wordlist": "loopback.txt",
+        "rule": "hashmob.50k.rule",
+        "enabled": true
+      }
+    ]
   }
 }

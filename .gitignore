@@ -24,6 +24,6 @@ site/
 !docs/images/
 !docs/knowledge-base/
 !docs/knowledge-base/*.md
-!example-lm-config.json
 !example-ntlm-config.json
-!example-dual-config-small.json
+!example-lm-config.json
+!example-dual-config.json

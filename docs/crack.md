@@ -75,11 +75,13 @@ Hashcat potfile. It is skipped when no passwords are available. Campaign
 configuration is validated before execution; invalid or duplicate phase
 definitions are rejected.
 
-!!! tip "Example files"
-    The repository includes [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json),
-    [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json),
-    and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config-small.json)
-    campaign examples.
+!!! tip "Example campaigns"
+    The repository includes separate
+    [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json)
+    and [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json)
+    campaign examples. Adjust paths, wordlists, rules, and Hashcat flags for
+    your system. For combined recovery with `audit`, use the
+    [dual campaign example](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json).
 
 ## Run a campaign
 

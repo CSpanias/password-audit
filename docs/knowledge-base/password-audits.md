@@ -1,17 +1,15 @@
 # Password audits
 
 A password audit assesses the strength and reuse of passwords in an
-environment by analysing authorised password-hash datasets and recovered
+environment by analysing password-hash datasets and recovered
 credentials. The results can help prioritise improvements to password
 policies, account practices, and privileged-account protection.
 
 ## Prerequisites
 
-Agree the scope and obtain explicit authorisation before collecting or
-analysing credentials. An internal Active Directory assessment typically
-requires access to a domain controller and a Domain Administrator account
-for collection. The exact permissions and access depend on the collection
-method and environment; use appropriately authorised access.
+Collecting data for an Active Directory password audit typically requires
+access to a domain controller and a Domain Administrator account. The exact
+permissions and access depend on the collection method and environment.
 
 The Password Audit workflow also requires an NTDS export, a BloodHound ZIP
 export, Hashcat, a campaign configuration, and the wordlists and rules
@@ -37,9 +35,3 @@ the tool's prerequisites.
 The recommended [`audit`](../audit.md) command orchestrates organisation,
 recovery, mapping, and analysis after the data has been collected. The
 [tools reference](tools.md) covers the tools used throughout the process.
-
-## Handling sensitive data
-
-NTDS exports, password hashes, potfiles, recovered passwords, and reports are
-sensitive assessment data. Restrict access, protect them in transit and at
-rest, and follow the engagement's retention and disposal requirements.

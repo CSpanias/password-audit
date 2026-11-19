@@ -1,6 +1,6 @@
 # Password audit tools
 
-These tools can be used throughout an authorised Active Directory password
+These tools can be used throughout an Active Directory password
 assessment. Collection is performed separately from the Password Audit
 workflow.
 
