@@ -43,8 +43,19 @@ upstream versions.
 
 ## Using combinations
 
-Start with a suitable wordlist and ruleset, measure recovery and runtime,
-then add complementary combinations where the expected benefit justifies the
-cost. Avoid unnecessarily repeating candidates across phases. For campaign
-syntax and wordlist/rule path resolution, see
-[Campaign configuration](../crack.md#campaign-configuration).
+Build a campaign in stages, starting with combinations likely to produce
+useful results quickly. For example, a small ruleset such as `best66` can
+provide a baseline before applying a larger ruleset to selected wordlists.
+Organisation-specific terms can also make useful candidates when included in
+a campaign wordlist.
+
+Review the new recoveries and runtime for each phase before adding larger
+combinations. Wordlists and rules can overlap, so a phase that takes
+substantially longer may add little beyond earlier phases. A loopback phase
+can apply rules to passwords already in the Hashcat potfile, using observed
+password patterns to generate further candidates.
+
+Configure phases in the order you want them to run, with wordlist and rule
+files available in the Hashcat directories specified by the campaign. See
+[Campaign configuration](../crack.md#campaign-configuration) for the
+format, path resolution, and loopback behaviour.

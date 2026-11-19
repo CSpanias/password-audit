@@ -48,7 +48,7 @@ nav:
   - Getting Started:
       - Installation: installation.md
   - Modules:
-      - End-to-end Audit (Recommended): audit.md
+      - Audit (Recommended): audit.md
       - Organise: organise.md
       - Crack: crack.md
       - Analyse: analyse.md

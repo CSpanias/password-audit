@@ -18,19 +18,23 @@ the tool's prerequisites.
 
 ## Workflow
 
-1. **Extract** NTDS hashes and collect domain data. See
+1. **Extract:** Collect an NTDS hash export and a BloodHound dataset. The
+   hashes provide the input for password recovery, while the domain data adds
+   account and policy context. For more on NTDS extraction methods, read
    [Password Audits Part 1](https://mollysec.com/posts/password-audits-part-1/).
-2. **Organise** the extracted datasets for recovery and analysis. See
-   [Password Audits Part 2](https://mollysec.com/posts/password-audits-part-2/)
-   and [Organise datasets](../organise.md).
-3. **Recover** passwords from the available hashes using an appropriate
-   campaign. See
-   [Password Audits Part 3](https://mollysec.com/posts/password-audits-part-3/),
-   [Crack campaigns](../crack.md), and
-   [Wordlists and rules](wordlists-and-rules.md).
-4. **Analyse** the recovered credentials and report the results. See
-   [Password Audits Part 4](https://mollysec.com/posts/password-audits-part-4/)
-   and [Analyse](../analyse.md).
+2. **Organise:** Prepare the hashes and supporting account data for the
+   remaining stages. The [Organise guide](../organise.md) describes the
+   generated datasets; [Password Audits Part 2](https://mollysec.com/posts/password-audits-part-2/)
+   provides further context on organising the data.
+3. **Recover:** Run a campaign against the hashes using wordlists and rules
+   suited to the assessment. The [Crack guide](../crack.md) covers campaign
+   configuration, and [Wordlists and rules](wordlists-and-rules.md) discusses
+   candidate selection. For more context on password recovery, read
+   [Password Audits Part 3](https://mollysec.com/posts/password-audits-part-3/).
+4. **Analyse:** Map recovered passwords back to accounts, review patterns and
+   weaknesses, and report the results. The [Analyse guide](../analyse.md)
+   describes the findings and reports; [Password Audits Part 4](https://mollysec.com/posts/password-audits-part-4/)
+   provides further context on analysis.
 
 The recommended [`audit`](../audit.md) command orchestrates organisation,
 recovery, mapping, and analysis after the data has been collected. The
