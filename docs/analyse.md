@@ -68,11 +68,12 @@ The default report is `password-audit-report.html`; `--output` can set a
 different name. Its extension is always `.html`. The findings sidecar
 `password-audit-findings.json` is written in every case.
 
-The HTML report is self-contained and works offline. Its narrative sections
-include **Copy Markdown** buttons. The remediation section also contains
-References under a level-three heading; the references are included when that
-section is copied as Markdown links. In the HTML report, each reference is a
-clickable link.
+The HTML report is self-contained and works offline. Each narrative section's
+**Copy Markdown** button copies its content without the section title.
+**Copy All Markdown** copies all available narrative sections with their
+titles. Remediation references are included as Markdown links under a
+level-three References heading in both copy options. In the HTML report,
+each reference is a clickable link.
 
 The findings sidecar has this shape:
 

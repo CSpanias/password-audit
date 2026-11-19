@@ -148,23 +148,13 @@ def render_html(report):
       return list;
     }}
 
-    for (const [key, title] of narrativeSections) {{
-      const sectionText = report[key];
-      const references = key === "remediation_guidance" ? report.references : "";
-      if (!sectionText && !references) continue;
-
-      const markdown = [`# ${{title}}`, "", String(sectionText || "")];
-      if (references) markdown.push("", "### References", "", String(references));
-
-      const section = document.createElement("details");
-      const heading = document.createElement("summary");
-      heading.textContent = title;
+    function createCopyControls(label, markdown) {{
       const controls = document.createElement("div");
       controls.className = "copy-controls";
       const copyButton = document.createElement("button");
       copyButton.className = "copy-button";
       copyButton.type = "button";
-      copyButton.textContent = "Copy Markdown";
+      copyButton.textContent = label;
       const copyStatus = document.createElement("span");
       copyStatus.className = "copy-status";
       copyStatus.setAttribute("aria-live", "polite");
@@ -172,7 +162,7 @@ def render_html(report):
         copyButton.disabled = true;
         copyStatus.textContent = "Copying...";
         try {{
-          await copyMarkdown(markdown.join("\\n"));
+          await copyMarkdown(markdown);
           copyStatus.textContent = "Copied Markdown to clipboard.";
         }} catch {{
           copyStatus.textContent = "Copy failed. Select and copy the text manually.";
@@ -181,11 +171,29 @@ def render_html(report):
         }}
       }});
       controls.append(copyButton, copyStatus);
+      return controls;
+    }}
+
+    const allMarkdown = [];
+    for (const [key, title] of narrativeSections) {{
+      const sectionText = report[key];
+      const references = key === "remediation_guidance" ? report.references : "";
+      if (!sectionText && !references) continue;
+
+      const markdown = [];
+      if (sectionText) markdown.push(String(sectionText));
+      if (references) markdown.push(`### References\\n\\n${{references}}`);
+      const sectionMarkdown = markdown.join("\\n\\n");
+      allMarkdown.push(`# ${{title}}\\n\\n${{sectionMarkdown}}`);
+
+      const section = document.createElement("details");
+      const heading = document.createElement("summary");
+      heading.textContent = title;
 
       const text = document.createElement("p");
       text.className = "text";
       text.textContent = sectionText || "";
-      section.append(heading, controls, text);
+      section.append(heading, createCopyControls("Copy Markdown", sectionMarkdown), text);
 
       if (references) {{
         const referenceHeading = document.createElement("h3");
@@ -193,6 +201,9 @@ def render_html(report):
         section.append(referenceHeading, renderReferenceList(references));
       }}
       narrative.append(section);
+    }}
+    if (allMarkdown.length) {{
+      narrative.prepend(createCopyControls("Copy All Markdown", allMarkdown.join("\\n\\n")));
     }}
 
     function addOptions(id, values) {{
