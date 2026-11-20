@@ -27,9 +27,10 @@ to enabled, unfiltered NTDS accounts using account names and RIDs within the
 source domain SID, regardless of NTDS prefix. Analysis compares those
 identities with recovered passwords.
 
-The separate DA check uses the BloodHound-derived DA list and compares account
-names without domain prefixes. See [Organise](../organise.md) for the
-domain-matching and confirmation process.
+The DA finding uses both matched DA group membership and the separate
+BloodHound-derived DA list, which compares account names without domain
+prefixes. See [Organise](../organise.md) for the domain-matching and
+confirmation process.
 
 ## Why it matters
 
@@ -39,10 +40,10 @@ have a greater impact than recovery of an ordinary user's password.
 
 ## Interpreting results
 
-The broader privileged finding includes DAs, so the two findings overlap. An
-account in multiple selected groups is counted once in that finding. The groups
-represent a defined subset of privileged access, not all administrative rights
-or attack paths.
+Recovered DA credentials appear only in the DA finding. The privileged-account
+finding covers other accounts in selected groups, including Enterprise Admins,
+and counts an account in multiple groups once. The groups represent a defined
+subset of privileged access, not all administrative rights or attack paths.
 
 Missing group objects, unresolved members, or ambiguous account matches can
 make coverage incomplete. DA name matching also ignores domain prefixes, so

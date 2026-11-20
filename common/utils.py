@@ -59,6 +59,19 @@ def num_to_word(value):
     return f"{value:,}"
 
 
+def format_count_warnings(warnings, sentence_start=False):
+    """Format leading single-digit warning counts without changing the source data."""
+    formatted = []
+    for warning in warnings:
+        count, separator, rest = warning.partition(" ")
+        if len(count) == 1 and count in "123456789" and separator:
+            word = num_to_word(int(count))
+            warning = f"{word.capitalize() if sentence_start else word} {rest}"
+        formatted.append(warning)
+        sentence_start = True
+    return " ".join(formatted)
+
+
 # ---------------------------------------------------------------------------
 # Username Handling
 # ---------------------------------------------------------------------------

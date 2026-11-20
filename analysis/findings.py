@@ -41,6 +41,14 @@ def _load_yaml_definitions():
     return definitions
 
 
+def _other_privileged_count(results):
+    admin_names = {account["username"].casefold() for account in results["admins"]["accounts"]}
+    return sum(
+        account["username"].casefold() not in admin_names
+        for account in results["privileged_users"]["accounts"]
+    )
+
+
 # Mapping of finding definition keys to the results key that gates them.
 # Each entry: (results_key, count_accessor)
 # count_accessor is a callable that extracts the count from results[results_key]
@@ -48,7 +56,7 @@ _FINDING_GATES = {
     "password-audit": ("total_passwords", lambda r: r["total_passwords"]),
     "password-statistics": (None, lambda r: True),
     "domain-admin-passwords": ("admins", lambda r: r["admins"]["count"]),
-    "privileged-passwords": ("privileged_users", lambda r: r["privileged_users"]["count"]),
+    "privileged-passwords": ("privileged_users", _other_privileged_count),
     "lm-hashes-present": ("lm_hashes", lambda r: r["lm_hashes"]["count"]),
     "domain-admin-lm-hashes": ("lm_admins", lambda r: r["lm_admins"]["count"]),
     "non-compliant-passwords": ("password_length", lambda r: r["password_length"]["count"]),

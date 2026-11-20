@@ -21,6 +21,7 @@ from auditing.company_words import (
 )
 from auditing.validation import has_enabled_phases, validate_audit_inputs
 from common.console import confirm_ntds_domain, console, info, ok, warn
+from common.utils import format_count_warnings
 from cracking.constants import DEFAULT_HASHCAT_DIR
 from cracking.parsers import load_campaign
 from cracking.reporting import print_summary
@@ -208,9 +209,8 @@ def run_audit(
     console.print(table)
     console.print("Privileged group counts: matched enabled NTDS accounts.")
     if privileged["status"] != "available":
-        warn(f"Privileged group coverage is {privileged['status']}:")
-        for warning in privileged["warnings"]:
-            warn(warning)
+        warn(f"Privileged group coverage is {privileged['status']}: "
+             + format_count_warnings(privileged["warnings"]))
     print()
 
     #---------------------------------------------------------------------------

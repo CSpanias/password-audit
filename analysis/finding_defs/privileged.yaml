@@ -23,7 +23,7 @@ privileged-passwords:
     Reset the affected account passwords, review privileged group membership,
     and protect privileged identities with strong, unique credentials and
     appropriate additional controls.
-  description_template: "A total of {count} account{s} in selected privileged groups {were_was} found with recovered passwords."
+  description_template: "A total of {count} account{s} in selected privileged groups, excluding Domain Administrators, {were_was} found with recovered passwords."
 
 domain-admin-lm-hashes:
   id: DOMAIN-ADMIN-002

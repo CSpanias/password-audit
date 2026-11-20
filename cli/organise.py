@@ -10,6 +10,7 @@ from rich.table import Table
 from pathlib import Path
 
 from common.console import confirm_ntds_domain, console, info, ok, warn
+from common.utils import format_count_warnings
 from ntds.workflow import organise_dataset
 
 
@@ -109,9 +110,9 @@ def run_ntds_organiser(args):
 
     console.print(table)
     if results["privileged_users"]["status"] != "available":
-        warn(f"Privileged group coverage is {results['privileged_users']['status']}:")
-        for warning in results["privileged_users"]["warnings"]:
-            warn(warning)
+        privileged = results["privileged_users"]
+        warn(f"Privileged group coverage is {privileged['status']}: "
+             + format_count_warnings(privileged["warnings"]))
 
     print()
     ok(f"Output written to: {output_dir}")

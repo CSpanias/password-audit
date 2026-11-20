@@ -28,6 +28,7 @@ from analysis.remediation_guidance import remediation_guidance, remediation_refe
 from analysis.results import build_results
 from analysis.technical_commentary import technical_commentary
 from common.console import console, warn
+from common.utils import format_count_warnings
 from reports.html import render_html
 from reports.json import write_findings
 from reports.sureformat import write_sureformat
@@ -178,7 +179,7 @@ def _build_analysis_results(
     company_words = load_company_words(company_words)
     privileged_users = load_privileged_users(privileged_users)
     if privileged_users["status"] != "available":
-        warn("Privileged group analysis is incomplete: " + " ".join(
+        warn("Privileged group analysis is incomplete: " + format_count_warnings(
             privileged_users["warnings"]
         ))
 

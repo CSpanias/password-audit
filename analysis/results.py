@@ -27,6 +27,7 @@ from analysis.analysis import (
     password_length_distribution,
     lm_hashes
 )
+from ntds.analysis import privileged_group_name
 
 # TODO:
 # Consider replacing the nested results dictionary with
@@ -142,12 +143,6 @@ def build_results(
 
     results = {}
 
-    # Privileged accounts
-    results["admins"] = {
-        "accounts": admins,
-        "count": len(admins)
-    }
-
     privileged_users = privileged_users or {
         "status": "unavailable",
         "accounts": [],
@@ -168,6 +163,27 @@ def build_results(
                 f"Conflicting recovered passwords for privileged account: {account['username']}"
             )
         recovered_privileged[username] = {**account, "groups": memberships[username]}
+
+    admin_names = {account["username"].casefold() for account in admins}
+    admin_names.update(
+        username for username, account in recovered_privileged.items()
+        if any(privileged_group_name(group) == "Domain Admins" for group in account["groups"])
+    )
+    recovered_admins = {}
+    for account in ntlm_mapped_passwords:
+        username = account["username"].casefold()
+        if username not in admin_names:
+            continue
+        previous = recovered_admins.get(username)
+        if previous and previous["password"] != account["password"]:
+            raise ValueError(
+                f"Conflicting recovered passwords for Domain Administrator account: {account['username']}"
+            )
+        recovered_admins[username] = account
+    results["admins"] = {
+        "accounts": list(recovered_admins.values()),
+        "count": len(recovered_admins),
+    }
     results["privileged_users"] = {
         "accounts": list(recovered_privileged.values()),
         "count": len(recovered_privileged),

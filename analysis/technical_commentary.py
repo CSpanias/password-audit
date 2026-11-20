@@ -9,7 +9,7 @@ security guidance.
 
 from collections import Counter
 
-from common.utils import mask_password, natural_join, num_to_word
+from common.utils import format_count_warnings, mask_password, natural_join, num_to_word
 from ntds.analysis import privileged_group_name
 
 
@@ -19,18 +19,6 @@ def _display_username(username):
 
 def _display_group(group):
     return privileged_group_name(group).replace("|", "\\|")
-
-
-def _display_privileged_warnings(warnings, sentence_start=False):
-    formatted = []
-    for warning in warnings:
-        count, separator, rest = warning.partition(" ")
-        if len(count) == 1 and count in "123456789" and separator:
-            word = num_to_word(int(count))
-            warning = f"{word.capitalize() if sentence_start else word} {rest}"
-        formatted.append(warning)
-        sentence_start = True
-    return " ".join(formatted)
 
 
 def _high_privileged_accounts(results):
@@ -141,14 +129,14 @@ def commentary_privileged_users(results):
         lines.append(
             "Privileged group coverage"
             + (f" for the confirmed domain {domain['name']}" if domain else "")
-            + " is incomplete: " + _display_privileged_warnings(privileged["warnings"])
+            + " is incomplete: " + format_count_warnings(privileged["warnings"])
             + " Some affected accounts may be missing."
             + (f" {membership_note}" if privileged["accounts"] else "")
         )
     elif privileged["status"] == "unavailable":
         lines.append(
             "Privileged group analysis is unavailable. "
-            + _display_privileged_warnings(privileged["warnings"], sentence_start=True)
+            + format_count_warnings(privileged["warnings"], sentence_start=True)
         )
     elif domain:
         lines.append(f"Privileged group membership was assessed for the confirmed domain {domain['name']}.")

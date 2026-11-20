@@ -14,6 +14,7 @@ from rich.console import Console
 import auditing.validation as validation
 import auditing.workflow as audit
 import cli.main as cli_main
+import cli.organise as organise_cli
 from lm.workflow import generate_lm_results, map_lm_passwords
 from ntds.constants import LM_EMPTY
 from ntds.analysis import extract_domain_admins, extract_privileged_users
@@ -661,7 +662,11 @@ class AuditReliabilityTests(unittest.TestCase):
         ]
         for status, members, warnings in (
             ("available", accounts, []),
-            ("incomplete", accounts, ["A group member could not be resolved."]),
+            ("incomplete", accounts, [
+                "1 group member object could not be resolved because its record was not found "
+                "in the BloodHound users or groups data.",
+                "2 groups lacked membership data.",
+            ]),
             ("unavailable", [], ["BloodHound data is unavailable."]),
         ):
             with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:
@@ -699,9 +704,41 @@ class AuditReliabilityTests(unittest.TestCase):
                     self.assertNotIn("Administrators", summary)
                 if status == "available":
                     warning.assert_not_called()
+                elif status == "incomplete":
+                    warning.assert_called_once_with(
+                        "Privileged group coverage is incomplete: one group member object could "
+                        "not be resolved because its record was not found in the BloodHound "
+                        "users or groups data. Two groups lacked membership data."
+                    )
                 else:
-                    warning.assert_any_call(f"Privileged group coverage is {status}:")
-                    warning.assert_any_call(warnings[0])
+                    warning.assert_called_once_with(
+                        f"Privileged group coverage is {status}: {warnings[0]}"
+                    )
+
+    def test_organise_summary_combines_privileged_warnings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            results = {
+                "filtered_users": [], "enabled": [], "disabled": [], "enabled_users": [],
+                "machines": [], "ntlm_hashes": [], "lm_hashes": [], "domain_admins": [],
+                "company_words": [], "mapped_ntlm_passwords": [],
+                "privileged_users": {
+                    "status": "incomplete",
+                    "warnings": ["9 groups lacked membership data.",
+                                 "10 groups had conflicting names or domains."],
+                },
+            }
+            args = SimpleNamespace(output=directory, ntds="input", bloodhound="bh",
+                                   potfile=None, filter=None)
+            with (
+                patch.object(organise_cli, "organise_dataset", return_value=results),
+                patch.object(organise_cli, "console", Console(file=io.StringIO())),
+                patch.object(organise_cli, "warn") as warning,
+            ):
+                organise_cli.run_ntds_organiser(args)
+            warning.assert_called_once_with(
+                "Privileged group coverage is incomplete: nine groups lacked membership data. "
+                "10 groups had conflicting names or domains."
+            )
 
     def test_missing_and_invalid_privileged_data_are_not_clean_results(self):
         self.assertEqual(extract_privileged_users(None, None, [])["status"], "unavailable")

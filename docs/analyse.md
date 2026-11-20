@@ -76,10 +76,11 @@ The selected groups are DAs, Enterprise Admins, Schema Admins,
 Administrators, DNSAdmins, Account Operators, Backup Operators, Server
 Operators, Cert Publishers, and Exchange Windows Permissions.
 
-Group membership does not represent every privileged account or attack path, 
-and the impact of membership depends on the environment. The broader finding 
-includes DAs as well as the separate DA finding; an account in multiple groups 
-is counted once and its groups are listed together. The existing DA LM analysis 
+Group membership does not represent every privileged account or attack path,
+and the impact of membership depends on the environment. Recovered DA
+credentials appear in the DA finding only; the privileged-account finding
+counts other accounts in selected groups, including Enterprise Admins.
+An account in multiple groups is counted once. The existing DA LM analysis
 remains separate.
 
 In the technical commentary, recovered Domain and Enterprise Administrator

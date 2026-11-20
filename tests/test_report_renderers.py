@@ -541,6 +541,55 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("one Domain or Enterprise Administrator account had a password", text)
         self.assertEqual(text.count("| admin |"), 1)
 
+    def test_domain_admin_and_other_privileged_findings_do_not_overlap(self):
+        da = {"username": "EXAMPLE\\admin", "groups": [
+            "Domain Admins (example.test)", "Administrators (example.test)",
+        ]}
+        enterprise = {"username": "EXAMPLE\\enterprise", "groups": ["Enterprise Admins"]}
+        operator = {"username": "EXAMPLE\\operator", "groups": ["Backup Operators"]}
+        other_admin_name = {"username": "OTHER\\admin", "groups": ["Backup Operators"]}
+        cases = [
+            ([da], ["admin"], "one", None),
+            ([da, enterprise, operator], ["admin"], "one", "two"),
+            ([da, other_admin_name, enterprise], [], "one", "two"),
+            ([enterprise], [], None, "one"),
+        ]
+        for accounts, legacy_admins, expected_da, expected_other in cases:
+            with self.subTest(accounts=accounts, legacy_admins=legacy_admins):
+                mapped = [{"username": a["username"], "password": "Password123!"}
+                          for a in accounts]
+                results = build_results(
+                    ntlm_mapped_passwords=mapped + mapped[:1],
+                    domain_admins=legacy_admins, company_words=[], minimum_length=14,
+                    enabled_users=[a["username"] for a in accounts],
+                    domain_name="example.test", lm_users=[], lm_mapped_passwords=[],
+                    privileged_users={"status": "available", "warnings": [], "accounts": accounts},
+                    ntds_users=[],
+                )
+                findings = {f["id"]: f for f in build_findings_dict(results)}
+                for finding_id, expected in (
+                    ("DOMAIN-ADMIN-001", expected_da),
+                    ("PRIV-ACCOUNT-001", expected_other),
+                ):
+                    if expected is None:
+                        self.assertNotIn(finding_id, findings)
+                    else:
+                        self.assertIn(f"A total of {expected} ", findings[finding_id]["description"])
+                if expected_da:
+                    self.assertNotIn("no recovered Domain Administrator passwords",
+                                     executive_summary(results))
+                self.assertEqual(len(results["privileged_users"]["accounts"]), len(accounts))
+
+        legacy_only = build_results(
+            ntlm_mapped_passwords=[{"username": "EXAMPLE\\admin", "password": "Password123!"}],
+            domain_admins=["admin"], company_words=[], minimum_length=14,
+            enabled_users=["EXAMPLE\\admin"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[], ntds_users=[],
+        )
+        ids = {finding["id"] for finding in build_findings_dict(legacy_only)}
+        self.assertIn("DOMAIN-ADMIN-001", ids)
+        self.assertNotIn("PRIV-ACCOUNT-001", ids)
+
     def test_commentary_headings_are_conditional_and_reuse_sections_are_ordered(self):
         results = build_results(
             ntlm_mapped_passwords=[
@@ -724,6 +773,18 @@ class HtmlReportTests(unittest.TestCase):
                 self.assertIn("Backup Operators", report)
                 self.assertIn("Pa********3!", report)
                 self.assertNotIn("Di**********3!", report)
+                (root / "privileged.json").write_text(json.dumps({
+                    "status": "available",
+                    "accounts": [{"username": "EXAMPLE\\alice",
+                                  "groups": ["Domain Admins", "Backup Operators"]}],
+                    "warnings": [],
+                }), encoding="utf-8")
+                with patch.object(sys, "argv", args):
+                    cli_main.main()
+                findings = json.loads((root / "password-audit-findings.json").read_text())
+                ids = {finding["id"] for finding in findings["findings"]}
+                self.assertIn("DOMAIN-ADMIN-001", ids)
+                self.assertNotIn("PRIV-ACCOUNT-001", ids)
                 (root / "privileged.json").write_text(json.dumps({
                     "status": "incomplete",
                     "accounts": [{"username": "EXAMPLE\\alice", "groups": ["Backup Operators"]}],
