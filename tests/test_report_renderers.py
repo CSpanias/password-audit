@@ -420,6 +420,7 @@ class HtmlReportTests(unittest.TestCase):
                     "ntlm_hashes": [],
                     "lm_hashes": [],
                     "domain_admins": [],
+                    "privileged_users": {"status": "available", "accounts": []},
                 },
                 {"mapped_ntlm_passwords": []},
             ]

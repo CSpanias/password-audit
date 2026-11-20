@@ -1,4 +1,5 @@
 import json
+import io
 import os
 import sys
 import tempfile
@@ -8,13 +9,14 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import DEFAULT, patch
 from types import SimpleNamespace
+from rich.console import Console
 
 import auditing.validation as validation
 import auditing.workflow as audit
 import cli.main as cli_main
 from lm.workflow import generate_lm_results, map_lm_passwords
 from ntds.constants import LM_EMPTY
-from ntds.analysis import extract_privileged_users
+from ntds.analysis import extract_domain_admins, extract_privileged_users
 from ntds.results import build_results as build_ntds_results
 from ntds.workflow import organise_dataset
 from analysis.parsers import load_privileged_users
@@ -222,16 +224,16 @@ class AuditReliabilityTests(unittest.TestCase):
                   samaccountname="DNSAdmins", domain="example.test"),
         ]}
         entries = [
-            {"username": "EXAMPLE\\alice", "rid": "1000"},
-            {"username": "EXAMPLE\\bob", "rid": "1001"},
+            {"username": "example.test\\alice", "rid": "1000"},
+            {"username": "example.test\\bob", "rid": "1001"},
             {"username": "same", "rid": "1002"},
         ]
         result = extract_privileged_users(users, groups, entries)
         self.assertEqual(result["status"], "incomplete")
         self.assertEqual(result["accounts"], [
-            {"username": "EXAMPLE\\alice",
+            {"username": "example.test\\alice",
              "groups": ["Backup Operators", "DNSAdmins (example.test)"]},
-            {"username": "EXAMPLE\\bob", "groups": ["Backup Operators"]},
+            {"username": "example.test\\bob", "groups": ["Backup Operators"]},
         ])
         self.assertTrue(any("could not be resolved" in w for w in result["warnings"]))
         self.assertTrue(any("ambiguous" in w for w in result["warnings"]))
@@ -248,6 +250,159 @@ class AuditReliabilityTests(unittest.TestCase):
         del groups["data"][2]["Members"]
         missing_members = extract_privileged_users(users, groups, entries)
         self.assertTrue(any("lacked membership data" in w for w in missing_members["warnings"]))
+
+    def test_prefixed_builtin_groups_merge_duplicate_memberships(self):
+        domain_sid = "S-1-5-21-1-2-3"
+        builtin = "EXAMPLE.TEST-S-1-5-32-544"
+        users = {"data": [
+            {"ObjectIdentifier": f"{domain_sid}-{rid}", "Properties": {
+                "samaccountname": name, "domain": "example.test",
+            }}
+            for name, rid in (("alice", 1000), ("bob", 1001))
+        ]}
+        groups = {"data": [
+            {"ObjectIdentifier": f"{domain_sid}-512", "Members": []},
+            {"ObjectIdentifier": builtin, "Properties": {"name": "Administrators"},
+             "Members": [{"ObjectIdentifier": f"{domain_sid}-1000", "ObjectType": "User"}]},
+            {"ObjectIdentifier": builtin, "Properties": {"name": "ADMINISTRATORS@EXAMPLE.TEST",
+                                                          "domain": "EXAMPLE.TEST"},
+             "Members": [{"ObjectIdentifier": f"{domain_sid}-1001", "ObjectType": "User"}]},
+        ]}
+        entries = [
+            {"username": f"example.test\\{name}", "rid": str(rid)}
+            for name, rid in (("alice", 1000), ("bob", 1001))
+        ]
+        result = extract_privileged_users(users, groups, entries)
+        self.assertEqual(result["status"], "available")
+        self.assertEqual(result["accounts"], [
+            {"username": "example.test\\alice", "groups": ["Administrators (example.test)"]},
+            {"username": "example.test\\bob", "groups": ["Administrators (example.test)"]},
+        ])
+
+    def test_upn_suffix_matches_only_when_confirmed_for_the_account(self):
+        domain_sid = "S-1-5-21-1-2-3"
+        users = {"data": [
+            {"ObjectIdentifier": f"{domain_sid}-1000", "Properties": {
+                "samaccountname": "alice", "domain": "local.example.test",
+                "userprincipalname": "alice@external.example",
+            }},
+            {"ObjectIdentifier": f"{domain_sid}-1001", "Properties": {
+                "samaccountname": "bob", "domain": "local.example.test",
+            }},
+        ]}
+        members = [
+            {"ObjectIdentifier": f"{domain_sid}-{rid}", "ObjectType": "User"}
+            for rid in (1000, 1001)
+        ]
+        groups = {"data": [
+            {"ObjectIdentifier": f"{domain_sid}-512", "Members": members},
+            {"ObjectIdentifier": "S-1-5-32-544", "Members": []},
+        ]}
+        entries = [
+            {"username": "external.example\\alice", "rid": "1000"},
+            {"username": "external.example\\bob", "rid": "1001"},
+        ]
+        result = extract_privileged_users(users, groups, entries)
+        self.assertEqual(result["status"], "incomplete")
+        self.assertEqual(result["accounts"], [
+            {"username": "external.example\\alice", "groups": ["Domain Admins"]},
+        ])
+        self.assertIn("1 NTDS account(s)", result["warnings"][0])
+
+        entries[0]["username"] = "local\\alice"
+        result = extract_privileged_users(users, groups, entries)
+        self.assertEqual(result["accounts"], [])
+        self.assertIn("2 NTDS account(s)", result["warnings"][0])
+
+    def test_prefixed_builtin_groups_remain_separate_between_domains(self):
+        users = {"data": [
+            {"ObjectIdentifier": f"S-1-5-21-{domain}-2-3-1000", "Properties": {
+                "samaccountname": "alice", "domain": f"domain{domain}.test",
+            }}
+            for domain in (1, 4)
+        ]}
+        groups = {"data": [
+            {"ObjectIdentifier": "S-1-5-21-1-2-3-512", "Members": []},
+            *[
+                {"ObjectIdentifier": f"DOMAIN{domain}.TEST-S-1-5-32-544",
+                 "Properties": {"domain": f"domain{domain}.test"},
+                 "Members": [{"ObjectIdentifier": f"S-1-5-21-{domain}-2-3-1000",
+                              "ObjectType": "User"}]}
+                for domain in (1, 4)
+            ],
+        ]}
+        entries = [
+            {"username": f"domain{domain}.test\\alice", "rid": "1000"}
+            for domain in (1, 4)
+        ]
+        result = extract_privileged_users(users, groups, entries)
+        self.assertEqual(result["status"], "available")
+        self.assertEqual(result["accounts"], [
+            {"username": "domain1.test\\alice", "groups": ["Administrators (domain1.test)"]},
+            {"username": "domain4.test\\alice", "groups": ["Administrators (domain4.test)"]},
+        ])
+
+    def test_domain_admins_preserve_members_from_duplicate_groups(self):
+        domain_sid = "S-1-5-21-1-2-3"
+        users = {"data": [
+            {"ObjectIdentifier": f"{domain_sid}-{rid}",
+             "Properties": {"samaccountname": name}}
+            for name, rid in (("alice", 1000), ("bob", 1001))
+        ]}
+        groups = {"data": [
+            {"ObjectIdentifier": f"{domain_sid}-512",
+             "Members": [{"ObjectIdentifier": f"{domain_sid}-{rid}", "ObjectType": "User"}]}
+            for rid in (1000, 1001)
+        ]}
+        self.assertEqual(extract_domain_admins(users, groups), ["alice", "bob"])
+
+    def test_matching_upn_suffix_remains_ambiguous_across_domains(self):
+        users = {"data": [
+            {"ObjectIdentifier": f"S-1-5-21-{domain}-2-3-1000", "Properties": {
+                "samaccountname": "alice", "domain": f"domain{domain}.test",
+                "userprincipalname": "alice@shared.test",
+            }}
+            for domain in (1, 4)
+        ]}
+        groups = {"data": [
+            {"ObjectIdentifier": "S-1-5-21-1-2-3-512", "Members": []},
+            {"ObjectIdentifier": "S-1-5-32-544", "Members": []},
+        ]}
+        result = extract_privileged_users(
+            users, groups, [{"username": "shared.test\\alice", "rid": "1000"}],
+        )
+        self.assertEqual(result["status"], "incomplete")
+        self.assertEqual(result["accounts"], [])
+        self.assertTrue(any("ambiguous" in warning for warning in result["warnings"]))
+
+    def test_audit_summary_shows_privileged_coverage(self):
+        for status, accounts, expected in (
+            ("available", [{"username": "alice", "groups": ["Domain Admins"]}], "1"),
+            ("incomplete", [{"username": "alice", "groups": ["Domain Admins"]}], "1 (incomplete)"),
+            ("unavailable", [], "Unavailable"),
+        ):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:
+                output = io.StringIO()
+                organised = {
+                    "filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
+                    "lm_hashes": [], "domain_admins": [],
+                    "privileged_users": {"status": status, "accounts": accounts},
+                }
+                with (
+                    patch.object(audit, "validate_audit_inputs"),
+                    patch.object(audit, "create_audit_directory", return_value=Path(directory)),
+                    patch.object(audit, "organise_dataset", return_value=organised),
+                    patch.object(audit, "load_campaign", return_value={
+                        "ntlm": {"parameters": {}, "phases": []},
+                    }),
+                    patch.object(audit, "has_enabled_phases", side_effect=RuntimeError("stop")),
+                    patch.object(audit, "console", Console(file=output, width=100)),
+                ):
+                    with self.assertRaisesRegex(RuntimeError, "stop"):
+                        audit.run_audit("company.ntds", "bloodhound.zip", "campaign.json", "test")
+                summary = output.getvalue()
+                row = next(line for line in summary.splitlines() if "Privileged Accounts" in line)
+                self.assertIn(expected, row)
 
     def test_missing_and_invalid_privileged_data_are_not_clean_results(self):
         self.assertEqual(extract_privileged_users(None, None, [])["status"], "unavailable")
@@ -381,7 +536,8 @@ class AuditReliabilityTests(unittest.TestCase):
         ) as mocks, patch.object(audit, "Path", side_effect=lambda p: Path(directory) / p):
             mocks["organise_dataset"].side_effect = [
                 {"filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
-                 "lm_hashes": ["hash"], "domain_admins": []},
+                 "lm_hashes": ["hash"], "domain_admins": [],
+                 "privileged_users": {"status": "available", "accounts": []}},
                 {"mapped_ntlm_passwords": []},
             ]
             mocks["load_campaign"].return_value = {"ntlm": {"parameters": {}, "phases": []}}
@@ -405,7 +561,8 @@ class AuditReliabilityTests(unittest.TestCase):
         ) as mocks, patch.object(audit, "Path", side_effect=lambda p: Path(directory) / p):
             mocks["organise_dataset"].side_effect = [
                 {"filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
-                 "lm_hashes": ["hash"], "domain_admins": []},
+                 "lm_hashes": ["hash"], "domain_admins": [],
+                 "privileged_users": {"status": "available", "accounts": []}},
                 {"mapped_ntlm_passwords": []},
             ]
             mocks["load_campaign"].return_value = {
@@ -436,7 +593,8 @@ class AuditReliabilityTests(unittest.TestCase):
         ) as mocks, patch.object(audit, "Path", side_effect=lambda p: Path(directory) / p):
             mocks["organise_dataset"].side_effect = [
                 {"filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
-                 "lm_hashes": ["hash"], "domain_admins": []},
+                 "lm_hashes": ["hash"], "domain_admins": [],
+                 "privileged_users": {"status": "available", "accounts": []}},
                 {"mapped_ntlm_passwords": []},
             ]
             mocks["load_campaign"].return_value = {"ntlm": {"parameters": {}, "phases": [{}]}}

@@ -189,6 +189,13 @@ def run_audit(
         table.add_row("LM Hashes", str(len(organise_results["lm_hashes"])))
 
     table.add_row("Domain Admins", str(len(organise_results["domain_admins"])))
+    privileged = organise_results["privileged_users"]
+    privileged_count = str(len(privileged["accounts"]))
+    if privileged["status"] == "incomplete":
+        privileged_count += " (incomplete)"
+    elif privileged["status"] == "unavailable":
+        privileged_count = "Unavailable"
+    table.add_row("Privileged Accounts", privileged_count)
 
     console.print(table)
     print()

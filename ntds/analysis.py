@@ -33,6 +33,13 @@ PRIVILEGED_GROUP_NAMES = {
 }
 
 
+def _group_records(groups_data):
+    groups = defaultdict(list)
+    for group in groups_data["data"]:
+        groups[group["ObjectIdentifier"].upper()].append(group)
+    return groups
+
+
 def extract_privileged_users(users_data, groups_data, entries):
     """Resolve selected group memberships and match them to NTDS accounts."""
     if users_data is None or groups_data is None:
@@ -41,7 +48,7 @@ def extract_privileged_users(users_data, groups_data, entries):
         ]}
 
     users = {user["ObjectIdentifier"].upper(): user for user in users_data["data"]}
-    groups = {group["ObjectIdentifier"].upper(): group for group in groups_data["data"]}
+    groups = _group_records(groups_data)
     primary_groups = defaultdict(list)
     candidates = defaultdict(list)
     for sid, user in users.items():
@@ -63,13 +70,14 @@ def extract_privileged_users(users_data, groups_data, entries):
             name = username
         matching = candidates.get((name.casefold(), str(entry["rid"])), [])
         if separator and matching:
-            domain_matches = [
-                sid for sid in matching
-                if prefix.casefold() in {
-                    users[sid].get("Properties", {}).get("domain", "").casefold(),
-                    users[sid].get("Properties", {}).get("domain", "").split(".", 1)[0].casefold(),
-                }
-            ]
+            domain_matches = []
+            for sid in matching:
+                properties = users[sid].get("Properties", {})
+                domain = properties.get("domain") or ""
+                upn = properties.get("userprincipalname") or ""
+                upn_suffix = upn.rpartition("@")[2] if "@" in upn else ""
+                if prefix.casefold() in {domain.casefold(), upn_suffix.casefold()}:
+                    domain_matches.append(sid)
             if not domain_matches:
                 unconfirmed_domains += 1
             matching = domain_matches
@@ -90,18 +98,37 @@ def extract_privileged_users(users_data, groups_data, entries):
     unresolved = set()
     missing_members = set()
     selected_groups = set()
-    for sid, group in groups.items():
-        props = group.get("Properties", {})
-        raw_name = props.get("samaccountname") or props.get("name", "").split("@", 1)[0]
-        label = PRIVILEGED_GROUP_NAMES.get(raw_name.casefold())
-        if re.fullmatch(r"S-1-5-(?:21-(?:\d+-){3}|32-)\d+", sid):
-            label = PRIVILEGED_GROUP_RIDS.get(sid.rsplit("-", 1)[-1], label)
-        if not label:
+    conflicting_groups = set()
+    for sid, group_records in groups.items():
+        builtin = re.fullmatch(r"(?:.+-)?S-1-5-32-(\d+)", sid)
+        domain_sid = re.fullmatch(r"S-1-5-21-(?:\d+-){3}(\d+)", sid)
+        rid = builtin.group(1) if builtin else domain_sid.group(1) if domain_sid else None
+        labels = set()
+        domains = set()
+        for group in group_records:
+            props = group.get("Properties", {})
+            raw_name = props.get("samaccountname") or props.get("name", "").split("@", 1)[0]
+            label = PRIVILEGED_GROUP_NAMES.get(raw_name.casefold())
+            if rid and (
+                (builtin and rid in {"544", "548", "549", "551"})
+                or (domain_sid and rid in {"512", "517", "518", "519"})
+            ):
+                label = PRIVILEGED_GROUP_RIDS[rid]
+            if label:
+                labels.add(label)
+            if props.get("domain"):
+                domains.add(props["domain"].casefold())
+        if len(labels) > 1:
+            conflicting_groups.add(sid)
             continue
+        if not labels:
+            continue
+        label = labels.pop()
         selected_groups.add(label)
-        domain = props.get("domain")
-        if domain:
-            label = f"{label} ({domain.lower()})"
+        if len(domains) > 1:
+            conflicting_groups.add(sid)
+        elif domains:
+            label = f"{label} ({domains.pop()})"
 
         pending = [sid]
         visited = set()
@@ -114,17 +141,18 @@ def extract_privileged_users(users_data, groups_data, entries):
                 if current in entry_matches:
                     memberships[entry_matches[current]].add(label)
                 continue
-            nested = groups.get(current)
-            if nested is None:
+            nested_records = groups.get(current)
+            if nested_records is None:
                 unresolved.add(current)
                 continue
-            if "Members" not in nested:
-                missing_members.add(current)
             pending.extend(primary_groups.get(current, []))
-            for member in nested.get("Members", []):
-                member_sid = member["ObjectIdentifier"].upper()
-                if member.get("ObjectType", "").casefold() not in ("computer",):
-                    pending.append(member_sid)
+            for nested in nested_records:
+                if "Members" not in nested:
+                    missing_members.add(current)
+                for member in nested.get("Members", []):
+                    member_sid = member["ObjectIdentifier"].upper()
+                    if member.get("ObjectType", "").casefold() not in ("computer",):
+                        pending.append(member_sid)
 
     warnings = []
     missing_groups = {"Domain Admins", "Administrators"} - selected_groups
@@ -141,6 +169,10 @@ def extract_privileged_users(users_data, groups_data, entries):
         warnings.append(
             f"{len(missing_members)} group(s) lacked membership data."
         )
+    if conflicting_groups:
+        warnings.append(
+            f"{len(conflicting_groups)} group(s) had conflicting names or domains."
+        )
     if ambiguous:
         warnings.append(
             f"{ambiguous} ambiguous NTDS/BloodHound account match(es) were omitted."
@@ -148,7 +180,7 @@ def extract_privileged_users(users_data, groups_data, entries):
     if unconfirmed_domains:
         warnings.append(
             f"{unconfirmed_domains} NTDS account(s) could not be matched to a "
-            "BloodHound domain; NetBIOS names may differ from DNS names."
+            "BloodHound domain; NetBIOS names or UPN suffixes may differ from DNS names."
         )
     return {
         "status": "incomplete" if warnings else "available",
@@ -306,14 +338,11 @@ def extract_domain_admins(users_data, groups_data):
         return []
 
     users_lookup = {
-        user["ObjectIdentifier"]: user
+        user["ObjectIdentifier"].upper(): user
         for user in users_data["data"]
     }
 
-    groups_lookup = {
-        group["ObjectIdentifier"]: group
-        for group in groups_data["data"]
-    }
+    groups_lookup = _group_records(groups_data)
 
     domain_admins = set()
     visited = set()
@@ -323,6 +352,7 @@ def extract_domain_admins(users_data, groups_data):
         Recursively resolve group membership.
         """
 
+        sid = sid.upper()
         if sid in visited:
             return
 
@@ -343,18 +373,19 @@ def extract_domain_admins(users_data, groups_data):
             return
 
         # Group
-        group = groups_lookup.get(sid)
+        group_records = groups_lookup.get(sid)
 
-        if not group:
+        if not group_records:
             return
 
         # Standard group members
-        for member in group.get("Members", []):
-            resolve_members(member["ObjectIdentifier"])
+        for group in group_records:
+            for member in group.get("Members", []):
+                resolve_members(member["ObjectIdentifier"])
 
         # PrimaryGroupSID members
         for user in users_data["data"]:
-            if user.get("PrimaryGroupSID") == sid:
+            if (user.get("PrimaryGroupSID") or "").upper() == sid:
                 resolve_members(user["ObjectIdentifier"])
 
     # Resolve Domain Admins group membership
