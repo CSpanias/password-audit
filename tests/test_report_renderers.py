@@ -329,9 +329,9 @@ class HtmlReportTests(unittest.TestCase):
         }})
         self.assertIn(
             "Privileged group coverage for the confirmed domain example.test is incomplete: "
-            "1 group member object could not be resolved because its record was not found "
+            "one group member object could not be resolved because its record was not found "
             "in the BloodHound users or groups data. "
-            "1 ambiguous NTDS/BloodHound account match was omitted. "
+            "One ambiguous NTDS/BloodHound account match was omitted. "
             "Some affected accounts may be missing. Group memberships include nested "
             "membership and are limited to the collected BloodHound data; they are not "
             "a complete assessment of all privileged access or attack paths.\n\n",
@@ -347,6 +347,36 @@ class HtmlReportTests(unittest.TestCase):
         }})
         self.assertIn("Privileged group analysis is unavailable.", unavailable)
         self.assertNotIn("incomplete", unavailable)
+
+    def test_privileged_coverage_expands_single_digit_counts_only(self):
+        for count, expected in enumerate(
+            ("one", "two", "three", "four", "five", "six", "seven", "eight", "nine"), 1
+        ):
+            with self.subTest(count=count):
+                results = {"admins": {"accounts": []}, "privileged_users": {
+                    "status": "incomplete", "accounts": [],
+                    "warnings": [f"{count} group member objects could not be resolved."],
+                }}
+                self.assertIn(f"is incomplete: {expected} group member", commentary_privileged_users(results))
+        warnings = [
+            "9 groups lacked membership data.",
+            "10 groups had conflicting names or domains.",
+            "1 ambiguous NTDS/BloodHound account match was omitted.",
+        ]
+        results = {"admins": {"accounts": []}, "privileged_users": {
+            "status": "incomplete", "accounts": [], "warnings": warnings,
+        }}
+        text = commentary_privileged_users(results)
+        self.assertIn(
+            "is incomplete: nine groups lacked membership data. "
+            "10 groups had conflicting names or domains. "
+            "One ambiguous NTDS/BloodHound account match was omitted.",
+            text,
+        )
+        self.assertEqual(warnings[0], "9 groups lacked membership data.")
+        results["privileged_users"]["status"] = "unavailable"
+        results["privileged_users"]["warnings"] = ["1 group record is unavailable."]
+        self.assertIn("unavailable. One group record", commentary_privileged_users(results))
 
     def test_password_length_commentary_uses_plural_characters_for_tied_lengths(self):
         text = commentary_password_lengths({
