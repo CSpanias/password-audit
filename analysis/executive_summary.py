@@ -222,18 +222,13 @@ def executive_summary(results):
         if len(systemic_weaknesses) == 1:
             systemic_message = (
                 "The assessment also identified a broader password-management "
-                f"weakness: {systemic_weaknesses[0]}. This weakness increases the "
-                "likelihood of credential compromise and reduces the effectiveness "
-                "of password-based security controls. "
+                f"weakness: {systemic_weaknesses[0]}. "
             )
         else:
             systemic_message = (
                 "The assessment also identified a number of broader "
                 "password-management weaknesses, including "
-                f"{natural_join(systemic_weaknesses)}. Collectively, these "
-                "weaknesses increase the likelihood of credential compromise and "
-                "reduce the overall effectiveness of password-based security "
-                "controls. "
+                f"{natural_join(systemic_weaknesses)}. "
             )
 
         if general_reuse_passwords or hash_reuse:
@@ -258,8 +253,17 @@ def executive_summary(results):
             )
         if len(systemic_weaknesses) > 1:
             systemic_message += (
-                "Together, these weaknesses increase organisational exposure to "
-                "unauthorised access and credential-based attacks."
+                "Together, these weaknesses increase the likelihood of credential "
+                "compromise, reduce the effectiveness of password-based security "
+                "controls, and increase organisational exposure to unauthorised "
+                "access and credential-based attacks."
+            )
+        else:
+            systemic_message += (
+                "This weakness increases the likelihood of credential compromise, "
+                "reduces the effectiveness of password-based security controls, "
+                "and increases organisational exposure to unauthorised access and "
+                "credential-based attacks."
             )
 
         summary.append(systemic_message)

@@ -32,7 +32,7 @@ PRIVILEGED_GROUP_NAMES = {
     "exchange windows permissions": "Exchange Windows Permissions",
 }
 UNCONFIRMED_DOMAIN_WARNING = (
-    "NTDS account(s) matched by name and RID to selected privileged users "
+    "matched by name and RID to selected privileged users "
     "could not be confirmed as belonging to their BloodHound domains; "
     "NetBIOS names or UPN suffixes may differ from DNS names."
 )
@@ -222,27 +222,36 @@ def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_
             + ", ".join(sorted(missing_groups)) + "."
         )
     if unresolved:
+        count = len(unresolved)
         warnings.append(
-            f"{len(unresolved)} group member object(s) could not be resolved."
+            f"{count} group member object{'s' if count != 1 else ''} could not "
+            f"be resolved because {'their records were' if count != 1 else 'its record was'} "
+            "not found in the BloodHound users or groups data."
         )
     if missing_members:
         warnings.append(
-            f"{len(missing_members)} group(s) lacked membership data."
+            f"{len(missing_members)} group{'s' if len(missing_members) != 1 else ''} "
+            "lacked membership data."
         )
     if conflicting_groups:
         warnings.append(
-            f"{len(conflicting_groups)} group(s) had conflicting names or domains."
+            f"{len(conflicting_groups)} group{'s' if len(conflicting_groups) != 1 else ''} "
+            "had conflicting names or domains."
         )
     ambiguous = sum(bool(candidates & privileged_sids) for candidates in ambiguous_candidates)
     if ambiguous:
         warnings.append(
-            f"{ambiguous} ambiguous NTDS/BloodHound account match(es) were omitted."
+            f"{ambiguous} ambiguous NTDS/BloodHound account "
+            f"match{'es were' if ambiguous != 1 else ' was'} omitted."
         )
     unconfirmed_domains = sum(
         bool(candidates & privileged_sids) for candidates in unconfirmed_candidates
     )
     if unconfirmed_domains:
-        warnings.append(f"{unconfirmed_domains} {UNCONFIRMED_DOMAIN_WARNING}")
+        warnings.append(
+            f"{unconfirmed_domains} NTDS account{'s' if unconfirmed_domains != 1 else ''} "
+            f"{UNCONFIRMED_DOMAIN_WARNING}"
+        )
     return {
         "status": "incomplete" if warnings else "available",
         "accounts": [

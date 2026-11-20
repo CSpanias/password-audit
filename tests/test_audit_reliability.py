@@ -262,6 +262,10 @@ class AuditReliabilityTests(unittest.TestCase):
             {"username": "example.test\\bob", "groups": ["Backup Operators"]},
         ])
         self.assertTrue(any("could not be resolved" in w for w in result["warnings"]))
+        self.assertTrue(any(
+            "1 group member object could not be resolved because its record was not found"
+            in w for w in result["warnings"]
+        ))
         self.assertTrue(any("ambiguous" in w for w in result["warnings"]))
         entries[-1]["username"] = "example.test\\same"
         resolved = extract_privileged_users(users, groups, entries)
@@ -333,12 +337,12 @@ class AuditReliabilityTests(unittest.TestCase):
         self.assertEqual(result["accounts"], [
             {"username": "external.example\\alice", "groups": ["Domain Admins"]},
         ])
-        self.assertIn("1 NTDS account(s)", result["warnings"][0])
+        self.assertIn("1 NTDS account ", result["warnings"][0])
 
         entries[0]["username"] = "local\\alice"
         result = extract_privileged_users(users, groups, entries)
         self.assertEqual(result["accounts"], [])
-        self.assertIn("2 NTDS account(s)", result["warnings"][0])
+        self.assertIn("2 NTDS accounts ", result["warnings"][0])
 
     def test_domain_confirmation_respects_filtering_and_decline(self):
         sid = "S-1-5-21-1-2-3"
@@ -589,7 +593,7 @@ class AuditReliabilityTests(unittest.TestCase):
         self.assertEqual(result["status"], "incomplete")
         self.assertEqual(result["accounts"], [])
         self.assertEqual(len(result["warnings"]), 1)
-        self.assertIn("1 NTDS account(s)", result["warnings"][0])
+        self.assertIn("1 NTDS account ", result["warnings"][0])
         self.assertIn("selected privileged users", result["warnings"][0])
         confirmed = extract_privileged_users(users, groups, entries, sid)
         self.assertEqual(confirmed["status"], "available")
@@ -598,17 +602,21 @@ class AuditReliabilityTests(unittest.TestCase):
         ])
 
     def test_audit_summary_shows_privileged_coverage(self):
-        for status, accounts, expected in (
-            ("available", [{"username": "alice", "groups": ["Domain Admins"]}], "1"),
-            ("incomplete", [{"username": "alice", "groups": ["Domain Admins"]}], "1 (incomplete)"),
-            ("unavailable", [], "Unavailable"),
+        accounts = [
+            {"username": "alice", "groups": ["Domain Admins (example.test)", "Administrators"]},
+            {"username": "bob", "groups": ["Administrators", "Backup Operators"]},
+        ]
+        for status, members, warnings in (
+            ("available", accounts, []),
+            ("incomplete", accounts, ["A group member could not be resolved."]),
+            ("unavailable", [], ["BloodHound data is unavailable."]),
         ):
             with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:
                 output = io.StringIO()
                 organised = {
                     "filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
                     "lm_hashes": [], "domain_admins": [],
-                    "privileged_users": {"status": status, "accounts": accounts},
+                    "privileged_users": {"status": status, "accounts": members, "warnings": warnings},
                 }
                 with (
                     patch.object(audit, "validate_audit_inputs"),
@@ -619,12 +627,25 @@ class AuditReliabilityTests(unittest.TestCase):
                     }),
                     patch.object(audit, "has_enabled_phases", side_effect=RuntimeError("stop")),
                     patch.object(audit, "console", Console(file=output, width=100)),
+                    patch.object(audit, "warn") as warning,
                 ):
                     with self.assertRaisesRegex(RuntimeError, "stop"):
                         audit.run_audit("company.ntds", "bloodhound.zip", "campaign.json", "test")
                 summary = output.getvalue()
-                row = next(line for line in summary.splitlines() if "Privileged Accounts" in line)
-                self.assertIn(expected, row)
+                self.assertNotIn("Privileged Accounts", summary)
+                self.assertEqual(sum("Domain Admins" in line and "│" in line
+                                     for line in summary.splitlines()), 1)
+                self.assertIn("other groups: matched enabled NTDS accounts", summary)
+                if members:
+                    self.assertRegex(summary, r"Administrators\s+│\s+2")
+                    self.assertRegex(summary, r"Backup Operators\s+│\s+1")
+                else:
+                    self.assertNotIn("Administrators", summary)
+                if status == "available":
+                    warning.assert_not_called()
+                else:
+                    warning.assert_any_call(f"Privileged group coverage is {status}:")
+                    warning.assert_any_call(warnings[0])
 
     def test_missing_and_invalid_privileged_data_are_not_clean_results(self):
         self.assertEqual(extract_privileged_users(None, None, [])["status"], "unavailable")

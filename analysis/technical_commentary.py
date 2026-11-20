@@ -322,6 +322,7 @@ def commentary_password_lengths(results):
                 f"character{'s' if most_common_length != 1 else ''}."
             )
 
+        lines.append("")
         lines.append(
             f"The following non-compliant password "
             f"length{'s were' if len(common_lengths) > 1 else ' was'} observed "
@@ -377,15 +378,26 @@ def commentary_ntlm_hash_reuse(results):
         "the recovered-password reuse findings and should not be added together."
     )
     if privileged_groups:
+        group_names = sorted({
+            name
+            for group in privileged_groups
+            for account in group["accounts"]
+            for name in account["groups"]
+        }, key=str.casefold)
+        group_description = (
+            f"the privileged group {group_names[0]}"
+            if len(group_names) == 1
+            else "at least one of the following privileged groups: " + natural_join(group_names)
+        )
         paragraph += (
             f" Of these, {num_to_word(len(privileged_groups))} "
             f"{'involve' if len(privileged_groups) != 1 else 'involves'} "
-            "an account in a selected privileged group and at least one other account."
+            f"{'accounts' if len(privileged_groups) != 1 else 'an account'} "
+            f"in {group_description}."
         )
     description = (
         "The following table shows example masked NTLM hashes and their "
-        "associated accounts. The hash reuse finding lists all affected account "
-        "groups without exposing full hashes or passwords."
+        "associated accounts:"
     )
     table = ["| NTLM Hash | Accounts |", "| ---------- | ---------- |"]
     for group in groups[:5]:

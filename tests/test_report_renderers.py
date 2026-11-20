@@ -253,10 +253,12 @@ class HtmlReportTests(unittest.TestCase):
         text = commentary_ntlm_hash_reuse({"ntlm_hash_reuse": reuse})
         self.assertIn("A total of one shared NTLM hash was", text)
         self.assertIn("across two enabled user accounts", text)
-        self.assertIn("Of these, one involves", text)
+        self.assertIn("Of these, one involves an account in the privileged group Backup Operators.", text)
         self.assertNotIn("not identified in selected privileged groups", text)
         self.assertNotIn("\n\nOf these", text)
         self.assertIn("| aa" + "*" * 28 + "aa | admin, user\\|one |", text)
+        self.assertIn("associated accounts:\n\n| NTLM Hash", text)
+        self.assertNotIn("The hash reuse finding lists", text)
         self.assertNotIn("a" * 32, text)
         self.assertNotIn("a" * 32, json.dumps(reuse))
         self.assertNotIn("(s)", text)
@@ -266,6 +268,7 @@ class HtmlReportTests(unittest.TestCase):
             "ntlm_hash_reuse": ntlm_hash_reuse(accounts, privileged),
         })
         self.assertIn("Of these, one involves", text)
+        self.assertIn("privileged groups: Backup Operators and Domain Admins.", text)
         self.assertNotIn("not identified in selected privileged groups", text)
 
         accounts = [
@@ -279,8 +282,29 @@ class HtmlReportTests(unittest.TestCase):
         text = commentary_ntlm_hash_reuse({"ntlm_hash_reuse": reuse})
         self.assertIn("A total of 10 shared NTLM hashes were", text)
         self.assertIn("across 20 enabled user accounts", text)
+        self.assertNotIn("Of these", text)
         self.assertEqual(len([line for line in text.splitlines() if line.startswith("| 00")]), 5)
         self.assertEqual(len(reuse["groups"]), 10)
+
+    def test_hash_reuse_commentary_lists_groups_for_multiple_hashes(self):
+        accounts = [
+            {"username": "admin", "ntlm": "a" * 32},
+            {"username": "user", "ntlm": "a" * 32},
+            {"username": "operator", "ntlm": "b" * 32},
+            {"username": "other", "ntlm": "b" * 32},
+        ]
+        privileged = {"accounts": [
+            {"username": "admin", "groups": ["Domain Admins (example.test)"]},
+            {"username": "operator", "groups": ["Backup Operators"]},
+        ]}
+        text = commentary_ntlm_hash_reuse({
+            "ntlm_hash_reuse": ntlm_hash_reuse(accounts, privileged),
+        })
+        self.assertIn(
+            "Of these, two involve accounts in at least one of the following privileged "
+            "groups: Backup Operators and Domain Admins (example.test).",
+            text,
+        )
 
     def test_privileged_coverage_warning_is_concise(self):
         text = commentary_privileged_users({"privileged_users": {
@@ -314,6 +338,7 @@ class HtmlReportTests(unittest.TestCase):
             "password_lengths": {"lengths": [(15, 5), (10, 3), (11, 3)]},
         })
         self.assertIn("lengths were 10 and 11 characters", text)
+        self.assertIn("15 characters.\n\nThe following non-compliant", text)
         text = commentary_password_lengths({
             "password_length": {"minimum_length": 14, "count": 1, "percentage": 10,
                                 "failures": [{"length": 10}]},
@@ -339,6 +364,9 @@ class HtmlReportTests(unittest.TestCase):
         )
         summary = executive_summary(results)
         self.assertIn("password reuse", summary)
+        self.assertNotIn("Collectively, these weaknesses", summary)
+        self.assertEqual(summary.count("increase the likelihood of credential compromise"), 1)
+        self.assertIn("Together, these weaknesses increase the likelihood of credential compromise", summary)
         self.assertNotIn("shared credentials involving selected privileged", summary)
         self.assertNotIn("NTLM hash comparison", summary)
         finding = next(f for f in build_findings_dict(results) if f["id"] == "PWD-REUSE-003")
@@ -363,8 +391,12 @@ class HtmlReportTests(unittest.TestCase):
                 {"username": "user", "ntlm": "a" * 32},
             ],
         )
+        hash_only_summary = executive_summary(hash_only)
         self.assertIn("a broader password-management weakness: password reuse",
-                      executive_summary(hash_only))
+                      hash_only_summary)
+        self.assertIn("This weakness increases the likelihood of credential compromise",
+                      hash_only_summary)
+        self.assertNotIn("Together, these weaknesses", hash_only_summary)
 
     def test_account_tables_omit_prefixes_without_changing_results(self):
         account = {"username": "EXAMPLE\\Ali|ce", "password": "Password123!",

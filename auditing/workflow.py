@@ -8,6 +8,7 @@ cracking, and analysis modules.
 
 
 import os
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -191,14 +192,21 @@ def run_audit(
 
     table.add_row("Domain Admins", str(len(organise_results["domain_admins"])))
     privileged = organise_results["privileged_users"]
-    privileged_count = str(len(privileged["accounts"]))
-    if privileged["status"] == "incomplete":
-        privileged_count += " (incomplete)"
-    elif privileged["status"] == "unavailable":
-        privileged_count = "Unavailable"
-    table.add_row("Privileged Accounts", privileged_count)
+    group_counts = Counter(
+        group
+        for account in privileged["accounts"]
+        for group in set(account["groups"])
+        if group != "Domain Admins" and not group.startswith("Domain Admins (")
+    )
+    for group, count in sorted(group_counts.items(), key=lambda item: item[0].casefold()):
+        table.add_row(group, str(count))
 
     console.print(table)
+    console.print("Domain Admins: BloodHound; other groups: matched enabled NTDS accounts.")
+    if privileged["status"] != "available":
+        warn(f"Privileged group coverage is {privileged['status']}:")
+        for warning in privileged["warnings"]:
+            warn(warning)
     print()
 
     #---------------------------------------------------------------------------
