@@ -29,10 +29,6 @@ section is added.
 
 ## Run an audit
 
-!!! info "CSACyber & SureCloud Format"
-    Add `--csacyber` to export findings as SureFormat XML instead of JSON; see 
-    [Reports](analyse.md#reports) for more details.
-
 ```bash
 password-audit audit \
     --ntds company.ntds \
@@ -119,7 +115,6 @@ option list.
 | `-P`, `--pass-policy` | Domain password policy | `password-audit/<run-id>/domain-policy.txt` |
 | `-W`, `--company-words` | Optional curated terms added to the generated list | `./company-words.txt` when present; otherwise none |
 | `-E`, `--enabled-users` | Enabled account list | `password-audit/<run-id>/enabled-users.txt` |
-| `--csacyber` | Export SureFormat XML findings instead of JSON | Disabled |
 
 ## Outputs and advanced standalone commands
 

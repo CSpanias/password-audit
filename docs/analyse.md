@@ -34,7 +34,6 @@ generated terms.
 | `-E`, `--enabled-users` | Enabled account list used for summary statistics. |
 | `-U`, `--lm-users` | Accounts associated with LM hashes. |
 | `-O`, `--output` | HTML report output path. |
-| `--csacyber` | Export SureFormat XML findings instead of JSON. |
 
 Use `password-audit analyse --help` for all aliases and default paths.
 
@@ -56,9 +55,6 @@ findings; the report does not calculate an overall risk score.
 
 ## Reports
 
-!!! info "CSACyber & SureCloud Format"
-    Add `--csacyber` to export findings as SureFormat XML instead of JSON.
-
 Analysis writes a self-contained HTML report and, by default, a JSON findings
 sidecar.
 
@@ -74,12 +70,6 @@ password-audit analyse \
 The default report is `password-audit-report.html`; `--output` can set a
 different name. Its extension is always `.html`. By default, findings are written to
 `password-audit-findings.json` in the current working directory.
-
-The XML uses the domain from the `Domain` field in the password policy as the 
-item hostname; the field must contain a domain name. Findings without a
-SureCloud mapping are omitted with a warning. Currently this includes
-`PWD-REUSE-002` and `DOMAIN-ADMIN-002`. The HTML report still includes all
-findings. Previously generated JSON or XML files are not removed.
 
 The HTML report is self-contained and works offline. Each narrative section's
 **Copy Markdown** button copies its content without the section title. 

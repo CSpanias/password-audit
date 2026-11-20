@@ -37,10 +37,6 @@ This list is optional; the generated terms are still used without it. See
 Each audit writes its datasets, `password-audit-report.html` and structured
 `password-audit-findings.json` sidecar to a new directory under `password-audit/`.
 
-!!! info "CSACyber & SureCloud Format"
-    Add `--csacyber` to export findings as SureFormat XML instead of JSON; see 
-    [Reports](analyse.md#reports) for more details.
-
 ## End-to-end workflow
 
 The `audit` command orchestrates the following stages:
