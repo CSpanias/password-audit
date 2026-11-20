@@ -120,11 +120,17 @@ def commentary_privileged_users(results):
     privileged = results["privileged_users"]
     lines = []
     domain = privileged.get("confirmed_domain")
+    membership_note = (
+        "Group memberships include nested membership and are limited to the collected "
+        "BloodHound data; they are not a complete assessment of all privileged access "
+        "or attack paths."
+    )
     if privileged["status"] == "incomplete":
         lines.append(
             "Privileged group coverage"
             + (f" for the confirmed domain {domain['name']}" if domain else "")
             + " is incomplete, so some affected accounts may be missing."
+            + (f" {membership_note}" if privileged["accounts"] else "")
         )
     elif privileged["status"] == "unavailable":
         lines.append(
@@ -140,11 +146,6 @@ def commentary_privileged_users(results):
         account for account in privileged["accounts"]
         if account["username"].casefold() not in high_accounts
     ]
-    membership_note = (
-        "Group memberships include nested membership and are limited to the collected "
-        "BloodHound data; they are not a complete assessment of all privileged access "
-        "or attack paths."
-    )
     if other_accounts:
         if lines:
             lines.append("")
@@ -152,7 +153,8 @@ def commentary_privileged_users(results):
         lines.append(
             f"Passwords were recovered for {num_to_word(count)} "
             f"{'other ' if high_accounts else ''}account{'s' if count != 1 else ''} "
-            f"belonging to selected privileged groups. {membership_note}"
+            "belonging to selected privileged groups."
+            + (f" {membership_note}" if privileged["status"] != "incomplete" else "")
         )
         lines.extend(["", "| Username | Groups | Password |",
                       "| ---------- | ---------- | ---------- |"])
@@ -165,7 +167,7 @@ def commentary_privileged_users(results):
             lines.append(
                 f"| {username} | {groups} | {password} |"
             )
-    elif privileged["accounts"]:
+    elif privileged["accounts"] and privileged["status"] != "incomplete":
         if lines:
             lines.append("")
         lines.append(membership_note)

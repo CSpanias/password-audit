@@ -330,9 +330,12 @@ class HtmlReportTests(unittest.TestCase):
         }})
         self.assertIn(
             "Privileged group coverage for the confirmed domain example.test is incomplete, "
-            "so some affected accounts may be missing.\n\n",
+            "so some affected accounts may be missing. Group memberships include nested "
+            "membership and are limited to the collected BloodHound data; they are not "
+            "a complete assessment of all privileged access or attack paths.\n\n",
             text,
         )
+        self.assertEqual(text.count("Group memberships include nested membership"), 1)
         self.assertNotIn("S-1-5-21-1-2-3", text)
         self.assertNotIn("386", text)
         self.assertIn("Passwords were recovered for one account", text)
@@ -495,8 +498,11 @@ class HtmlReportTests(unittest.TestCase):
         }}
         self.assertIn("one Enterprise Administrator account had a password", commentary_admins(results))
         other = commentary_privileged_users(results)
-        self.assertIn("Privileged group coverage is incomplete", other)
-        self.assertIn("Group memberships include nested membership", other)
+        self.assertIn(
+            "Privileged group coverage is incomplete, so some affected accounts may be missing. "
+            "Group memberships include nested membership",
+            other,
+        )
         self.assertNotIn("| Username |", other)
         account["groups"].append("Domain Admins (example.test)")
         text = commentary_admins(results)
