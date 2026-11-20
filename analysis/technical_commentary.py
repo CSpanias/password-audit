@@ -21,13 +21,33 @@ def _display_group(group):
     return privileged_group_name(group).replace("|", "\\|")
 
 
+def _high_privileged_accounts(results):
+    privileged = {
+        account["username"].casefold(): account
+        for account in results["privileged_users"]["accounts"]
+    }
+    accounts = {}
+    for admin in results["admins"]["accounts"]:
+        key = admin["username"].casefold()
+        matched = privileged.get(key)
+        groups = list(matched["groups"]) if matched else []
+        accounts[key] = {**admin, "groups": groups, "legacy_da": True}
+    for key, account in privileged.items():
+        if any(
+            privileged_group_name(group) in {"Domain Admins", "Enterprise Admins"}
+            for group in account["groups"]
+        ):
+            accounts.setdefault(key, {**account, "legacy_da": False})
+    return list(accounts.values())
+
+
 # ---------------------------------------------------------------------------
 # Privileged Accounts
 # ---------------------------------------------------------------------------
 
 def commentary_admins(results):
     """
-    Generate commentary for recovered Domain Administrator passwords.
+    Generate commentary for recovered Domain and Enterprise Administrator passwords.
 
     The commentary includes a summary of the finding and a sample table of 
     affected privileged accounts where passwords were successfully recovered.
@@ -41,8 +61,8 @@ def commentary_admins(results):
             Markdown-formatted commentary.
     """
 
-    admins = results["admins"]["accounts"]
-    count = results["admins"]["count"]
+    admins = _high_privileged_accounts(results)
+    count = len(admins)
 
     if not count:
         return ""
@@ -50,11 +70,27 @@ def commentary_admins(results):
     if count:
         lines = []
 
+        domain_admins = any(
+            account["legacy_da"] or any(
+                privileged_group_name(group) == "Domain Admins"
+                for group in account["groups"]
+            )
+            for account in admins
+        )
+        enterprise_admins = any(
+            privileged_group_name(group) == "Enterprise Admins"
+            for account in admins for group in account["groups"]
+        )
+        role = (
+            "Domain or Enterprise Administrator" if domain_admins and enterprise_admins
+            else "Enterprise Administrator" if enterprise_admins
+            else "Domain Administrator"
+        )
         lines.append(
-            f"A total of {num_to_word(count)} Domain Administrator account"
+            f"A total of {num_to_word(count)} {role} account"
             f"{'s had passwords' if count != 1 else ' had a password'} "
             "successfully recovered during the password audit. "
-            "Domain Administrator accounts represent some of the most privileged identities within "
+            "These accounts represent some of the most privileged identities within "
             "Active Directory and typically provide broad access to authentication services, directory "
             "data, and domain-joined systems. Compromise of these credentials significantly increases "
             "the potential impact of credential exposure and may facilitate privilege escalation or "
@@ -62,11 +98,18 @@ def commentary_admins(results):
         )
 
         lines.append("")
-        lines.append("| Username | Password |")
-        lines.append("| ---------- | ---------- |")
+        lines.append("| Username | Groups | Password |")
+        lines.append("| ---------- | ---------- | ---------- |")
 
         for account in admins:
-            lines.append(f"| {_display_username(account['username'])} | {mask_password(account['password'])} |")
+            groups = list(dict.fromkeys(_display_group(group) for group in account["groups"]))
+            if account["legacy_da"] and "Domain Admins" not in groups:
+                groups.insert(0, "Domain Admins (name match only)")
+            password = mask_password(account["password"]).replace("|", "\\|")
+            lines.append(
+                f"| {_display_username(account['username'])} | {', '.join(groups)} | "
+                f"{password} |"
+            )
 
         lines.append("")
 
@@ -77,40 +120,43 @@ def commentary_privileged_users(results):
     privileged = results["privileged_users"]
     lines = []
     domain = privileged.get("confirmed_domain")
-    if domain:
-        lines.append(
-            f"NTDS account matching used the user-confirmed source domain "
-            f"{domain['name']} ({domain['sid']})."
-        )
-    if domain and privileged["status"] != "available":
-        lines.append("")
     if privileged["status"] == "incomplete":
         lines.append(
-            "Privileged group coverage is incomplete because some group "
-            "memberships or account matches could not be verified from the "
-            "collected data. Some privileged accounts may be missing from the "
-            "results; see the privileged group membership dataset for details."
+            "Privileged group coverage"
+            + (f" for the confirmed domain {domain['name']}" if domain else "")
+            + " is incomplete, so some affected accounts may be missing."
         )
     elif privileged["status"] == "unavailable":
         lines.append(
             "Privileged group analysis is unavailable. "
             + " ".join(privileged["warnings"])
         )
-    if privileged["count"]:
+    elif domain:
+        lines.append(f"Privileged group membership was assessed for the confirmed domain {domain['name']}.")
+    high_accounts = {
+        account["username"].casefold() for account in _high_privileged_accounts(results)
+    }
+    other_accounts = [
+        account for account in privileged["accounts"]
+        if account["username"].casefold() not in high_accounts
+    ]
+    membership_note = (
+        "Group memberships include nested membership and are limited to the collected "
+        "BloodHound data; they are not a complete assessment of all privileged access "
+        "or attack paths."
+    )
+    if other_accounts:
         if lines:
             lines.append("")
-        count = privileged["count"]
+        count = len(other_accounts)
         lines.append(
             f"Passwords were recovered for {num_to_word(count)} "
-            f"account{'s' if count != 1 else ''} "
-            "belonging to selected privileged groups. The group memberships "
-            "include nested membership and are limited to the collected "
-            "BloodHound data; they are not a complete assessment of all "
-            "privileged access or attack paths."
+            f"{'other ' if high_accounts else ''}account{'s' if count != 1 else ''} "
+            f"belonging to selected privileged groups. {membership_note}"
         )
         lines.extend(["", "| Username | Groups | Password |",
                       "| ---------- | ---------- | ---------- |"])
-        for account in privileged["accounts"]:
+        for account in other_accounts:
             username = _display_username(account["username"])
             groups = ", ".join(dict.fromkeys(
                 _display_group(group) for group in account["groups"]
@@ -119,6 +165,10 @@ def commentary_privileged_users(results):
             lines.append(
                 f"| {username} | {groups} | {password} |"
             )
+    elif privileged["accounts"]:
+        if lines:
+            lines.append("")
+        lines.append(membership_note)
     return "\n".join(lines)
 
 

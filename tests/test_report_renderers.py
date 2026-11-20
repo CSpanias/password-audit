@@ -316,10 +316,11 @@ class HtmlReportTests(unittest.TestCase):
         self.assertNotIn("example.test", text)
 
     def test_privileged_coverage_warning_is_concise(self):
-        text = commentary_privileged_users({"privileged_users": {
+        text = commentary_privileged_users({"admins": {"accounts": []}, "privileged_users": {
             "status": "incomplete", "count": 1,
             "accounts": [{"username": "admin", "groups": ["Backup Operators"],
                           "password": "Password123!"}],
+            "confirmed_domain": {"name": "example.test", "sid": "S-1-5-21-1-2-3"},
             "warnings": [
                 "2 group member object(s) could not be resolved.",
                 "386 NTDS account(s) could not be matched to a BloodHound domain; "
@@ -327,13 +328,16 @@ class HtmlReportTests(unittest.TestCase):
                 "1 ambiguous NTDS/BloodHound account match(es) were omitted.",
             ],
         }})
-        self.assertIn("Privileged group coverage is incomplete", text)
-        self.assertIn("group memberships or account matches could not be verified", text)
-        self.assertIn("see the privileged group membership dataset for details", text)
+        self.assertIn(
+            "Privileged group coverage for the confirmed domain example.test is incomplete, "
+            "so some affected accounts may be missing.\n\n",
+            text,
+        )
+        self.assertNotIn("S-1-5-21-1-2-3", text)
         self.assertNotIn("386", text)
         self.assertIn("Passwords were recovered for one account", text)
         self.assertNotIn("(s)", text)
-        unavailable = commentary_privileged_users({"privileged_users": {
+        unavailable = commentary_privileged_users({"admins": {"accounts": []}, "privileged_users": {
             "status": "unavailable", "count": 0, "accounts": [],
             "warnings": ["No privileged group membership dataset was supplied."],
         }})
@@ -412,8 +416,9 @@ class HtmlReportTests(unittest.TestCase):
                    "groups": ["Backup Operators (example.test)", "Custom Group (regional)"],
                    "shared_with": "OTHER\\Bob"}
         sections = [
-            (commentary_admins, {"admins": {"accounts": [account], "count": 1}}),
-            (commentary_privileged_users, {"privileged_users": {
+            (commentary_admins, {"admins": {"accounts": [account], "count": 1},
+                                 "privileged_users": {"accounts": [account]}}),
+            (commentary_privileged_users, {"admins": {"accounts": []}, "privileged_users": {
                 "status": "available", "warnings": [], "accounts": [account], "count": 1,
             }}),
             (commentary_similar_account_reuse, {"similar_account_reuse": {
@@ -441,6 +446,62 @@ class HtmlReportTests(unittest.TestCase):
                     self.assertNotIn("OTHER\\", text)
         self.assertEqual(account["username"], "EXAMPLE\\Ali|ce")
         self.assertEqual(account["shared_with"], "OTHER\\Bob")
+
+    def test_domain_and_enterprise_admins_are_not_repeated_in_privileged_table(self):
+        admins = [{"username": "EXAMPLE\\Cotton.Adm", "password": "Password123!"}]
+        privileged = {
+            "status": "incomplete", "warnings": ["Some group members were not resolved."],
+            "count": 4,
+            "accounts": [
+                {"username": "example\\cotton.adm", "password": "Password123!",
+                 "groups": ["Administrators (example.test)", "Domain Admins (example.test)",
+                            "Schema Admins (example.test)"]},
+                {"username": "EXAMPLE\\enterprise", "password": "Password456!",
+                 "groups": ["Enterprise Admins (example.test)", "Backup Operators (example.test)"]},
+                {"username": "EXAMPLE\\operator", "password": "Password789!",
+                 "groups": ["Backup Operators (example.test)"]},
+                {"username": "OTHER\\Cotton.Adm", "password": "OtherPassword!",
+                 "groups": ["Server Operators (other.test)"]},
+            ],
+        }
+        results = {"admins": {"accounts": admins, "count": 1}, "privileged_users": privileged}
+        high = commentary_admins(results)
+        other = commentary_privileged_users(results)
+        self.assertIn("two Domain or Enterprise Administrator accounts", high)
+        self.assertIn("| Cotton.Adm | Administrators, Domain Admins, Schema Admins |", high)
+        self.assertIn("| enterprise | Enterprise Admins, Backup Operators |", high)
+        self.assertNotIn("| operator |", high)
+        self.assertIn("two other accounts", other)
+        self.assertIn("| operator | Backup Operators |", other)
+        self.assertIn("| Cotton.Adm | Server Operators |", other)
+        self.assertNotIn("| enterprise |", other)
+        self.assertNotIn("Domain Admins", other)
+        self.assertNotIn("example.test", high)
+
+    def test_da_without_verified_group_membership_is_labelled_as_name_match(self):
+        results = {
+            "admins": {"accounts": [{"username": "EXAMPLE\\admin", "password": "Password123!"}]},
+            "privileged_users": {"accounts": []},
+        }
+        text = commentary_admins(results)
+        self.assertIn("| admin | Domain Admins (name match only) |", text)
+
+    def test_enterprise_admin_only_and_overlapping_groups(self):
+        account = {"username": "EXAMPLE\\admin", "password": "Password123!",
+                   "groups": ["Enterprise Admins (example.test)"]}
+        results = {"admins": {"accounts": []}, "privileged_users": {
+            "status": "incomplete", "warnings": ["Some members were not resolved."],
+            "accounts": [account],
+        }}
+        self.assertIn("one Enterprise Administrator account had a password", commentary_admins(results))
+        other = commentary_privileged_users(results)
+        self.assertIn("Privileged group coverage is incomplete", other)
+        self.assertIn("Group memberships include nested membership", other)
+        self.assertNotIn("| Username |", other)
+        account["groups"].append("Domain Admins (example.test)")
+        text = commentary_admins(results)
+        self.assertIn("one Domain or Enterprise Administrator account had a password", text)
+        self.assertEqual(text.count("| admin |"), 1)
 
     def test_commentary_headings_are_conditional_and_reuse_sections_are_ordered(self):
         results = build_results(

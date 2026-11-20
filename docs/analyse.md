@@ -82,6 +82,12 @@ includes DAs as well as the separate DA finding; an account in multiple groups
 is counted once and its groups are listed together. The existing DA LM analysis 
 remains separate.
 
+In the technical commentary, recovered Domain and Enterprise Administrator
+accounts are shown together with their known selected group memberships.
+Other recovered privileged accounts are listed separately, without repeating
+accounts from the first table. A DA identified only by the legacy name-based
+check is labelled as a name match when membership could not be verified.
+
 The hash-based reuse finding and recovered-password reuse findings may overlap;
 their counts should not be added together. Technical commentary includes sample
 account groups and masked hashes; the finding lists all affected account groups
