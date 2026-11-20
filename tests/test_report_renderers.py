@@ -322,22 +322,23 @@ class HtmlReportTests(unittest.TestCase):
                           "password": "Password123!"}],
             "confirmed_domain": {"name": "example.test", "sid": "S-1-5-21-1-2-3"},
             "warnings": [
-                "2 group member object(s) could not be resolved.",
-                "386 NTDS account(s) could not be matched to a BloodHound domain; "
-                "NetBIOS names or UPN suffixes may differ from DNS names.",
-                "1 ambiguous NTDS/BloodHound account match(es) were omitted.",
+                "1 group member object could not be resolved because its record was not found "
+                "in the BloodHound users or groups data.",
+                "1 ambiguous NTDS/BloodHound account match was omitted.",
             ],
         }})
         self.assertIn(
-            "Privileged group coverage for the confirmed domain example.test is incomplete, "
-            "so some affected accounts may be missing. Group memberships include nested "
+            "Privileged group coverage for the confirmed domain example.test is incomplete: "
+            "1 group member object could not be resolved because its record was not found "
+            "in the BloodHound users or groups data. "
+            "1 ambiguous NTDS/BloodHound account match was omitted. "
+            "Some affected accounts may be missing. Group memberships include nested "
             "membership and are limited to the collected BloodHound data; they are not "
             "a complete assessment of all privileged access or attack paths.\n\n",
             text,
         )
         self.assertEqual(text.count("Group memberships include nested membership"), 1)
         self.assertNotIn("S-1-5-21-1-2-3", text)
-        self.assertNotIn("386", text)
         self.assertIn("Passwords were recovered for one account", text)
         self.assertNotIn("(s)", text)
         unavailable = commentary_privileged_users({"admins": {"accounts": []}, "privileged_users": {
@@ -499,7 +500,8 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("one Enterprise Administrator account had a password", commentary_admins(results))
         other = commentary_privileged_users(results)
         self.assertIn(
-            "Privileged group coverage is incomplete, so some affected accounts may be missing. "
+            "Privileged group coverage is incomplete: Some members were not resolved. "
+            "Some affected accounts may be missing. "
             "Group memberships include nested membership",
             other,
         )

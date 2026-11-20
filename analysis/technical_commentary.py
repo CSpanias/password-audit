@@ -129,7 +129,8 @@ def commentary_privileged_users(results):
         lines.append(
             "Privileged group coverage"
             + (f" for the confirmed domain {domain['name']}" if domain else "")
-            + " is incomplete, so some affected accounts may be missing."
+            + " is incomplete: " + " ".join(privileged["warnings"])
+            + " Some affected accounts may be missing."
             + (f" {membership_note}" if privileged["accounts"] else "")
         )
     elif privileged["status"] == "unavailable":
