@@ -142,23 +142,10 @@ def build_findings(results):
         affected_assets = []
         if finding_id == "ntlm-hash-reuse":
             groups = results["ntlm_hash_reuse"]["groups"]
-            cross_groups = sum(
-                any(account["groups"] for account in group["accounts"])
-                and any(not account["groups"] for account in group["accounts"])
-                for group in groups
-            )
             description += (
                 f" A total of {num_to_word(results['ntlm_hash_reuse']['account_count'])} "
                 "accounts are affected."
             )
-            if cross_groups:
-                description += (
-                    f" A total of {num_to_word(cross_groups)} "
-                    f"group{'s' if cross_groups != 1 else ''} "
-                    f"{'include' if cross_groups != 1 else 'includes'} selected privileged accounts "
-                    "and accounts not identified in those groups; other accounts "
-                    "are not necessarily unprivileged."
-                )
             for index, group in enumerate(groups, 1):
                 accounts = [
                     account["username"] + (

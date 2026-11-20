@@ -207,7 +207,8 @@ class AuditReliabilityTests(unittest.TestCase):
             self.assertIn("Backup Operators", reuse["evidence"][0])
             self.assertNotIn("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", report.lower())
             self.assertNotIn("example.test\\excluded", reuse["evidence"][0])
-            self.assertIn("A total of one of these hashes is shared with accounts", report)
+            self.assertIn("dave, eve", report)
+            self.assertNotIn("one of these hashes is shared with accounts", report)
             self.assertTrue((second / "password-audit-report.html").exists())
             self.assertTrue((second / "password-audit-findings.xml").exists())
             self.assertFalse((second / "lm-users.txt").exists())
@@ -271,7 +272,7 @@ class AuditReliabilityTests(unittest.TestCase):
         entries[0]["username"] = "WRONG\\alice"
         mismatch = extract_privileged_users(users, groups, entries)
         self.assertNotIn("WRONG\\alice", [item["username"] for item in mismatch["accounts"]])
-        self.assertTrue(any("could not be matched" in w for w in mismatch["warnings"]))
+        self.assertTrue(any("could not be confirmed" in w for w in mismatch["warnings"]))
         del groups["data"][2]["Members"]
         missing_members = extract_privileged_users(users, groups, entries)
         self.assertTrue(any("lacked membership data" in w for w in missing_members["warnings"]))
@@ -546,7 +547,9 @@ class AuditReliabilityTests(unittest.TestCase):
             for domain in (1, 4)
         ]}
         groups = {"data": [
-            {"ObjectIdentifier": "S-1-5-21-1-2-3-512", "Members": []},
+            {"ObjectIdentifier": "S-1-5-21-1-2-3-512", "Members": [
+                {"ObjectIdentifier": "S-1-5-21-1-2-3-1000", "ObjectType": "User"},
+            ]},
             {"ObjectIdentifier": "S-1-5-32-544", "Members": []},
         ]}
         result = extract_privileged_users(
@@ -555,6 +558,44 @@ class AuditReliabilityTests(unittest.TestCase):
         self.assertEqual(result["status"], "incomplete")
         self.assertEqual(result["accounts"], [])
         self.assertTrue(any("ambiguous" in warning for warning in result["warnings"]))
+
+    def test_domain_mismatch_warnings_only_count_privileged_candidates(self):
+        sid = "S-1-5-21-1-2-3"
+        users = {"data": [
+            {"ObjectIdentifier": f"{sid}-{rid}", "Properties": {
+                "samaccountname": name, "domain": "example.test",
+            }}
+            for name, rid in (("admin", 1000), ("ordinary", 1001))
+        ]}
+        groups = {"data": [
+            {"ObjectIdentifier": f"{sid}-512", "Members": [
+                {"ObjectIdentifier": f"{sid}-1000", "ObjectType": "User"},
+            ]},
+            {"ObjectIdentifier": "S-1-5-32-544", "Members": []},
+        ]}
+        entries = [
+            {"username": "example.test\\admin", "rid": "1000"},
+            {"username": "external.test\\ordinary", "rid": "1001"},
+        ]
+        result = extract_privileged_users(users, groups, entries)
+        self.assertEqual(result["status"], "available")
+        self.assertEqual(result["warnings"], [])
+        self.assertEqual(result["accounts"], [
+            {"username": "example.test\\admin", "groups": ["Domain Admins"]},
+        ])
+
+        entries[0]["username"] = "external.test\\admin"
+        result = extract_privileged_users(users, groups, entries)
+        self.assertEqual(result["status"], "incomplete")
+        self.assertEqual(result["accounts"], [])
+        self.assertEqual(len(result["warnings"]), 1)
+        self.assertIn("1 NTDS account(s)", result["warnings"][0])
+        self.assertIn("selected privileged users", result["warnings"][0])
+        confirmed = extract_privileged_users(users, groups, entries, sid)
+        self.assertEqual(confirmed["status"], "available")
+        self.assertEqual(confirmed["accounts"], [
+            {"username": "external.test\\admin", "groups": ["Domain Admins"]},
+        ])
 
     def test_audit_summary_shows_privileged_coverage(self):
         for status, accounts, expected in (

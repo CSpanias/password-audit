@@ -25,9 +25,17 @@ from analysis.executive_summary import executive_summary
 from analysis.findings import build_findings_dict
 from analysis.results import build_results
 from analysis.technical_commentary import (
+    commentary_admins,
+    commentary_company_words,
+    commentary_common_passwords,
+    commentary_date_passwords,
+    commentary_keyboard_walks,
     commentary_ntlm_hash_reuse,
     commentary_password_lengths,
     commentary_privileged_users,
+    commentary_similar_account_reuse,
+    commentary_username_passwords,
+    technical_commentary,
 )
 
 REPORT = {
@@ -235,24 +243,25 @@ class HtmlReportTests(unittest.TestCase):
     def test_hash_reuse_commentary_masks_samples_and_formats_counts(self):
         privileged = {
             "status": "incomplete", "warnings": ["Some members could not be resolved."],
-            "accounts": [{"username": "admin", "groups": ["Backup Operators"]}],
+            "accounts": [{"username": "EXAMPLE\\admin", "groups": ["Backup Operators"]}],
         }
         accounts = [
-            {"username": "admin", "ntlm": "a" * 32},
-            {"username": "user|one", "ntlm": "a" * 32},
+            {"username": "EXAMPLE\\admin", "ntlm": "a" * 32},
+            {"username": "OTHER\\user|one", "ntlm": "a" * 32},
         ]
         reuse = ntlm_hash_reuse(accounts, privileged)
         text = commentary_ntlm_hash_reuse({"ntlm_hash_reuse": reuse})
         self.assertIn("A total of one shared NTLM hash was", text)
         self.assertIn("across two enabled user accounts", text)
         self.assertIn("Of these, one involves", text)
-        self.assertIn("A total of one of these hashes is shared with accounts", text)
+        self.assertNotIn("not identified in selected privileged groups", text)
+        self.assertNotIn("\n\nOf these", text)
         self.assertIn("| aa" + "*" * 28 + "aa | admin, user\\|one |", text)
         self.assertNotIn("a" * 32, text)
         self.assertNotIn("a" * 32, json.dumps(reuse))
         self.assertNotIn("(s)", text)
 
-        privileged["accounts"].append({"username": "user|one", "groups": ["Domain Admins"]})
+        privileged["accounts"].append({"username": "OTHER\\user|one", "groups": ["Domain Admins"]})
         text = commentary_ntlm_hash_reuse({
             "ntlm_hash_reuse": ntlm_hash_reuse(accounts, privileged),
         })
@@ -273,7 +282,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertEqual(len([line for line in text.splitlines() if line.startswith("| 00")]), 5)
         self.assertEqual(len(reuse["groups"]), 10)
 
-    def test_privileged_coverage_warnings_are_readable_and_correctly_pluralised(self):
+    def test_privileged_coverage_warning_is_concise(self):
         text = commentary_privileged_users({"privileged_users": {
             "status": "incomplete", "count": 1,
             "accounts": [{"username": "admin", "groups": ["Backup Operators"],
@@ -285,11 +294,10 @@ class HtmlReportTests(unittest.TestCase):
                 "1 ambiguous NTDS/BloodHound account match(es) were omitted.",
             ],
         }})
-        self.assertIn("Coverage of the selected privileged groups is incomplete.", text)
-        self.assertIn("A total of two group member objects could not be resolved.", text)
-        self.assertIn("A total of 386 NTDS accounts could not be matched", text)
-        self.assertIn("Unmatched NTDS accounts are not necessarily privileged.", text)
-        self.assertIn("A total of one ambiguous NTDS/BloodHound account match was omitted.", text)
+        self.assertIn("Privileged group coverage is incomplete", text)
+        self.assertIn("group memberships or account matches could not be verified", text)
+        self.assertIn("see the privileged group membership dataset for details", text)
+        self.assertNotIn("386", text)
         self.assertIn("Passwords were recovered for one account", text)
         self.assertNotIn("(s)", text)
         unavailable = commentary_privileged_users({"privileged_users": {
@@ -314,7 +322,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("identified one password (10% of", text)
         self.assertIn("password length was 10 characters", text)
 
-    def test_hash_reuse_is_integrated_before_the_summary_conclusion(self):
+    def test_hash_reuse_summary_and_finding(self):
         results = build_results(
             ntlm_mapped_passwords=[{"username": "user", "password": "weak"}],
             domain_admins=[], company_words=[], minimum_length=14,
@@ -330,11 +338,13 @@ class HtmlReportTests(unittest.TestCase):
             ],
         )
         summary = executive_summary(results)
-        self.assertLess(summary.index("shared credentials involving selected privileged"),
-                        summary.index("Together, these weaknesses"))
+        self.assertIn("password reuse", summary)
+        self.assertNotIn("shared credentials involving selected privileged", summary)
+        self.assertNotIn("NTLM hash comparison", summary)
         finding = next(f for f in build_findings_dict(results) if f["id"] == "PWD-REUSE-003")
         self.assertIn("A total of one shared NTLM credential group was", finding["description"])
-        self.assertIn("A total of one group includes", finding["description"])
+        self.assertNotIn("not identified in those groups", finding["description"])
+        self.assertIn("Backup Operators", finding["evidence"][0])
         self.assertNotIn("(s)", finding["description"])
         self.assertNotIn("a" * 32, json.dumps(finding))
         audit_finding = next(f for f in build_findings_dict(results) if f["id"] == "PWD-AUDIT-001")
@@ -355,6 +365,67 @@ class HtmlReportTests(unittest.TestCase):
         )
         self.assertIn("a broader password-management weakness: password reuse",
                       executive_summary(hash_only))
+
+    def test_account_tables_omit_prefixes_without_changing_results(self):
+        account = {"username": "EXAMPLE\\Ali|ce", "password": "Password123!",
+                   "groups": ["Backup Operators"], "shared_with": "OTHER\\Bob"}
+        sections = [
+            (commentary_admins, {"admins": {"accounts": [account], "count": 1}}),
+            (commentary_privileged_users, {"privileged_users": {
+                "status": "available", "warnings": [], "accounts": [account], "count": 1,
+            }}),
+            (commentary_similar_account_reuse, {"similar_account_reuse": {
+                "accounts": [account], "count": 1, "similarPairs": 1,
+            }}),
+        ]
+        for function, key in (
+            (commentary_username_passwords, "username_passwords"),
+            (commentary_company_words, "company_words"),
+            (commentary_common_passwords, "common_passwords"),
+            (commentary_date_passwords, "date_passwords"),
+            (commentary_keyboard_walks, "keyboard_walks"),
+        ):
+            sections.append((function, {key: {"accounts": [account], "count": 1, "stats": []}}))
+        for function, results in sections:
+            with self.subTest(section=function.__name__):
+                text = function(results)
+                self.assertIn("| Ali\\|ce |", text)
+                self.assertNotIn("EXAMPLE\\", text)
+                if function is commentary_similar_account_reuse:
+                    self.assertIn("| Bob |", text)
+                    self.assertNotIn("OTHER\\", text)
+        self.assertEqual(account["username"], "EXAMPLE\\Ali|ce")
+        self.assertEqual(account["shared_with"], "OTHER\\Bob")
+
+    def test_commentary_headings_are_conditional_and_reuse_sections_are_ordered(self):
+        results = build_results(
+            ntlm_mapped_passwords=[
+                {"username": "EXAMPLE\\alice", "password": "Password123!"},
+                {"username": "EXAMPLE\\bob", "password": "Password123!"},
+            ],
+            domain_admins=[], company_words=[], minimum_length=14,
+            enabled_users=["EXAMPLE\\alice", "EXAMPLE\\bob"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[],
+            privileged_users={"status": "available", "warnings": [], "accounts": []},
+            ntds_users=[
+                {"username": "EXAMPLE\\alice", "ntlm": "a" * 32},
+                {"username": "EXAMPLE\\bob", "ntlm": "a" * 32},
+            ],
+        )
+        text = technical_commentary(results)
+        self.assertIn("### Password Compliance\n\n", text)
+        self.assertIn("### Password Reuse\n\n", text)
+        self.assertIn("### Common Patterns\n\n", text)
+        self.assertIn("### Password Complexity\n\n", text)
+        self.assertNotIn("### Privileged Accounts", text)
+        self.assertNotIn("### LM Hashes", text)
+        self.assertLess(text.index("Password reuse was identified"),
+                        text.index("A total of one shared NTLM hash"))
+        results["privileged_users"]["status"] = "incomplete"
+        results["lm_hashes"].update({"count": 1, "uniqueHashes": 1, "duplicateHashes": 0})
+        text = technical_commentary(results)
+        self.assertIn("### Privileged Accounts\n\n", text)
+        self.assertIn("### LM Hashes\n\n", text)
 
     def test_analysis_csacyber_writes_xml_instead_of_json(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -517,7 +588,7 @@ class HtmlReportTests(unittest.TestCase):
                 with patch.object(sys, "argv", args):
                     cli_main.main()
                 report = (root / "password-audit-report.html").read_text(encoding="utf-8")
-                self.assertIn("Some group members were not resolved.", report)
+                self.assertIn("Privileged group coverage is incomplete", report)
                 self.assertIn("Backup Operators", report)
                 (root / "mapped.txt").write_text(
                     "EXAMPLE\\alice:Password123!\nEXAMPLE\\alice:OtherPass123!\n",
@@ -561,11 +632,11 @@ class HtmlReportTests(unittest.TestCase):
                 findings = json.loads((root / "password-audit-findings.json").read_text())
                 reuse = next(item for item in findings["findings"] if item["id"] == "PWD-REUSE-003")
                 self.assertEqual(reuse["affected_assets"], ["admin", "user"])
-                self.assertIn("not necessarily unprivileged", reuse["description"])
+                self.assertNotIn("not necessarily unprivileged", reuse["description"])
                 self.assertIn("Backup Operators", reuse["evidence"][0])
                 self.assertNotIn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", json.dumps(reuse).lower())
                 report = (root / "password-audit-report.html").read_text(encoding="utf-8")
-                self.assertIn("Some group members were not resolved.", report)
+                self.assertIn("Privileged group coverage is incomplete", report)
                 self.assertIn("regardless of whether their passwords were recovered", report)
                 self.assertNotIn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", report.lower())
                 self.assertIn("No plaintext passwords were recovered", report)

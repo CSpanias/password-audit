@@ -32,7 +32,8 @@ PRIVILEGED_GROUP_NAMES = {
     "exchange windows permissions": "Exchange Windows Permissions",
 }
 UNCONFIRMED_DOMAIN_WARNING = (
-    "NTDS account(s) could not be matched to a BloodHound domain; "
+    "NTDS account(s) matched by name and RID to selected privileged users "
+    "could not be confirmed as belonging to their BloodHound domains; "
     "NetBIOS names or UPN suffixes may differ from DNS names."
 )
 
@@ -110,8 +111,8 @@ def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_
 
     entry_matches = {}
     ambiguous_sids = set()
-    ambiguous = 0
-    unconfirmed_domains = 0
+    ambiguous_candidates = []
+    unconfirmed_candidates = []
     for entry in entries:
         username = entry["username"]
         prefix, separator, name = username.rpartition("\\")
@@ -124,7 +125,7 @@ def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_
                 if sid.rsplit("-", 1)[0] == confirmed_domain_sid
             ]
             if not scoped_matches:
-                unconfirmed_domains += 1
+                unconfirmed_candidates.append(set(matching))
             matching = scoped_matches
         elif separator and matching:
             domain_matches = []
@@ -136,7 +137,7 @@ def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_
                 if prefix.casefold() in {domain.casefold(), upn_suffix.casefold()}:
                     domain_matches.append(sid)
             if not domain_matches:
-                unconfirmed_domains += 1
+                unconfirmed_candidates.append(set(matching))
             matching = domain_matches
         if len(matching) == 1:
             sid = matching[0]
@@ -145,17 +146,18 @@ def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_
             if sid in entry_matches and entry_matches[sid].casefold() != username.casefold():
                 del entry_matches[sid]
                 ambiguous_sids.add(sid)
-                ambiguous += 1
+                ambiguous_candidates.append({sid})
             else:
                 entry_matches[sid] = username
         elif len(matching) > 1:
-            ambiguous += 1
+            ambiguous_candidates.append(set(matching))
 
     memberships = defaultdict(set)
     unresolved = set()
     missing_members = set()
     selected_groups = set()
     conflicting_groups = set()
+    privileged_sids = set()
     for sid, group_records in groups.items():
         builtin = re.fullmatch(r"(?:.+-)?S-1-5-32-(\d+)", sid)
         domain_sid = re.fullmatch(r"S-1-5-21-(?:\d+-){3}(\d+)", sid)
@@ -195,6 +197,7 @@ def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_
                 continue
             visited.add(current)
             if current in users:
+                privileged_sids.add(current)
                 if current in entry_matches:
                     memberships[entry_matches[current]].add(label)
                 continue
@@ -230,10 +233,14 @@ def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_
         warnings.append(
             f"{len(conflicting_groups)} group(s) had conflicting names or domains."
         )
+    ambiguous = sum(bool(candidates & privileged_sids) for candidates in ambiguous_candidates)
     if ambiguous:
         warnings.append(
             f"{ambiguous} ambiguous NTDS/BloodHound account match(es) were omitted."
         )
+    unconfirmed_domains = sum(
+        bool(candidates & privileged_sids) for candidates in unconfirmed_candidates
+    )
     if unconfirmed_domains:
         warnings.append(f"{unconfirmed_domains} {UNCONFIRMED_DOMAIN_WARNING}")
     return {

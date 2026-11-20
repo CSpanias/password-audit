@@ -251,16 +251,6 @@ def executive_summary(results):
                     "privilege escalation. "
                 )
 
-            if any(
-                any(account["groups"] for account in group["accounts"])
-                for group in hash_reuse
-            ):
-                systemic_message += (
-                    "This included shared credentials involving selected "
-                    "privileged accounts; NTLM hash comparison can identify "
-                    "such reuse without recovering the passwords. "
-                )
-
         if failure_count or weaknesses:
             systemic_message += (
                 "Weak or predictable password choices can reduce the effort "

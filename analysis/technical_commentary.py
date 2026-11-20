@@ -8,9 +8,13 @@ security guidance.
 """
 
 from collections import Counter
-import re
 
 from common.utils import mask_password, natural_join, num_to_word
+
+
+def _display_username(username):
+    return username.rpartition("\\")[2].replace("|", "\\|")
+
 
 # ---------------------------------------------------------------------------
 # Privileged Accounts
@@ -57,23 +61,11 @@ def commentary_admins(results):
         lines.append("| ---------- | ---------- |")
 
         for account in admins:
-            lines.append(f"| {account['username']} | {mask_password(account['password'])} |")
+            lines.append(f"| {_display_username(account['username'])} | {mask_password(account['password'])} |")
 
         lines.append("")
 
     return "\n".join(lines)
-
-def _format_privileged_warning(warning):
-    match = re.fullmatch(r"(\d+) (.+?)\((s|es)\)(.*)", warning)
-    if not match:
-        return warning
-    count = int(match.group(1))
-    noun = match.group(2) + (match.group(3) if count != 1 else "")
-    remainder = match.group(4)
-    if count == 1 and remainder.startswith(" were "):
-        remainder = " was " + remainder[len(" were "):]
-    return f"A total of {num_to_word(count)} {noun}{remainder}"
-
 
 def commentary_privileged_users(results):
     """Describe recovered passwords for members of selected groups."""
@@ -88,24 +80,16 @@ def commentary_privileged_users(results):
     if domain and privileged["status"] != "available":
         lines.append("")
     if privileged["status"] == "incomplete":
-        matching_note = (
-            " Unmatched NTDS accounts are not necessarily privileged."
-            if any(
-                "could not be matched to a BloodHound domain" in warning
-                for warning in privileged["warnings"]
-            )
-            else ""
-        )
         lines.append(
-            "Coverage of the selected privileged groups is incomplete. "
-            + " ".join(_format_privileged_warning(warning) for warning in privileged["warnings"])
-            + matching_note
-            + " As a result, some affected privileged accounts may be missing from the results."
+            "Privileged group coverage is incomplete because some group "
+            "memberships or account matches could not be verified from the "
+            "collected data. Some privileged accounts may be missing from the "
+            "results; see the privileged group membership dataset for details."
         )
     elif privileged["status"] == "unavailable":
         lines.append(
             "Privileged group analysis is unavailable. "
-            + " ".join(_format_privileged_warning(warning) for warning in privileged["warnings"])
+            + " ".join(privileged["warnings"])
         )
     if privileged["count"]:
         if lines:
@@ -122,7 +106,7 @@ def commentary_privileged_users(results):
         lines.extend(["", "| Username | Groups | Password |",
                       "| ---------- | ---------- | ---------- |"])
         for account in privileged["accounts"]:
-            username = account["username"].replace("|", "\\|")
+            username = _display_username(account["username"])
             groups = ", ".join(account["groups"]).replace("|", "\\|")
             password = mask_password(account["password"]).replace("|", "\\|")
             lines.append(
@@ -385,32 +369,20 @@ def commentary_ntlm_hash_reuse(results):
         group for group in groups
         if any(account["groups"] for account in group["accounts"])
     ]
-    cross_groups = [
-        group for group in privileged_groups
-        if any(not account["groups"] for account in group["accounts"])
-    ]
-    lines = [
+    paragraph = (
         f"A total of {num_to_word(len(groups))} shared NTLM "
         f"hash{'es were' if len(groups) != 1 else ' was'} identified across "
         f"{num_to_word(reuse['account_count'])} enabled user accounts, regardless "
         "of whether their passwords were recovered. These results may overlap with "
-        "the recovered-password reuse findings and should not be added together.",
-    ]
+        "the recovered-password reuse findings and should not be added together."
+    )
     if privileged_groups:
-        lines.append(
-            f"Of these, {num_to_word(len(privileged_groups))} "
+        paragraph += (
+            f" Of these, {num_to_word(len(privileged_groups))} "
             f"{'involve' if len(privileged_groups) != 1 else 'involves'} "
             "an account in a selected privileged group and at least one other account."
         )
-    if cross_groups:
-        lines.append(
-            f"A total of {num_to_word(len(cross_groups))} of these hashes "
-            f"{'are' if len(cross_groups) != 1 else 'is'} shared with accounts "
-            "not identified in selected privileged groups. These accounts are "
-            "not necessarily unprivileged; membership coverage is limited "
-            "to the collected data and selected groups."
-        )
-    lines.append(
+    description = (
         "The following table shows example masked NTLM hashes and their "
         "associated accounts. The hash reuse finding lists all affected account "
         "groups without exposing full hashes or passwords."
@@ -418,11 +390,11 @@ def commentary_ntlm_hash_reuse(results):
     table = ["| NTLM Hash | Accounts |", "| ---------- | ---------- |"]
     for group in groups[:5]:
         accounts = ", ".join(
-            account["username"].replace("|", "\\|")
+            _display_username(account["username"])
             for account in group["accounts"]
         )
         table.append(f"| {group['masked_hash']} | {accounts} |")
-    return "\n\n".join(lines) + "\n\n" + "\n".join(table)
+    return "\n\n".join([paragraph, description, "\n".join(table)])
 
 
 def commentary_password_reuse(results):
@@ -537,9 +509,9 @@ def commentary_similar_account_reuse(results):
 
     for account in reuse_accounts[:5]:
         lines.append(
-            f"| {account['username']} | "
+            f"| {_display_username(account['username'])} | "
             f"{mask_password(account['password'])} | "
-            f"{account['shared_with']} |"
+            f"{_display_username(account['shared_with'])} |"
         )
 
     lines.append("")
@@ -584,7 +556,7 @@ def commentary_username_passwords(results):
     lines.append("| ---------- | ---------- |")
 
     for account in accounts[:5]:
-        lines.append(f"| {account['username']} | {mask_password(account['password'])} |")
+        lines.append(f"| {_display_username(account['username'])} | {mask_password(account['password'])} |")
 
     lines.append("")
 
@@ -631,7 +603,7 @@ def commentary_company_words(results):
     lines.append("| ---------- | ---------- |")
 
     for account in accounts[:5]:
-        lines.append(f"| {account['username']} | {mask_password(account['password'])} |")
+        lines.append(f"| {_display_username(account['username'])} | {mask_password(account['password'])} |")
 
     if stats:
         lines.append("")
@@ -692,7 +664,7 @@ def commentary_date_passwords(results):
     lines.append("| ---------- | ---------- |")
 
     for account in accounts[:5]:
-        lines.append(f"| {account['username']} | {mask_password(account['password'])} |")
+        lines.append(f"| {_display_username(account['username'])} | {mask_password(account['password'])} |")
 
     if stats:
 
@@ -756,7 +728,7 @@ def commentary_keyboard_walks(results):
     lines.append("| ---------- | ---------- |")
 
     for account in accounts[:5]:
-        lines.append(f"| {account['username']} | {mask_password(account['password'])} |")
+        lines.append(f"| {_display_username(account['username'])} | {mask_password(account['password'])} |")
 
     if stats:
         lines.append("")
@@ -821,7 +793,7 @@ def commentary_common_passwords(results):
     lines.append("| ---------- | ---------- |")
 
     for account in accounts[:5]:
-        lines.append(f"| {account['username']} | {mask_password(account['password'])} |")
+        lines.append(f"| {_display_username(account['username'])} | {mask_password(account['password'])} |")
 
     if stats:
 
@@ -937,30 +909,27 @@ def technical_commentary(results):
             "stated, tables are intended to provide representative samples and may not contain all affected accounts identified during "
             "the assessment.")
 
-    # Privileged accounts
-    lines.append(commentary_admins(results))
-    lines.append(commentary_privileged_users(results))
-
-    # LM-related findings
-    lines.append(commentary_lm_hashes(results))
-
-    # Domain policy compliance
-    lines.append(commentary_password_lengths(results))
-
-    # Password management practices
-    lines.append(commentary_ntlm_hash_reuse(results))
-    lines.append(commentary_password_reuse(results))
-    lines.append(commentary_similar_account_reuse(results))
-
-    # Predictable patterns
-    lines.append(commentary_username_passwords(results))
-    lines.append(commentary_company_words(results))
-    lines.append(commentary_common_passwords(results))
-    lines.append(commentary_date_passwords(results))
-    lines.append(commentary_keyboard_walks(results))
-
-    # Password complexity
-    lines.append(commentary_character_classes(results))
+    sections = (
+        ("Privileged Accounts", (commentary_admins, commentary_privileged_users)),
+        ("LM Hashes", (commentary_lm_hashes,)),
+        ("Password Compliance", (commentary_password_lengths,)),
+        ("Password Reuse", (
+            commentary_password_reuse, commentary_ntlm_hash_reuse,
+            commentary_similar_account_reuse,
+        )),
+        ("Common Patterns", (
+            commentary_username_passwords, commentary_company_words,
+            commentary_common_passwords, commentary_date_passwords,
+            commentary_keyboard_walks,
+        )),
+        ("Password Complexity", (commentary_character_classes,)),
+    )
+    for heading, functions in sections:
+        content = [
+            text.strip() for function in functions if (text := function(results)).strip()
+        ]
+        if content:
+            lines.append(f"### {heading}\n\n" + "\n\n".join(content))
 
     lines = [line.strip() for line in lines if line.strip()]
     return "\n\n".join(lines)
