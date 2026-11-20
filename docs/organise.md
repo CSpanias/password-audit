@@ -51,10 +51,15 @@ Privileged membership includes nested groups and primary-group membership.
 Accounts are matched to NTDS using the account name and RID, with domain
 checks when a domain prefix is present. Ambiguous identities are omitted and
 reported as incomplete coverage. The prefix must match the BloodHound DNS
-domain or the suffix of that account's exported `userprincipalname`. A NetBIOS
-name or UPN suffix that cannot be confirmed is reported as incomplete; not all
-collectors export the UPN. The JSON file contains account names and group
-memberships, but no passwords.
+domain or the suffix of that account's exported `userprincipalname`. Not all
+collectors export the UPN. If those checks cannot resolve accounts and the
+BloodHound data identifies a single domain, an interactive run asks whether
+the NTDS dump belongs to that domain. Confirm only when you know this is true:
+matching then uses the account name and RID within the confirmed domain SID.
+The confirmation is recorded in `privileged-users.json` and the audit report.
+Declining, non-interactive runs, ambiguous identities, and multi-domain or
+unclear exports retain incomplete coverage where matches cannot be verified.
+The JSON file contains account names and group memberships, but no passwords.
 
 The generated `company-words.txt` is a basic seed and is regenerated when
 organising data. For more realistic company-specific password analysis, keep a

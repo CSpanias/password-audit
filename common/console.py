@@ -8,6 +8,8 @@ Functions in this module should focus on user-facing console
 messages and avoid implementing business logic.
 """
 
+import sys
+
 from rich.console import Console
 
 from common.constants import (
@@ -22,6 +24,25 @@ from common.constants import (
 # -----------------
 
 console = Console()
+
+def confirm_ntds_domain(domain):
+    """Confirm an NTDS source domain without blocking unattended runs."""
+    if not sys.stdin.isatty():
+        warn("NTDS source domain cannot be confirmed without an interactive terminal.")
+        return False
+    print()
+    warn(
+        "Some NTDS account prefixes could not be verified against BloodHound. "
+        "Confirm the source only if you know the dump belongs to this domain."
+    )
+    try:
+        answer = input(
+            f"Does the NTDS dump belong to {domain['name']} ({domain['sid']})? [y/N] "
+        )
+    except EOFError:
+        warn("NTDS source domain confirmation was not provided.")
+        return False
+    return answer.strip().casefold() in {"y", "yes"}
 
 def info(message):
     """

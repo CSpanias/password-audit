@@ -9,7 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 from pathlib import Path
 
-from common.console import console, info, ok, warn
+from common.console import confirm_ntds_domain, console, info, ok, warn
 from ntds.workflow import organise_dataset
 
 
@@ -37,6 +37,7 @@ def run_ntds_organiser(args):
         bloodhound_file=args.bloodhound,
         potfile=args.potfile,
         username_filter=args.filter,
+        confirm_domain=confirm_ntds_domain,
     )
 
     # Print testing accounts to stdout

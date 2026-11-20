@@ -172,6 +172,8 @@ def build_results(
         "status": privileged_users["status"],
         "warnings": privileged_users["warnings"],
     }
+    if "confirmed_domain" in privileged_users:
+        results["privileged_users"]["confirmed_domain"] = privileged_users["confirmed_domain"]
 
     # Domain Admins with LM
     results["lm_admins"] = {

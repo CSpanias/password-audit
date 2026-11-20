@@ -19,7 +19,7 @@ from auditing.company_words import (
     save_company_word_snapshot,
 )
 from auditing.validation import has_enabled_phases, validate_audit_inputs
-from common.console import console, info, ok, warn
+from common.console import confirm_ntds_domain, console, info, ok, warn
 from cracking.constants import DEFAULT_HASHCAT_DIR
 from cracking.parsers import load_campaign
 from cracking.reporting import print_summary
@@ -140,6 +140,7 @@ def run_audit(
             username_filter=username_filter,
             output_dir=output_dir,
             bloodhound_file=bloodhound_file,
+            confirm_domain=confirm_ntds_domain,
         )
 
     if (
@@ -262,6 +263,9 @@ def run_audit(
         bloodhound_file=bloodhound_file,
         potfile=hashcat_potfile,
         username_filter=username_filter,
+        confirmed_domain_sid=organise_results["privileged_users"].get(
+            "confirmed_domain", {}
+        ).get("sid"),
     )
 
     # LM mapping

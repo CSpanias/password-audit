@@ -31,6 +31,10 @@ PRIVILEGED_GROUP_NAMES = {
     "dnsadmins": "DNSAdmins",
     "exchange windows permissions": "Exchange Windows Permissions",
 }
+UNCONFIRMED_DOMAIN_WARNING = (
+    "NTDS account(s) could not be matched to a BloodHound domain; "
+    "NetBIOS names or UPN suffixes may differ from DNS names."
+)
 
 
 def _group_records(groups_data):
@@ -40,8 +44,53 @@ def _group_records(groups_data):
     return groups
 
 
-def extract_privileged_users(users_data, groups_data, entries):
+def single_bloodhound_domain(domains_data, users_data, groups_data):
+    """Return the sole collected domain only when its SID and scope are clear."""
+    domains = domains_data.get("data", []) if domains_data else []
+    if len(domains) != 1 or users_data is None or groups_data is None:
+        return None
+    domain = domains[0]
+    if not isinstance(domain, dict) or not isinstance(domain.get("Properties"), dict):
+        return None
+    sid = domain.get("ObjectIdentifier")
+    name = domain["Properties"].get("domain")
+    if not isinstance(sid, str) or not isinstance(name, str) or not name.strip():
+        return None
+    sid = sid.upper()
+    if not re.fullmatch(
+        r"S-1-5-21-(?:\d+-){2}\d+", sid
+    ):
+        return None
+    property_sid = domain["Properties"].get("domainsid")
+    if property_sid and (
+        not isinstance(property_sid, str) or property_sid.upper() != sid
+    ):
+        return None
+    for record in users_data["data"] + groups_data["data"]:
+        identifier = record.get("ObjectIdentifier", "")
+        if not isinstance(identifier, str):
+            return None
+        identifier = identifier.upper()
+        match = re.fullmatch(r"(S-1-5-21-(?:\d+-){2}\d+)-\d+", identifier)
+        if match and match.group(1) != sid:
+            return None
+        record_domain = record.get("Properties", {}).get("domain")
+        if record_domain and (
+            not isinstance(record_domain, str)
+            or record_domain.casefold() != name.casefold()
+        ):
+            return None
+    return {"name": name, "sid": sid}
+
+
+def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_sid=None):
     """Resolve selected group memberships and match them to NTDS accounts."""
+    if confirmed_domain_sid is not None and not re.fullmatch(
+        r"S-1-5-21-(?:\d+-){2}\d+", confirmed_domain_sid.upper()
+    ):
+        raise ValueError("Invalid confirmed domain SID.")
+    if confirmed_domain_sid is not None:
+        confirmed_domain_sid = confirmed_domain_sid.upper()
     if users_data is None or groups_data is None:
         return {"status": "unavailable", "accounts": [], "warnings": [
             "BloodHound users or groups data is unavailable."
@@ -69,7 +118,15 @@ def extract_privileged_users(users_data, groups_data, entries):
         if not separator:
             name = username
         matching = candidates.get((name.casefold(), str(entry["rid"])), [])
-        if separator and matching:
+        if confirmed_domain_sid and matching:
+            scoped_matches = [
+                sid for sid in matching
+                if sid.rsplit("-", 1)[0] == confirmed_domain_sid
+            ]
+            if not scoped_matches:
+                unconfirmed_domains += 1
+            matching = scoped_matches
+        elif separator and matching:
             domain_matches = []
             for sid in matching:
                 properties = users[sid].get("Properties", {})
@@ -178,10 +235,7 @@ def extract_privileged_users(users_data, groups_data, entries):
             f"{ambiguous} ambiguous NTDS/BloodHound account match(es) were omitted."
         )
     if unconfirmed_domains:
-        warnings.append(
-            f"{unconfirmed_domains} NTDS account(s) could not be matched to a "
-            "BloodHound domain; NetBIOS names or UPN suffixes may differ from DNS names."
-        )
+        warnings.append(f"{unconfirmed_domains} {UNCONFIRMED_DOMAIN_WARNING}")
     return {
         "status": "incomplete" if warnings else "available",
         "accounts": [

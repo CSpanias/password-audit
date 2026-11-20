@@ -65,6 +65,12 @@ def commentary_privileged_users(results):
     """Describe recovered passwords for members of selected groups."""
     privileged = results["privileged_users"]
     lines = []
+    domain = privileged.get("confirmed_domain")
+    if domain:
+        lines.append(
+            f"NTDS account matching used the user-confirmed source domain "
+            f"{domain['name']} ({domain['sid']})."
+        )
     if privileged["status"] != "available":
         lines.append(
             "Privileged group analysis is incomplete: "

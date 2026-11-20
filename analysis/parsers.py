@@ -8,6 +8,7 @@ and supporting account lists.
 """
 
 import json
+import re
 from os import PathLike
 
 # ---------------------------------------------------------------------------
@@ -61,6 +62,7 @@ def load_privileged_users(path):
 
     with open(path, encoding="utf-8") as file:
         data = json.load(file)
+    domain = data.get("confirmed_domain") if isinstance(data, dict) else None
     if (
         not isinstance(data, dict)
         or data.get("status") not in {"available", "incomplete", "unavailable"}
@@ -81,6 +83,16 @@ def load_privileged_users(path):
         )
         or len({account["username"].casefold() for account in data["accounts"]})
         != len(data["accounts"])
+        or (
+            "confirmed_domain" in data
+            and (
+                not isinstance(domain, dict)
+                or not isinstance(domain.get("name"), str)
+                or not domain["name"].strip()
+                or not isinstance(domain.get("sid"), str)
+                or not re.fullmatch(r"S-1-5-21-(?:\d+-){2}\d+", domain["sid"], re.IGNORECASE)
+            )
+        )
     ):
         raise ValueError(f"Invalid privileged group membership dataset: {path}")
     return data
