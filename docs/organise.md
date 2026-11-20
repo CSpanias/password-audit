@@ -48,21 +48,21 @@ The output includes password hashes and may include recovered plaintext
 passwords. Store it securely and restrict access to the assessment team.
 
 Privileged membership includes nested groups and primary-group membership.
-Accounts are matched to NTDS using the account name and RID, with domain
-checks when a domain prefix is present. Ambiguous identities are omitted and
-reported as incomplete coverage. The prefix must match the BloodHound DNS
-domain or the suffix of that account's exported `userprincipalname`. Not all
-collectors export the UPN. If those checks cannot resolve candidate accounts
-in the selected privileged groups and the BloodHound data identifies a single
-domain, an interactive run asks whether
-the NTDS dump belongs to that domain. Confirm only when you know this is true:
-matching then uses the account name and RID within the confirmed domain SID.
-The confirmation is recorded in `privileged-users.json` and the audit report.
-Declining, non-interactive runs, ambiguous identities, and multi-domain or
-unclear exports retain incomplete coverage where matches cannot be verified.
-Account-matching warnings concern candidates for selected privileged group
-members, not unrelated NTDS accounts. Missing group members and membership
-data are also reported as incomplete.
+Password Audit assumes the NTDS dump comes from one domain. When BloodHound
+identifies one source domain, its SID is used automatically to match account
+names and RIDs; different NTDS prefixes do not prevent a match. BloodHound
+objects from other domains are not treated as NTDS accounts from the source
+domain.
+
+If the export contains multiple domains, an interactive run asks which one
+the NTDS dump belongs to. Confirm only the domain you know is the source.
+Without a confirmed source, including in non-interactive runs, privileged
+account matches are omitted and coverage is incomplete. Missing or inconsistent
+domain data likewise prevents source-domain matching.
+
+The selected source is recorded in `privileged-users.json`; a user-confirmed
+source is also noted in the report. Ambiguous account matches, missing group
+members, and missing membership data are reported as incomplete.
 The JSON file contains account names and group memberships, but no passwords.
 
 The generated `company-words.txt` is a basic seed and is regenerated when

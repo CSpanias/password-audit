@@ -108,6 +108,10 @@ def run_ntds_organiser(args):
         )
 
     console.print(table)
+    if results["privileged_users"]["status"] != "available":
+        warn(f"Privileged group coverage is {results['privileged_users']['status']}:")
+        for warning in results["privileged_users"]["warnings"]:
+            warn(warning)
 
     print()
     ok(f"Output written to: {output_dir}")

@@ -26,6 +26,7 @@ from cracking.parsers import load_campaign
 from cracking.reporting import print_summary
 from cracking.scheduler import run_campaign
 from lm.workflow import generate_lm_results, map_lm_passwords
+from ntds.analysis import privileged_group_name
 from ntds.workflow import organise_dataset
 
 
@@ -190,19 +191,22 @@ def run_audit(
     if organise_results["lm_hashes"]:
         table.add_row("LM Hashes", str(len(organise_results["lm_hashes"])))
 
-    table.add_row("Domain Admins", str(len(organise_results["domain_admins"])))
     privileged = organise_results["privileged_users"]
     group_counts = Counter(
         group
         for account in privileged["accounts"]
-        for group in set(account["groups"])
-        if group != "Domain Admins" and not group.startswith("Domain Admins (")
+        for group in {privileged_group_name(name) for name in account["groups"]}
+    )
+    table.add_row(
+        "Domain Admins",
+        "Unavailable" if privileged["status"] == "unavailable"
+        else str(group_counts.pop("Domain Admins", 0)),
     )
     for group, count in sorted(group_counts.items(), key=lambda item: item[0].casefold()):
         table.add_row(group, str(count))
 
     console.print(table)
-    console.print("Domain Admins: BloodHound; other groups: matched enabled NTDS accounts.")
+    console.print("Privileged group counts: matched enabled NTDS accounts.")
     if privileged["status"] != "available":
         warn(f"Privileged group coverage is {privileged['status']}:")
         for warning in privileged["warnings"]:
@@ -274,6 +278,10 @@ def run_audit(
         confirmed_domain_sid=organise_results["privileged_users"].get(
             "confirmed_domain", {}
         ).get("sid"),
+        source_domain_sid=(
+            organise_results["privileged_users"].get("source_domain", {}).get("sid")
+            if "confirmed_domain" not in organise_results["privileged_users"] else None
+        ),
     )
 
     # LM mapping

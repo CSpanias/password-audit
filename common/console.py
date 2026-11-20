@@ -29,11 +29,11 @@ def confirm_ntds_domain(domain):
     """Confirm an NTDS source domain without blocking unattended runs."""
     if not sys.stdin.isatty():
         warn("NTDS source domain cannot be confirmed without an interactive terminal.")
-        return False
+        return None
     print()
     warn(
-        "Some NTDS account prefixes could not be verified against BloodHound. "
-        "Confirm the source only if you know the dump belongs to this domain."
+        "The BloodHound export does not identify a single source domain. "
+        "Confirm only if you know the NTDS dump belongs to this domain."
     )
     try:
         answer = input(
@@ -41,7 +41,7 @@ def confirm_ntds_domain(domain):
         )
     except EOFError:
         warn("NTDS source domain confirmation was not provided.")
-        return False
+        return None
     return answer.strip().casefold() in {"y", "yes"}
 
 def info(message):

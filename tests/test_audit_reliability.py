@@ -168,9 +168,7 @@ class AuditReliabilityTests(unittest.TestCase):
                                 "-C", "campaign.json", "-G", "test", *extra]
                         with patch.object(sys, "argv", args):
                             cli_main.main()
-                confirm.assert_called_once_with({
-                    "name": "example.test", "sid": "S-1-5-21-1-2-3",
-                })
+                confirm.assert_not_called()
                 self.assertTrue(any("appears unchanged" in call.args[0]
                                     for call in reminder.call_args_list))
             finally:
@@ -190,13 +188,13 @@ class AuditReliabilityTests(unittest.TestCase):
                 {"username": "example.test\\dave", "groups": ["Backup Operators"]},
                 {"username": "external.test\\alice", "groups": ["Backup Operators"]},
             ])
-            self.assertEqual(privileged["confirmed_domain"], {
+            self.assertEqual(privileged["source_domain"], {
                 "name": "example.test", "sid": "S-1-5-21-1-2-3",
             })
+            self.assertNotIn("confirmed_domain", privileged)
             report = (first / "password-audit-report.html").read_text(encoding="utf-8")
             self.assertIn("Backup Operators", report)
-            self.assertIn("user-confirmed source domain", report)
-            self.assertIn("S-1-5-21-1-2-3", report)
+            self.assertNotIn("user-confirmed source domain", report)
             self.assertIn("Pa********3!", report)
             findings = json.loads((first / "password-audit-findings.json").read_text())
             self.assertIn("PRIV-ACCOUNT-001", [
@@ -344,16 +342,18 @@ class AuditReliabilityTests(unittest.TestCase):
         self.assertEqual(result["accounts"], [])
         self.assertIn("2 NTDS accounts ", result["warnings"][0])
 
-    def test_domain_confirmation_respects_filtering_and_decline(self):
+    def test_source_domain_detection_respects_filtering_and_ambiguous_exports(self):
         sid = "S-1-5-21-1-2-3"
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             ntds = root / "ntds.txt"
             ntds.write_text(
                 "".join(
-                    f"external.test\\{name}:{rid}:{LM_EMPTY}:"
+                    f"{name}:{rid}:{LM_EMPTY}:"
                     "cccccccccccccccccccccccccccccccc::: (status=Enabled)\n"
-                    for name, rid in (("alice", 1000), ("filtered", 1001))
+                    for name, rid in (("external.test\\alice", 1000),
+                                      ("example.test\\bob", 1003),
+                                      ("external.test\\filtered", 1001))
                 ) + (
                     f"external.test\\disabled:1002:{LM_EMPTY}:"
                     "cccccccccccccccccccccccccccccccc::: (status=Disabled)\n"
@@ -365,37 +365,40 @@ class AuditReliabilityTests(unittest.TestCase):
                     {"ObjectIdentifier": f"{sid}-{rid}", "Properties": {
                         "samaccountname": name, "domain": "example.test",
                     }} for name, rid in (("alice", 1000), ("filtered", 1001),
-                                         ("disabled", 1002))
-                ]}))
+                                         ("disabled", 1002), ("bob", 1003))
+                ] + [{
+                    "ObjectIdentifier": "S-1-5-21-4-5-6-1000",
+                    "Properties": {"samaccountname": "alice", "domain": "other.test"},
+                }]}))
                 archive.writestr("groups.json", json.dumps({"data": [
                     {"ObjectIdentifier": f"{sid}-512", "Members": [
                         {"ObjectIdentifier": f"{sid}-{rid}", "ObjectType": "User"}
-                        for rid in (1000, 1001, 1002)
+                        for rid in (1000, 1001, 1002, 1003)
                     ]},
                     {"ObjectIdentifier": "S-1-5-32-544", "Members": []},
+                    {"ObjectIdentifier": "OTHER.TEST-S-1-5-32-551",
+                     "Properties": {"domain": "other.test"},
+                     "Members": [{"ObjectIdentifier": "S-1-5-21-4-5-6-1000",
+                                  "ObjectType": "User"}]},
                 ]}))
                 archive.writestr("domains.json", json.dumps({"data": [
                     {"ObjectIdentifier": sid, "Properties": {"domain": "example.test"}}
                 ]}))
-            for accepted in (False, True):
-                with self.subTest(accepted=accepted):
-                    result = organise_dataset(
-                        ntds, root, bloodhound_file=archive_path,
-                        username_filter="filtered",
-                        confirm_domain=lambda domain: accepted,
-                    )
-                    privileged = load_privileged_users(root / "privileged-users.json")
-                    self.assertEqual(result["privileged_users"], privileged)
-                    if accepted:
-                        self.assertEqual(privileged["status"], "available")
-                        self.assertEqual(privileged["accounts"], [
-                            {"username": "external.test\\alice", "groups": ["Domain Admins"]},
-                        ])
-                        self.assertEqual(privileged["confirmed_domain"]["sid"], sid)
-                    else:
-                        self.assertEqual(privileged["status"], "incomplete")
-                        self.assertEqual(privileged["accounts"], [])
-                        self.assertNotIn("confirmed_domain", privileged)
+            with patch("common.console.confirm_ntds_domain") as confirm:
+                result = organise_dataset(
+                    ntds, root, bloodhound_file=archive_path,
+                    username_filter="filtered", confirm_domain=confirm,
+                )
+            confirm.assert_not_called()
+            privileged = load_privileged_users(root / "privileged-users.json")
+            self.assertEqual(result["privileged_users"], privileged)
+            self.assertEqual(privileged["status"], "available")
+            self.assertEqual(privileged["accounts"], [
+                {"username": "example.test\\bob", "groups": ["Domain Admins"]},
+                {"username": "external.test\\alice", "groups": ["Domain Admins"]},
+            ])
+            self.assertEqual(privileged["source_domain"]["sid"], sid)
+            self.assertNotIn("confirmed_domain", privileged)
 
             ntds.write_text(
                 f"example.test\\alice:1000:{LM_EMPTY}:"
@@ -426,12 +429,44 @@ class AuditReliabilityTests(unittest.TestCase):
                     {"ObjectIdentifier": sid, "Properties": {"domain": "example.test"}},
                     {"ObjectIdentifier": "S-1-5-21-4-5-6", "Properties": {"domain": "other.test"}},
                 ]}))
-            with patch("common.console.confirm_ntds_domain") as confirm:
+            with patch("common.console.confirm_ntds_domain", return_value=False) as confirm:
                 result = organise_dataset(ntds, root, bloodhound_file=multi_archive,
                                           confirm_domain=confirm)
-            confirm.assert_not_called()
+            self.assertEqual(confirm.call_count, 2)
             self.assertEqual(result["privileged_users"]["status"], "incomplete")
             self.assertEqual(result["privileged_users"]["accounts"], [])
+            self.assertTrue(any("source domain could not be determined" in warning
+                                for warning in result["privileged_users"]["warnings"]))
+
+            ntds.write_text(
+                f"example.test\\alice:1000:{LM_EMPTY}:"
+                "cccccccccccccccccccccccccccccccc::: (status=Enabled)\n",
+                encoding="utf-8",
+            )
+            result = organise_dataset(ntds, root, bloodhound_file=multi_archive,
+                                      confirm_domain=lambda domain: False)
+            self.assertEqual(result["privileged_users"]["accounts"], [])
+            ntds.write_text(
+                f"external.test\\alice:1000:{LM_EMPTY}:"
+                "cccccccccccccccccccccccccccccccc::: (status=Enabled)\n",
+                encoding="utf-8",
+            )
+            with patch("common.console.confirm_ntds_domain", side_effect=[True]) as confirm:
+                result = organise_dataset(ntds, root, bloodhound_file=multi_archive,
+                                          confirm_domain=confirm)
+            confirm.assert_called_once_with({"name": "example.test", "sid": sid})
+            self.assertEqual(result["privileged_users"]["status"], "available")
+            self.assertEqual(result["privileged_users"]["accounts"], [
+                {"username": "external.test\\alice", "groups": ["Domain Admins"]},
+            ])
+            self.assertEqual(result["privileged_users"]["confirmed_domain"]["sid"], sid)
+            repeated = organise_dataset(ntds, root, bloodhound_file=multi_archive,
+                                        confirmed_domain_sid=sid)
+            self.assertEqual(repeated["privileged_users"], result["privileged_users"])
+
+            with self.assertRaisesRegex(ValueError, "detected NTDS domain no longer matches"):
+                organise_dataset(ntds, root, bloodhound_file=multi_archive,
+                                 source_domain_sid=sid)
 
     def test_domain_confirmation_requires_unambiguous_single_domain(self):
         from ntds.analysis import single_bloodhound_domain
@@ -449,11 +484,17 @@ class AuditReliabilityTests(unittest.TestCase):
                 "domain": "example.test"}}]}, users),
             ({"data": [domain]}, {"data": users["data"] + [{
                 "ObjectIdentifier": "S-1-5-21-4-5-6-1000",
-                "Properties": {"samaccountname": "alice", "domain": "other.test"},
+                "Properties": {"samaccountname": "alice", "domain": "example.test"},
             }]}),
         ):
             with self.subTest(domains=domains, account_data=account_data):
                 self.assertIsNone(single_bloodhound_domain(domains, account_data, groups))
+        foreign = {"data": users["data"] + [{
+            "ObjectIdentifier": "S-1-5-21-4-5-6-1000",
+            "Properties": {"samaccountname": "alice", "domain": "other.test"},
+        }]}
+        self.assertEqual(single_bloodhound_domain({"data": [domain]}, foreign, groups),
+                         {"name": "example.test", "sid": sid})
 
     def test_confirmed_domain_preserves_ambiguous_matches(self):
         sid = "S-1-5-21-1-2-3"
@@ -478,12 +519,19 @@ class AuditReliabilityTests(unittest.TestCase):
             "ObjectIdentifier": "S-1-5-21-4-5-6-1000",
             "Properties": {"samaccountname": "alice", "domain": "other.test"},
         })
+        groups["data"].append({
+            "ObjectIdentifier": "OTHER.TEST-S-1-5-32-551",
+            "Properties": {"domain": "other.test"},
+            "Members": [{"ObjectIdentifier": "S-1-5-21-4-5-6-1000", "ObjectType": "User"}],
+        })
         result = extract_privileged_users(users, groups, [
             {"username": "external.test\\alice", "rid": "1000"},
         ], sid)
         self.assertEqual(result["accounts"], [
             {"username": "external.test\\alice", "groups": ["Domain Admins"]},
         ])
+        self.assertEqual(result["status"], "available")
+        self.assertEqual(result["warnings"], [])
 
     def test_noninteractive_domain_confirmation_is_declined(self):
         with patch("common.console.sys.stdin") as stdin, patch("builtins.input") as prompt:
@@ -603,8 +651,13 @@ class AuditReliabilityTests(unittest.TestCase):
 
     def test_audit_summary_shows_privileged_coverage(self):
         accounts = [
-            {"username": "alice", "groups": ["Domain Admins (example.test)", "Administrators"]},
-            {"username": "bob", "groups": ["Administrators", "Backup Operators"]},
+            {"username": "example.test\\alice", "groups": [
+                "Domain Admins (example.test)", "Administrators (example.test)",
+                "Administrators (other.test)",
+            ]},
+            {"username": "other.test\\bob", "groups": [
+                "Administrators (other.test)", "Backup Operators (other.test)",
+            ]},
         ]
         for status, members, warnings in (
             ("available", accounts, []),
@@ -633,10 +686,13 @@ class AuditReliabilityTests(unittest.TestCase):
                         audit.run_audit("company.ntds", "bloodhound.zip", "campaign.json", "test")
                 summary = output.getvalue()
                 self.assertNotIn("Privileged Accounts", summary)
+                self.assertNotIn("(example.test)", summary)
+                self.assertNotIn("(other.test)", summary)
                 self.assertEqual(sum("Domain Admins" in line and "│" in line
                                      for line in summary.splitlines()), 1)
-                self.assertIn("other groups: matched enabled NTDS accounts", summary)
+                self.assertIn("Privileged group counts: matched enabled NTDS accounts", summary)
                 if members:
+                    self.assertRegex(summary, r"Domain Admins\s+│\s+1")
                     self.assertRegex(summary, r"Administrators\s+│\s+2")
                     self.assertRegex(summary, r"Backup Operators\s+│\s+1")
                 else:
@@ -656,6 +712,19 @@ class AuditReliabilityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "privileged-users.json"
             path.write_text('{"status":"available","accounts":"bad","warnings":[]}')
+            with self.assertRaisesRegex(ValueError, "Invalid privileged"):
+                load_privileged_users(path)
+            path.write_text(json.dumps({
+                "status": "available", "accounts": [], "warnings": [],
+                "source_domain": {"name": "example.test", "sid": "invalid"},
+            }))
+            with self.assertRaisesRegex(ValueError, "Invalid privileged"):
+                load_privileged_users(path)
+            path.write_text(json.dumps({
+                "status": "available", "accounts": [], "warnings": [],
+                "source_domain": {"name": "example.test", "sid": "S-1-5-21-1-2-3"},
+                "confirmed_domain": {"name": "other.test", "sid": "S-1-5-21-4-5-6"},
+            }))
             with self.assertRaisesRegex(ValueError, "Invalid privileged"):
                 load_privileged_users(path)
             path.write_text(json.dumps({

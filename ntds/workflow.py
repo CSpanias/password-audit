@@ -9,11 +9,7 @@ generation pipelines.
 import json
 
 from ntds.parsers import parse_ntds_file, load_bloodhound_zip, load_potfile
-from ntds.analysis import (
-    UNCONFIRMED_DOMAIN_WARNING,
-    extract_privileged_users,
-    single_bloodhound_domain,
-)
+from ntds.analysis import extract_privileged_users, single_bloodhound_domain
 from ntds.results import build_results
 from ntds.exports import export_results
 
@@ -26,6 +22,7 @@ def organise_dataset(
     username_filter=None,
     confirm_domain=None,
     confirmed_domain_sid=None,
+    source_domain_sid=None,
 ):
     """
     Process an NTDS dataset and export results.
@@ -47,10 +44,13 @@ def organise_dataset(
             Usernames to exclude from processing.
 
         confirm_domain:
-            Optional callback to confirm the single BloodHound source domain.
+            Optional callback to choose a source when multiple domains are collected.
 
         confirmed_domain_sid:
-            Previously confirmed domain SID, revalidated against the export.
+            Previously user-confirmed domain SID, revalidated against the export.
+
+        source_domain_sid:
+            Previously detected domain SID, revalidated against the export.
 
     Returns:
         dict:
@@ -82,24 +82,56 @@ def organise_dataset(
         hash_lookup=hash_lookup,
     )
 
-    domain = single_bloodhound_domain(domains_json, users_json, groups_json)
-    if confirmed_domain_sid and (
-        domain is None or domain["sid"] != confirmed_domain_sid.upper()
-    ):
-        raise ValueError("The confirmed NTDS domain no longer matches the BloodHound data.")
-    unconfirmed = any(
-        warning.endswith(UNCONFIRMED_DOMAIN_WARNING)
-        for warning in results["privileged_users"]["warnings"]
-    )
-    if domain and (confirmed_domain_sid or (confirm_domain is not None and unconfirmed)):
+    records = domains_json.get("data", []) if domains_json else []
+    candidates = [
+        domain for record in records
+        if (domain := single_bloodhound_domain(
+            {"data": [record]}, users_json, groups_json
+        )) is not None
+    ]
+    if confirmed_domain_sid and source_domain_sid:
+        raise ValueError("Only one previously selected NTDS domain can be supplied.")
+    previous_sid = confirmed_domain_sid or source_domain_sid
+    domain = None
+    user_confirmed = False
+    if previous_sid:
+        if source_domain_sid and (len(records) != 1 or len(candidates) != 1):
+            raise ValueError("The detected NTDS domain no longer matches the BloodHound data.")
+        domain = next(
+            (candidate for candidate in candidates if candidate["sid"] == previous_sid.upper()),
+            None,
+        )
+        if domain is None:
+            raise ValueError("The selected NTDS domain no longer matches the BloodHound data.")
+        user_confirmed = bool(confirmed_domain_sid)
+    elif len(records) == 1 and len(candidates) == 1:
+        domain = candidates[0]
+    elif len(records) > 1 and confirm_domain is not None:
+        for candidate in candidates:
+            confirmation = confirm_domain(candidate)
+            if confirmation is None:
+                break
+            if confirmation:
+                domain = candidate
+                user_confirmed = True
+                break
+
+    if domain:
         scoped = extract_privileged_users(
             users_json, groups_json, results["enabled_users"], domain["sid"]
         )
-        if confirmed_domain_sid or (
-            scoped != results["privileged_users"] and confirm_domain(domain)
-        ):
+        scoped["source_domain"] = domain
+        if user_confirmed:
             scoped["confirmed_domain"] = domain
-            results["privileged_users"] = scoped
+        results["privileged_users"] = scoped
+    elif results["privileged_users"]["status"] != "unavailable":
+        privileged = results["privileged_users"]
+        privileged["accounts"] = []
+        privileged["status"] = "incomplete"
+        privileged["warnings"].append(
+            "The NTDS source domain could not be determined from the BloodHound data; "
+            "privileged account matches were omitted."
+        )
 
     results["domain_admins_available"] = bool(users_json and groups_json)
 

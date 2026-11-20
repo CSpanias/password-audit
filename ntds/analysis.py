@@ -31,11 +31,22 @@ PRIVILEGED_GROUP_NAMES = {
     "dnsadmins": "DNSAdmins",
     "exchange windows permissions": "Exchange Windows Permissions",
 }
+_PRIVILEGED_GROUP_LABELS = (
+    set(PRIVILEGED_GROUP_RIDS.values()) | set(PRIVILEGED_GROUP_NAMES.values())
+)
 UNCONFIRMED_DOMAIN_WARNING = (
     "matched by name and RID to selected privileged users "
     "could not be confirmed as belonging to their BloodHound domains; "
     "NetBIOS names or UPN suffixes may differ from DNS names."
 )
+
+
+def privileged_group_name(group):
+    """Remove the domain qualifier from a recognised privileged group label."""
+    name, separator, domain = group.rpartition(" (")
+    if separator and domain.endswith(")") and name in _PRIVILEGED_GROUP_LABELS:
+        return name
+    return group
 
 
 def _group_records(groups_data):
@@ -73,14 +84,14 @@ def single_bloodhound_domain(domains_data, users_data, groups_data):
             return None
         identifier = identifier.upper()
         match = re.fullmatch(r"(S-1-5-21-(?:\d+-){2}\d+)-\d+", identifier)
-        if match and match.group(1) != sid:
-            return None
         record_domain = record.get("Properties", {}).get("domain")
-        if record_domain and (
-            not isinstance(record_domain, str)
-            or record_domain.casefold() != name.casefold()
-        ):
+        if record_domain and not isinstance(record_domain, str):
             return None
+        if match and record_domain:
+            same_sid = match.group(1) == sid
+            same_name = record_domain.casefold() == name.casefold()
+            if same_sid != same_name:
+                return None
     return {"name": name, "sid": sid}
 
 
@@ -124,8 +135,6 @@ def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_
                 sid for sid in matching
                 if sid.rsplit("-", 1)[0] == confirmed_domain_sid
             ]
-            if not scoped_matches:
-                unconfirmed_candidates.append(set(matching))
             matching = scoped_matches
         elif separator and matching:
             domain_matches = []

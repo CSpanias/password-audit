@@ -10,12 +10,7 @@ security guidance.
 from collections import Counter
 
 from common.utils import mask_password, natural_join, num_to_word
-from ntds.analysis import PRIVILEGED_GROUP_NAMES, PRIVILEGED_GROUP_RIDS
-
-
-_PRIVILEGED_GROUP_LABELS = (
-    set(PRIVILEGED_GROUP_RIDS.values()) | set(PRIVILEGED_GROUP_NAMES.values())
-)
+from ntds.analysis import privileged_group_name
 
 
 def _display_username(username):
@@ -23,10 +18,7 @@ def _display_username(username):
 
 
 def _display_group(group):
-    name, separator, domain = group.rpartition(" (")
-    if separator and domain.endswith(")") and name in _PRIVILEGED_GROUP_LABELS:
-        group = name
-    return group.replace("|", "\\|")
+    return privileged_group_name(group).replace("|", "\\|")
 
 
 # ---------------------------------------------------------------------------

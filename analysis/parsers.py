@@ -81,6 +81,18 @@ def load_ntds_users(path):
 # Generic Lists
 # ---------------------------------------------------------------------------
 
+def _valid_privileged_domain(domain):
+    return (
+        isinstance(domain, dict)
+        and isinstance(domain.get("name"), str)
+        and bool(domain["name"].strip())
+        and isinstance(domain.get("sid"), str)
+        and bool(re.fullmatch(
+            r"S-1-5-21-(?:\d+-){2}\d+", domain["sid"], re.IGNORECASE
+        ))
+    )
+
+
 def load_privileged_users(path):
     """Load the organiser's privileged membership dataset."""
     if path is None:
@@ -92,7 +104,6 @@ def load_privileged_users(path):
 
     with open(path, encoding="utf-8") as file:
         data = json.load(file)
-    domain = data.get("confirmed_domain") if isinstance(data, dict) else None
     if (
         not isinstance(data, dict)
         or data.get("status") not in {"available", "incomplete", "unavailable"}
@@ -113,14 +124,17 @@ def load_privileged_users(path):
         )
         or len({account["username"].casefold() for account in data["accounts"]})
         != len(data["accounts"])
+        or any(
+            key in data and not _valid_privileged_domain(data[key])
+            for key in ("confirmed_domain", "source_domain")
+        )
         or (
-            "confirmed_domain" in data
+            "confirmed_domain" in data and "source_domain" in data
             and (
-                not isinstance(domain, dict)
-                or not isinstance(domain.get("name"), str)
-                or not domain["name"].strip()
-                or not isinstance(domain.get("sid"), str)
-                or not re.fullmatch(r"S-1-5-21-(?:\d+-){2}\d+", domain["sid"], re.IGNORECASE)
+                data["confirmed_domain"]["sid"].casefold()
+                != data["source_domain"]["sid"].casefold()
+                or data["confirmed_domain"]["name"].casefold()
+                != data["source_domain"]["name"].casefold()
             )
         )
     ):
