@@ -465,6 +465,39 @@ def similar_account_reuse(passwords):
     return findings, similar_pairs
 
 
+def ntlm_hash_reuse(accounts, privileged_users):
+    """Group enabled users with identical NTLM hashes without exposing hashes."""
+    if accounts is None:
+        return {"status": "unavailable", "groups": [], "account_count": 0}
+
+    privileged = {
+        account["username"].casefold(): account["groups"]
+        for account in privileged_users["accounts"]
+    }
+    hashes = {}
+    for account in accounts:
+        username = account["username"]
+        hashes.setdefault(account["ntlm"].casefold(), []).append({
+            "username": username,
+            "groups": privileged.get(username.casefold(), []),
+        })
+
+    groups = [
+        sorted(group, key=lambda account: account["username"].casefold())
+        for group in hashes.values() if len(group) > 1
+    ]
+    groups.sort(key=lambda group: (
+        not any(account["groups"] for account in group),
+        -len(group),
+        group[0]["username"].casefold(),
+    ))
+    return {
+        "status": "available",
+        "groups": groups,
+        "account_count": sum(len(group) for group in groups),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Common Password Analysis
 # ---------------------------------------------------------------------------

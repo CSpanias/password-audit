@@ -95,7 +95,12 @@ class AuditReliabilityTests(unittest.TestCase):
             )
             (root / "first.ntds").write_text(
                 "external.test\\alice:1000:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:"
-                "cccccccccccccccccccccccccccccccc::: (status=Enabled)\n",
+                "cccccccccccccccccccccccccccccccc::: (status=Enabled)\n"
+                f"example.test\\dave:1002:{LM_EMPTY}:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee::: (status=Enabled)\n"
+                f"example.test\\eve:1003:{LM_EMPTY}:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE::: (status=Enabled)\n"
+                f"example.test\\disabled:1004:{LM_EMPTY}:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee::: (status=Disabled)\n"
+                f"example.test\\excluded:1005:{LM_EMPTY}:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee::: (status=Enabled)\n"
+                f"example.test\\computer$:1006:{LM_EMPTY}:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee::: (status=Enabled)\n",
                 encoding="utf-8",
             )
             (root / "second.ntds").write_text(
@@ -103,15 +108,17 @@ class AuditReliabilityTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with zipfile.ZipFile(root / "bloodhound.zip", "w") as archive:
-                archive.writestr("users.json", json.dumps({"data": [{
-                    "ObjectIdentifier": "S-1-5-21-1-2-3-1000",
-                    "Properties": {"samaccountname": "alice", "domain": "example.test"},
-                }]}))
+                archive.writestr("users.json", json.dumps({"data": [
+                    {"ObjectIdentifier": f"S-1-5-21-1-2-3-{rid}",
+                     "Properties": {"samaccountname": name, "domain": "example.test"}}
+                    for name, rid in (("alice", 1000), ("dave", 1002), ("eve", 1003))
+                ]}))
                 archive.writestr("groups.json", json.dumps({"data": [
                     {"ObjectIdentifier": "S-1-5-21-1-2-3-512", "Members": []},
                     {"ObjectIdentifier": "S-1-5-32-544", "Members": []},
                     {"ObjectIdentifier": "S-1-5-32-551", "Members": [
                         {"ObjectIdentifier": "S-1-5-21-1-2-3-1000", "ObjectType": "User"},
+                        {"ObjectIdentifier": "S-1-5-21-1-2-3-1002", "ObjectType": "User"},
                     ]},
                 ]}))
                 archive.writestr("domains.json", json.dumps({
@@ -155,7 +162,8 @@ class AuditReliabilityTests(unittest.TestCase):
                     patch.object(audit, "confirm_ntds_domain", return_value=True) as confirm,
                     patch("auditing.company_words.warn") as reminder,
                 ):
-                    for ntds, extra in (("first.ntds", []), ("second.ntds", ["--csacyber"])):
+                    for ntds, extra in (("first.ntds", ["-F", "excluded"]),
+                                        ("second.ntds", ["--csacyber"])):
                         args = ["password-audit", "audit", "-N", ntds, "-B", "bloodhound.zip",
                                 "-C", "campaign.json", "-G", "test", *extra]
                         with patch.object(sys, "argv", args):
@@ -179,6 +187,7 @@ class AuditReliabilityTests(unittest.TestCase):
             privileged = json.loads((first / "privileged-users.json").read_text())
             self.assertEqual(privileged["status"], "available")
             self.assertEqual(privileged["accounts"], [
+                {"username": "example.test\\dave", "groups": ["Backup Operators"]},
                 {"username": "external.test\\alice", "groups": ["Backup Operators"]},
             ])
             self.assertEqual(privileged["confirmed_domain"], {
@@ -193,6 +202,12 @@ class AuditReliabilityTests(unittest.TestCase):
             self.assertIn("PRIV-ACCOUNT-001", [
                 finding["id"] for finding in findings["findings"]
             ])
+            reuse = next(f for f in findings["findings"] if f["id"] == "PWD-REUSE-003")
+            self.assertEqual(reuse["affected_assets"], ["example.test\\dave", "example.test\\eve"])
+            self.assertIn("Backup Operators", reuse["evidence"][0])
+            self.assertNotIn("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", report.lower())
+            self.assertNotIn("example.test\\excluded", reuse["evidence"][0])
+            self.assertIn("1 of these also include accounts not identified", report)
             self.assertTrue((second / "password-audit-report.html").exists())
             self.assertTrue((second / "password-audit-findings.xml").exists())
             self.assertFalse((second / "lm-users.txt").exists())

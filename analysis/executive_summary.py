@@ -46,7 +46,7 @@ def executive_summary(results):
         size = "a significant subset"
         impact = "a significant proportion of passwords"
 
-    summary.append(
+    introduction = (
         f"A password audit was performed against the {domain_name} domain to "
         "evaluate the effectiveness of password management practices and "
         "identify weaknesses that could increase the organisation's exposure "
@@ -55,12 +55,20 @@ def executive_summary(results):
         "provides insight into the strength of user credentials, the "
         "effectiveness of password controls, and the resilience of privileged "
         "accounts. "
-
-        f"The audit demonstrated that {size} of user credentials could be "
-        "recovered through offline password-cracking techniques, indicating "
-        f"that {impact} remain susceptible to compromise following credential "
-        "exposure."
     )
+    if results["total_passwords"]:
+        introduction += (
+            f"The audit demonstrated that {size} of user credentials could be "
+            "recovered through offline password-cracking techniques, indicating "
+            f"that {impact} remain susceptible to compromise following credential "
+            "exposure."
+        )
+    else:
+        introduction += (
+            "No plaintext passwords were recovered during the campaign. "
+            "This does not establish that unrecovered passwords are strong."
+        )
+    summary.append(introduction)
 
     #---------------------------------------------------------------------------
     # HIGH IMPACT FINDINGS
@@ -80,7 +88,8 @@ def executive_summary(results):
     # Domain Admins with LM hashes
     lm_admin_count = results["lm_admins"]["count"]
 
-    if not admin_count and results["privileged_users"]["status"] == "available":
+    if (results["total_passwords"] and not admin_count
+            and results["privileged_users"]["status"] == "available"):
         
         positive_findings.append("no recovered Domain Administrator passwords")
 
@@ -168,6 +177,7 @@ def executive_summary(results):
     general_reuse_passwords = (
         results["password_reuse_general"]["sharedPasswords"]
     )
+    hash_reuse = results["ntlm_hash_reuse"]["groups"]
 
     # similarPairs counts comparable account pairs
     similar_account_reuse_pairs = (
@@ -196,7 +206,7 @@ def executive_summary(results):
 
     systemic_weaknesses = []
 
-    if general_reuse_passwords:
+    if general_reuse_passwords or hash_reuse:
         systemic_weaknesses.append("password reuse")
 
     if failure_count:
@@ -218,7 +228,7 @@ def executive_summary(results):
             "controls. "
         )
 
-        if (general_reuse_passwords or failure_count or weaknesses):
+        if (general_reuse_passwords or hash_reuse or failure_count or weaknesses):
 
             systemic_message += (
                 "Password reuse increases the potential impact of a compromised "
@@ -237,15 +247,22 @@ def executive_summary(results):
                     "privilege escalation. "
                 )
 
+            if any(any(account["groups"] for account in group) for group in hash_reuse):
+                systemic_message += (
+                    "Matching NTLM hashes also identified shared credentials "
+                    "involving selected privileged accounts, including cases "
+                    "where passwords may not have been recovered. "
+                )
+
         summary.append(systemic_message)
 
-    if not general_reuse_passwords:
+    if results["total_passwords"] and not general_reuse_passwords and not hash_reuse:
         positive_findings.append(
             "no evidence of password reuse was identified across the "
             "recovered credential dataset"
         )
 
-    if not failure_count:
+    if results["total_passwords"] and not failure_count:
         positive_findings.append(
             "full compliance with the configured minimum password length "
             "policy among recovered passwords"
@@ -282,6 +299,9 @@ def executive_summary(results):
     if weaknesses:
         conclusion_findings.append("credential resilience")
 
+    if general_reuse_passwords or hash_reuse:
+        conclusion_findings.append("credential separation")
+
     # if weaknesses:
     #     conclusion_findings.append("predictable password selection practices")
 
@@ -292,18 +312,31 @@ def executive_summary(results):
         conclusion_findings.append("legacy authentication mechanisms")
 
     if conclusion_findings:
+        if results["total_passwords"]:
+            summary.append(
+                "Overall, the assessment identified opportunities to further "
+                "strengthen password security across the environment. While many "
+                "baseline controls appear effective, weaknesses affecting "
+                f"{natural_join(conclusion_findings)} increase the potential "
+                "impact of credential compromise. Addressing these issues will "
+                "reduce the likelihood of unauthorised access, improve protection "
+                "of sensitive information, and strengthen the organisation's "
+                "overall resilience against credential-based attacks."
+            )
+        else:
+            summary.append(
+                "Overall, the assessment identified weaknesses affecting "
+                f"{natural_join(conclusion_findings)}. No plaintext passwords "
+                "were recovered, which does not establish that unrecovered "
+                "passwords are strong."
+            )
 
+    elif not results["total_passwords"]:
         summary.append(
-            "Overall, the assessment identified opportunities to further "
-            "strengthen password security across the environment. While many "
-            "baseline controls appear effective, weaknesses affecting "
-            f"{natural_join(conclusion_findings)} increase the potential "
-            "impact of credential compromise. Addressing these issues will "
-            "reduce the likelihood of unauthorised access, improve protection "
-            "of sensitive information, and strengthen the organisation's "
-            "overall resilience against credential-based attacks."
+            "No plaintext passwords were recovered, so password composition "
+            "could not be assessed. This does not establish that unrecovered "
+            "passwords are strong or that other weaknesses are absent."
         )
-
     else:
         summary.append(
             "Overall, the assessment did not identify any significant "

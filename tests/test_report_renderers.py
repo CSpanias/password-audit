@@ -19,6 +19,7 @@ import cli.main as cli_main
 from reports.html import render_html
 from reports.json import write_findings
 from reports.sureformat import write_sureformat
+from analysis.parsers import load_ntds_users
 
 REPORT = {
     "summary": {
@@ -184,6 +185,43 @@ class HtmlReportTests(unittest.TestCase):
                 [(v.attrib["id"], v.findtext("information")) for v in vulnerabilities],
                 [(vuln_id, f"{finding_id} < B & C") for finding_id, vuln_id in mappings],
             )
+
+    def test_sureformat_combines_reuse_findings_with_the_same_mapping(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "findings.xml"
+            write_sureformat(path, "example.test", [
+                {"id": "PWD-REUSE-001", "description": "Recovered reuse."},
+                {"id": "PWD-REUSE-003", "description": "Hash reuse."},
+            ])
+            entries = ET.parse(path).findall(".//vulnerability")
+            self.assertEqual(len(entries), 1)
+            self.assertEqual(entries[0].attrib["id"], "SC-1708")
+            self.assertEqual(entries[0].findtext("information"), "Recovered reuse.\nHash reuse.")
+
+    def test_ntds_user_loading_deduplicates_and_rejects_bad_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "users.txt"
+            path.write_text(
+                "EXAMPLE\\alice:1000:unused:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:::\n"
+                "example\\ALICE:1000:unused:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:::\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(len(load_ntds_users(path)), 1)
+            for record in (
+                "alice:1000:unused:not-a-hash:::\n",
+                "alice:not-a-rid:unused:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:::\n",
+                "machine$:1000:unused:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:::\n",
+                "alice:1000:unused:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa::: (status=Disabled)\n",
+                "not-an-ntds-record\n",
+                "EXAMPLE\\alice:1001:unused:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:::\n",
+            ):
+                with self.subTest(record=record):
+                    path.write_text(
+                        "EXAMPLE\\alice:1000:unused:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:::\n"
+                        + record, encoding="utf-8"
+                    )
+                    with self.assertRaises(ValueError):
+                        load_ntds_users(path)
 
     def test_analysis_csacyber_writes_xml_instead_of_json(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -355,6 +393,88 @@ class HtmlReportTests(unittest.TestCase):
                 with patch.object(sys, "argv", args):
                     with self.assertRaisesRegex(ValueError, "Conflicting recovered passwords"):
                         cli_main.main()
+            finally:
+                os.chdir(original_cwd)
+
+    def test_analyse_cli_reports_unrecovered_hash_reuse_and_incomplete_privilege_coverage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "mapped.txt").write_text("", encoding="utf-8")
+            (root / "policy.txt").write_text(
+                "Domain: example.test\nMinimum Password Length: 12\n", encoding="utf-8"
+            )
+            (root / "admins.txt").write_text("", encoding="utf-8")
+            (root / "users.txt").write_text("admin\nuser\n", encoding="utf-8")
+            (root / "ntds.txt").write_text(
+                "admin:1000:unused:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:::\n"
+                "user:1001:unused:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:::\n",
+                encoding="utf-8",
+            )
+            (root / "privileged.json").write_text(json.dumps({
+                "status": "incomplete",
+                "accounts": [{"username": "admin", "groups": ["Backup Operators"]}],
+                "warnings": ["Some group members were not resolved."],
+            }), encoding="utf-8")
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(root)
+                args = [
+                    "password-audit", "analyse", "-M", "mapped.txt",
+                    "-P", "policy.txt", "-D", "admins.txt", "-E", "users.txt",
+                    "--privileged-users", "privileged.json", "--ntds-users", "ntds.txt",
+                ]
+                with patch.object(sys, "argv", args):
+                    cli_main.main()
+                findings = json.loads((root / "password-audit-findings.json").read_text())
+                reuse = next(item for item in findings["findings"] if item["id"] == "PWD-REUSE-003")
+                self.assertEqual(reuse["affected_assets"], ["admin", "user"])
+                self.assertIn("not necessarily unprivileged", reuse["description"])
+                self.assertIn("Backup Operators", reuse["evidence"][0])
+                self.assertNotIn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", json.dumps(reuse).lower())
+                report = (root / "password-audit-report.html").read_text(encoding="utf-8")
+                self.assertIn("Some group members were not resolved.", report)
+                self.assertIn("regardless of whether their passwords were recovered", report)
+                self.assertNotIn("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", report.lower())
+                self.assertIn("No plaintext passwords were recovered", report)
+                self.assertNotIn("did not identify any significant", report)
+                self.assertNotIn("full compliance with the configured", report)
+
+                (root / "ntds.txt").write_text(
+                    "admin:1000:unused:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:::\n"
+                    "user:1001:unused:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:::\n",
+                    encoding="utf-8",
+                )
+                with patch.object(sys, "argv", args):
+                    cli_main.main()
+                findings = json.loads((root / "password-audit-findings.json").read_text())
+                self.assertNotIn("PWD-REUSE-003", [item["id"] for item in findings["findings"]])
+                with patch.object(sys, "argv", args[:-2]):
+                    cli_main.main()
+                report = (root / "password-audit-report.html").read_text(encoding="utf-8")
+                self.assertIn("NTLM hash reuse analysis was unavailable", report)
+
+                with patch.object(sys, "argv", args[:-2] + ["--ntds-users", "missing.txt"]):
+                    with self.assertRaises(FileNotFoundError):
+                        cli_main.main()
+            finally:
+                os.chdir(original_cwd)
+
+    def test_analyse_auto_loads_hashes_only_for_the_default_dataset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(directory)
+                Path("password-audit").mkdir()
+                Path("password-audit/ntds-users-clean.txt").write_text("", encoding="utf-8")
+                for mapped, expected in (
+                    ("password-audit/mapped-ntlm-passwords.txt", Path("password-audit/ntds-users-clean.txt")),
+                    ("other/mapped.txt", None),
+                ):
+                    with self.subTest(mapped=mapped), patch.object(
+                        sys, "argv", ["password-audit", "analyse", "-M", mapped]
+                    ), patch.object(cli_analyse, "analyse_passwords") as run:
+                        cli_main.main()
+                        self.assertEqual(run.call_args.kwargs["ntds_users"], expected)
             finally:
                 os.chdir(original_cwd)
 

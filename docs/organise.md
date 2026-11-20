@@ -34,7 +34,7 @@ Use `password-audit organise --help` for the installed version's full help.
 | --- | --- |
 | `enabled-users.txt` | Enabled user accounts used by analysis. |
 | `ntlm-hashes.txt` | NTLM hashes extracted from the NTDS dataset. |
-| `ntds-users-clean.txt` | Normalized enabled-user records. |
+| `ntds-users-clean.txt` | Enabled user records after exclusions, used for NTLM hash reuse analysis. |
 | `domain-admins.txt` | Domain Administrator accounts identified from BloodHound data, when available. |
 | `privileged-users.json` | Enabled NTDS accounts in selected privileged groups, their group memberships, and coverage warnings. |
 | `domain-policy.txt` | Password policy values extracted from BloodHound data, when available. |

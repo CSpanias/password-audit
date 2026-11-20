@@ -20,6 +20,7 @@ from analysis.parsers import (
     load_domain_policy,
     load_list,
     load_lm_users,
+    load_ntds_users,
     load_passwords,
     load_privileged_users,
 )
@@ -44,6 +45,7 @@ def analyse_passwords(
     csacyber=False,
     findings_file=None,
     privileged_users=None,
+    ntds_users=None,
 ):
     """
     Analyse recovered passwords and generate a report.
@@ -82,6 +84,9 @@ def analyse_passwords(
         privileged_users:
             Optional organiser-generated privileged group membership dataset.
 
+        ntds_users:
+            Optional organiser-generated enabled NTDS user records.
+
     Returns:
         dict:
             Password analysis results.
@@ -105,6 +110,7 @@ def analyse_passwords(
             lm_users=lm_users,
             mapped_lm_passwords=mapped_lm_passwords,
             privileged_users=privileged_users,
+            ntds_users=ntds_users,
         )
         progress.advance(task_id)
 
@@ -162,6 +168,7 @@ def _build_analysis_results(
     lm_users,
     mapped_lm_passwords,
     privileged_users,
+    ntds_users,
 ):
     """Load analysis inputs and build the structured results."""
     enabled_users = load_list(enabled_users)
@@ -200,6 +207,11 @@ def _build_analysis_results(
     if mapped_lm_passwords and Path(mapped_lm_passwords).exists():
         lm_passwords = load_passwords(mapped_lm_passwords)
 
+    if ntds_users is not None:
+        ntds_users = load_ntds_users(ntds_users)
+    else:
+        warn("NTLM hash reuse analysis is unavailable: no organised NTDS user records supplied.")
+
     return build_results(
         ntlm_mapped_passwords=ntlm_passwords,
         domain_admins=domain_admins,
@@ -210,6 +222,7 @@ def _build_analysis_results(
         lm_mapped_passwords=lm_passwords,
         domain_name=domain_name,
         privileged_users=privileged_users,
+        ntds_users=ntds_users,
     )
 
 

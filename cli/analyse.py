@@ -47,10 +47,21 @@ def run_password_analysis(args):
         if default_privileged_users.is_file():
             privileged_users = default_privileged_users
 
+    ntds_users = args.ntds_users
+    default_ntds_users = Path("password-audit/ntds-users-clean.txt")
+    if (
+        ntds_users is None
+        and Path(args.mapped_ntlm_passwords).resolve().parent
+        == default_ntds_users.resolve().parent
+        and default_ntds_users.is_file()
+    ):
+        ntds_users = default_ntds_users
+
     analyse_passwords(
         mapped_ntlm_passwords=args.mapped_ntlm_passwords,
         domain_admins=args.domain_admins,
         privileged_users=privileged_users,
+        ntds_users=ntds_users,
         company_words=company_words,
         pass_policy=args.pass_policy,
         enabled_users=args.enabled_users,

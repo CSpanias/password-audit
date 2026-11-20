@@ -43,6 +43,9 @@ datasets, campaign results and reports for that run are kept together there.
 The organising summary shows the number of matched privileged accounts,
 including Domain Admins, and indicates incomplete or unavailable coverage.
 See `privileged-users.json` in the run directory for memberships and warnings.
+The report also identifies matching NTLM hashes across enabled, unfiltered
+user accounts, including passwords that were not recovered. Hash-based and
+recovered-password reuse findings may overlap; their counts should not be added.
 When account prefixes cannot be verified, a single-domain export may prompt
 you to confirm the NTDS source domain. See [Organise](organise.md) for matching
 details and non-interactive behaviour.

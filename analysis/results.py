@@ -17,6 +17,7 @@ from analysis.analysis import (
     keyboard_walk_stats,
     username_passwords,
     similar_account_reuse,
+    ntlm_hash_reuse,
     common_passwords,
     common_password_stats,
     date_passwords,
@@ -42,6 +43,7 @@ def build_results(
     lm_mapped_passwords=None,
     domain_name=None,
     privileged_users=None,
+    ntds_users=None,
 ):
     """
     Build the complete password analysis results dataset.
@@ -174,6 +176,7 @@ def build_results(
     }
     if "confirmed_domain" in privileged_users:
         results["privileged_users"]["confirmed_domain"] = privileged_users["confirmed_domain"]
+    results["ntlm_hash_reuse"] = ntlm_hash_reuse(ntds_users, privileged_users)
 
     # Domain Admins with LM
     results["lm_admins"] = {

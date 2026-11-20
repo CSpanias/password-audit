@@ -9,6 +9,7 @@ FINDING_MAP = {
     "PWD-AUDIT-001": "SC-1930",
     "DOMAIN-ADMIN-001": "SC-2113",
     "PWD-REUSE-001": "SC-1708",
+    "PWD-REUSE-003": "SC-1708",
     "PWD-PATTERN-003": "SC-2201",
     "PWD-PATTERN-005": "SC-2203",
     "PWD-PATTERN-002": "SC-2204",
@@ -28,16 +29,23 @@ def write_sureformat(path, domain, findings):
     service = ET.SubElement(services, "service", name="", port="", protocol="tcp")
     vulnerabilities = ET.SubElement(service, "vulnerabilities")
 
+    mapped_vulnerabilities = {}
     for finding in findings:
         vulnerability_id = FINDING_MAP.get(finding["id"])
         if not vulnerability_id:
             warn(f"No SureFormat mapping found for finding: {finding['id']}")
             continue
 
-        vulnerability = ET.SubElement(
-            vulnerabilities, "vulnerability", id=vulnerability_id
-        )
-        ET.SubElement(vulnerability, "information").text = finding["description"]
+        if vulnerability_id in mapped_vulnerabilities:
+            information = mapped_vulnerabilities[vulnerability_id]
+            information.text = (information.text or "") + "\n" + finding["description"]
+        else:
+            vulnerability = ET.SubElement(
+                vulnerabilities, "vulnerability", id=vulnerability_id
+            )
+            information = ET.SubElement(vulnerability, "information")
+            information.text = finding["description"]
+            mapped_vulnerabilities[vulnerability_id] = information
 
     tree = ET.ElementTree(root)
     ET.indent(tree, space="    ")

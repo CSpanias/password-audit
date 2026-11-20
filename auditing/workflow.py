@@ -368,6 +368,7 @@ def run_audit(
         mapped_ntlm_passwords=mapped_ntlm_passwords,
         domain_admins=domain_admins,
         privileged_users=output_dir / "privileged-users.json",
+        ntds_users=output_dir / "ntds-users-clean.txt",
         company_words=company_word_sources,
         pass_policy=pass_policy,
         enabled_users=enabled_users,

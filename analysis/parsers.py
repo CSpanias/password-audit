@@ -11,6 +11,8 @@ import json
 import re
 from os import PathLike
 
+from ntds.parsers import parse_ntds_line
+
 # ---------------------------------------------------------------------------
 # Password Data
 # ---------------------------------------------------------------------------
@@ -45,6 +47,34 @@ def load_passwords(path):
             })
 
     return passwords
+
+
+def load_ntds_users(path):
+    """Load organiser-generated user records for NTLM hash comparisons."""
+    accounts = {}
+    with open(path, encoding="utf-8") as file:
+        for line_number, line in enumerate(file, 1):
+            if not line.strip():
+                continue
+            entry = parse_ntds_line(line)
+            if (
+                entry is None
+                or not entry["username"]
+                or entry["machine"]
+                or entry["raw"] != line.strip()
+                or not entry["rid"].isdigit()
+                or not re.fullmatch(r"[0-9a-fA-F]{32}", entry["ntlm"])
+            ):
+                raise ValueError(f"Invalid NTDS user record at {path}, line {line_number}.")
+            key = entry["username"].casefold()
+            previous = accounts.get(key)
+            if previous and (
+                previous["rid"] != entry["rid"]
+                or previous["ntlm"].casefold() != entry["ntlm"].casefold()
+            ):
+                raise ValueError(f"Conflicting NTDS user records at {path}, line {line_number}.")
+            accounts[key] = entry
+    return list(accounts.values())
 
 
 # ---------------------------------------------------------------------------

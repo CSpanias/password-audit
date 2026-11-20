@@ -53,6 +53,7 @@ _FINDING_GATES = {
     "non-compliant-passwords": ("password_length", lambda r: r["password_length"]["count"]),
     "password-reuse": ("password_reuse_general", lambda r: r["password_reuse_general"]["sharedPasswords"]),
     "shared-account-passwords": ("similar_account_reuse", lambda r: r["similar_account_reuse"]["count"]),
+    "ntlm-hash-reuse": ("ntlm_hash_reuse", lambda r: len(r["ntlm_hash_reuse"]["groups"])),
     "username-derived-passwords": ("username_passwords", lambda r: r["username_passwords"]["count"]),
     "organisation-related-passwords": ("company_words", lambda r: r["company_words"]["count"]),
     "common-passwords": ("common_passwords", lambda r: r["common_passwords"]["count"]),
@@ -134,6 +135,35 @@ def build_findings(results):
         if not description:
             description = definition.get("description", "")
 
+        evidence = []
+        affected_assets = []
+        if finding_id == "ntlm-hash-reuse":
+            groups = results["ntlm_hash_reuse"]["groups"]
+            cross_groups = sum(
+                any(account["groups"] for account in group)
+                and any(not account["groups"] for account in group)
+                for group in groups
+            )
+            description += (
+                f" {results['ntlm_hash_reuse']['account_count']} accounts are affected."
+            )
+            if cross_groups:
+                description += (
+                    f" {cross_groups} group(s) include selected privileged accounts "
+                    "and accounts not identified in those groups; other accounts "
+                    "are not necessarily unprivileged."
+                )
+            for index, group in enumerate(groups, 1):
+                accounts = [
+                    account["username"] + (
+                        f" (selected privileged groups: {', '.join(account['groups'])})"
+                        if account["groups"] else ""
+                    )
+                    for account in group
+                ]
+                evidence.append(f"Group {index}: " + ", ".join(accounts))
+                affected_assets.extend(account["username"] for account in group)
+
         finding = Finding(
             id=definition.get("id", finding_id.upper().replace("-", "-")),
             title=title,
@@ -141,6 +171,8 @@ def build_findings(results):
             severity=definition.get("severity", "info"),
             category=definition.get("category", "general"),
             remediation=definition.get("remediation", ""),
+            evidence=evidence,
+            affected_assets=affected_assets,
         )
 
         findings.append(finding)

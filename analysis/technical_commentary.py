@@ -335,6 +335,44 @@ def commentary_password_lengths(results):
 # Password Reuse
 # ---------------------------------------------------------------------------
 
+def commentary_ntlm_hash_reuse(results):
+    """Describe hash-based reuse independently of password recovery."""
+    reuse = results["ntlm_hash_reuse"]
+    if reuse["status"] == "unavailable":
+        return "NTLM hash reuse analysis was unavailable; organised NTDS user records were not supplied."
+    groups = reuse["groups"]
+    if not groups:
+        return ""
+    privileged_groups = [
+        group for group in groups
+        if any(account["groups"] for account in group)
+    ]
+    cross_groups = [
+        group for group in privileged_groups
+        if any(not account["groups"] for account in group)
+    ]
+    lines = [
+        f"Matching NTLM hashes identified {len(groups)} shared credential group(s) "
+        f"covering {reuse['account_count']} enabled user account(s), regardless "
+        "of whether their passwords were recovered. These results may overlap with "
+        "the recovered-password reuse findings and should not be added together.",
+    ]
+    if privileged_groups:
+        lines.append(
+            f"{len(privileged_groups)} group(s) include accounts in selected "
+            "privileged groups and at least one other account. "
+            f"{len(cross_groups)} of these also include accounts not identified "
+            "in selected privileged groups. Those accounts are not necessarily "
+            "unprivileged; membership coverage is limited to the collected "
+            "data and selected groups."
+        )
+    lines.append(
+        "The hash reuse finding lists all affected account groups; hashes "
+        "and passwords are not included in its evidence."
+    )
+    return "\n\n".join(lines)
+
+
 def commentary_password_reuse(results):
     """
     Generate commentary relating to password reuse.
@@ -828,13 +866,20 @@ def technical_commentary(results):
     enabled_users = results["enabled_users"]
     crack_rate = results["crack_rate"]
 
-    lines.append("A password audit was performed against extracted Active Directory password hashes to assess the "
+    introduction = ("A password audit was performed against extracted Active Directory password hashes to assess the "
         "effectiveness of password selection practices and identify weaknesses that could increase the likelihood "
         f"of credential compromise.\n\nThrough password-cracking techniques, it was possible to recover {num_to_word(total)} "
         f"plaintext passwords from {num_to_word(enabled_users)} enabled user accounts, representing approximately {crack_rate}% "
-        "of the assessed population. This demonstrates that a measurable proportion of user credentials remain susceptible to "
-        "password-cracking attacks following credential exposure. The recovered passwords were subsequently analysed to identify "
-        "common password selection patterns, policy non-compliance, and other indicators of weak password hygiene." )
+        "of the assessed population. ")
+    if total:
+        introduction += (
+            "This demonstrates that a measurable proportion of user credentials remain susceptible to "
+            "password-cracking attacks following credential exposure. The recovered passwords were subsequently analysed to identify "
+            "common password selection patterns, policy non-compliance, and other indicators of weak password hygiene."
+        )
+    else:
+        introduction += "Password composition could not be assessed without recovered passwords."
+    lines.append(introduction)
 
     lines.append("To maintain report readability, example findings have been included throughout this section. Unless otherwise "
             "stated, tables are intended to provide representative samples and may not contain all affected accounts identified during "
@@ -851,6 +896,7 @@ def technical_commentary(results):
     lines.append(commentary_password_lengths(results))
 
     # Password management practices
+    lines.append(commentary_ntlm_hash_reuse(results))
     lines.append(commentary_password_reuse(results))
     lines.append(commentary_similar_account_reuse(results))
 

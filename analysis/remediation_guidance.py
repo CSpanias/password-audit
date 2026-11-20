@@ -111,7 +111,10 @@ def remediation_guidance(results):
     # Password Reuse
     # ---------------
 
-    if results["password_reuse_general"]["sharedPasswords"]:
+    if (
+        results["password_reuse_general"]["sharedPasswords"]
+        or results["ntlm_hash_reuse"]["groups"]
+    ):
 
         lines.append(
             "- Users should be encouraged to maintain unique passwords for all "
@@ -131,6 +134,15 @@ def remediation_guidance(results):
             "separate credentials to preserve account separation and "
             "reduce the likelihood of privilege escalation following "
             "credential compromise."
+        )
+
+    if any(
+        any(account["groups"] for account in group)
+        for group in results["ntlm_hash_reuse"]["groups"]
+    ):
+        lines.append(
+            "- Prioritise shared credentials involving selected privileged "
+            "accounts, and replace them with unique passwords for each account."
         )
 
     # -------------------------------
@@ -218,6 +230,7 @@ def remediation_references(results):
     if (
         results["password_reuse_general"]["sharedPasswords"]
         or results["similar_account_reuse"]["count"]
+        or results["ntlm_hash_reuse"]["groups"]
     ):
         references.add(
             "https://specopssoft.com/blog/password-reuse-hidden-danger/"
