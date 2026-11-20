@@ -243,7 +243,9 @@ class HtmlReportTests(unittest.TestCase):
     def test_hash_reuse_commentary_masks_samples_and_formats_counts(self):
         privileged = {
             "status": "incomplete", "warnings": ["Some members could not be resolved."],
-            "accounts": [{"username": "EXAMPLE\\admin", "groups": ["Backup Operators"]}],
+            "accounts": [{"username": "EXAMPLE\\admin", "groups": [
+                "Backup Operators (example.test)", "Domain Admins (example.test)",
+            ]}],
         }
         accounts = [
             {"username": "EXAMPLE\\admin", "ntlm": "a" * 32},
@@ -253,11 +255,12 @@ class HtmlReportTests(unittest.TestCase):
         text = commentary_ntlm_hash_reuse({"ntlm_hash_reuse": reuse})
         self.assertIn("A total of one shared NTLM hash was", text)
         self.assertIn("across two enabled user accounts", text)
-        self.assertIn("Of these, one involves an account in the privileged group Backup Operators.", text)
+        self.assertIn("Of these, one includes an account in a selected privileged group.", text)
         self.assertNotIn("not identified in selected privileged groups", text)
         self.assertNotIn("\n\nOf these", text)
-        self.assertIn("| aa" + "*" * 28 + "aa | admin, user\\|one |", text)
-        self.assertIn("associated accounts:\n\n| NTLM Hash", text)
+        self.assertIn("| aa" + "*" * 28 + "aa | admin (Backup Operators, Domain Admins) | user\\|one |", text)
+        self.assertIn("| NTLM Hash | Privileged Accounts (Groups) | Other Accounts |", text)
+        self.assertNotIn("example.test", text)
         self.assertNotIn("The hash reuse finding lists", text)
         self.assertNotIn("a" * 32, text)
         self.assertNotIn("a" * 32, json.dumps(reuse))
@@ -267,8 +270,8 @@ class HtmlReportTests(unittest.TestCase):
         text = commentary_ntlm_hash_reuse({
             "ntlm_hash_reuse": ntlm_hash_reuse(accounts, privileged),
         })
-        self.assertIn("Of these, one involves", text)
-        self.assertIn("privileged groups: Backup Operators and Domain Admins.", text)
+        self.assertIn("Of these, one includes", text)
+        self.assertIn("admin (Backup Operators, Domain Admins); user\\|one (Domain Admins) | - |", text)
         self.assertNotIn("not identified in selected privileged groups", text)
 
         accounts = [
@@ -286,12 +289,14 @@ class HtmlReportTests(unittest.TestCase):
         self.assertEqual(len([line for line in text.splitlines() if line.startswith("| 00")]), 5)
         self.assertEqual(len(reuse["groups"]), 10)
 
-    def test_hash_reuse_commentary_lists_groups_for_multiple_hashes(self):
+    def test_hash_reuse_commentary_separates_privileged_and_other_samples(self):
         accounts = [
             {"username": "admin", "ntlm": "a" * 32},
             {"username": "user", "ntlm": "a" * 32},
             {"username": "operator", "ntlm": "b" * 32},
             {"username": "other", "ntlm": "b" * 32},
+            {"username": "member1", "ntlm": "c" * 32},
+            {"username": "member2", "ntlm": "c" * 32},
         ]
         privileged = {"accounts": [
             {"username": "admin", "groups": ["Domain Admins (example.test)"]},
@@ -301,10 +306,14 @@ class HtmlReportTests(unittest.TestCase):
             "ntlm_hash_reuse": ntlm_hash_reuse(accounts, privileged),
         })
         self.assertIn(
-            "Of these, two involve accounts in at least one of the following privileged "
-            "groups: Backup Operators and Domain Admins (example.test).",
+            "Of these, two include accounts in selected privileged groups.",
             text,
         )
+        self.assertIn("admin (Domain Admins) | user |", text)
+        self.assertIn("operator (Backup Operators) | other |", text)
+        self.assertIn("| cc" + "*" * 28 + "cc | member1, member2 |", text)
+        self.assertIn("| NTLM Hash | Accounts |", text)
+        self.assertNotIn("example.test", text)
 
     def test_privileged_coverage_warning_is_concise(self):
         text = commentary_privileged_users({"privileged_users": {
@@ -400,7 +409,8 @@ class HtmlReportTests(unittest.TestCase):
 
     def test_account_tables_omit_prefixes_without_changing_results(self):
         account = {"username": "EXAMPLE\\Ali|ce", "password": "Password123!",
-                   "groups": ["Backup Operators"], "shared_with": "OTHER\\Bob"}
+                   "groups": ["Backup Operators (example.test)", "Custom Group (regional)"],
+                   "shared_with": "OTHER\\Bob"}
         sections = [
             (commentary_admins, {"admins": {"accounts": [account], "count": 1}}),
             (commentary_privileged_users, {"privileged_users": {
@@ -423,6 +433,9 @@ class HtmlReportTests(unittest.TestCase):
                 text = function(results)
                 self.assertIn("| Ali\\|ce |", text)
                 self.assertNotIn("EXAMPLE\\", text)
+                if function is commentary_privileged_users:
+                    self.assertIn("Backup Operators, Custom Group (regional)", text)
+                    self.assertNotIn("example.test", text)
                 if function is commentary_similar_account_reuse:
                     self.assertIn("| Bob |", text)
                     self.assertNotIn("OTHER\\", text)

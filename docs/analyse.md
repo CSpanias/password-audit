@@ -69,6 +69,9 @@ Finding IDs, severity, category, descriptions, and remediation guidance are
 defined in the packaged YAML files. Severity is attached to individual
 findings; the report does not calculate an overall risk score.
 
+See [Checks](checks/index.md) for what each analysis looks for, how it works,
+and how to interpret the results.
+
 The selected groups are DAs, Enterprise Admins, Schema Admins,
 Administrators, DNSAdmins, Account Operators, Backup Operators, Server
 Operators, Cert Publishers, and Exchange Windows Permissions.
@@ -82,7 +85,9 @@ remains separate.
 The hash-based reuse finding and recovered-password reuse findings may overlap;
 their counts should not be added together. Technical commentary includes sample
 account groups and masked hashes; the finding lists all affected account groups
-without full hashes or plaintext passwords. Account tables omit domain prefixes
+without full hashes or plaintext passwords. Examples involving selected
+privileged accounts show each account's groups alongside the other accounts.
+Account and group labels in report tables omit domain qualifiers
 for readability; full identifiers remain in the organiser exports and the
 hash-reuse finding. Accounts not identified in selected
 privileged groups are not necessarily unprivileged, particularly when membership

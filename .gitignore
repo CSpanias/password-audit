@@ -22,6 +22,8 @@ site/
 !docs/
 !docs/*.md
 !docs/images/
+!docs/checks/
+!docs/checks/*.md
 !docs/knowledge-base/
 !docs/knowledge-base/*.md
 !example-ntlm-config.json

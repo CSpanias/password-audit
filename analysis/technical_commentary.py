@@ -10,10 +10,23 @@ security guidance.
 from collections import Counter
 
 from common.utils import mask_password, natural_join, num_to_word
+from ntds.analysis import PRIVILEGED_GROUP_NAMES, PRIVILEGED_GROUP_RIDS
+
+
+_PRIVILEGED_GROUP_LABELS = (
+    set(PRIVILEGED_GROUP_RIDS.values()) | set(PRIVILEGED_GROUP_NAMES.values())
+)
 
 
 def _display_username(username):
     return username.rpartition("\\")[2].replace("|", "\\|")
+
+
+def _display_group(group):
+    name, separator, domain = group.rpartition(" (")
+    if separator and domain.endswith(")") and name in _PRIVILEGED_GROUP_LABELS:
+        group = name
+    return group.replace("|", "\\|")
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +120,9 @@ def commentary_privileged_users(results):
                       "| ---------- | ---------- | ---------- |"])
         for account in privileged["accounts"]:
             username = _display_username(account["username"])
-            groups = ", ".join(account["groups"]).replace("|", "\\|")
+            groups = ", ".join(dict.fromkeys(
+                _display_group(group) for group in account["groups"]
+            ))
             password = mask_password(account["password"]).replace("|", "\\|")
             lines.append(
                 f"| {username} | {groups} | {password} |"
@@ -378,35 +393,66 @@ def commentary_ntlm_hash_reuse(results):
         "the recovered-password reuse findings and should not be added together."
     )
     if privileged_groups:
-        group_names = sorted({
-            name
-            for group in privileged_groups
-            for account in group["accounts"]
-            for name in account["groups"]
-        }, key=str.casefold)
-        group_description = (
-            f"the privileged group {group_names[0]}"
-            if len(group_names) == 1
-            else "at least one of the following privileged groups: " + natural_join(group_names)
+        accounts = (
+            "accounts in selected privileged groups"
+            if len(privileged_groups) != 1
+            else "an account in a selected privileged group"
         )
         paragraph += (
             f" Of these, {num_to_word(len(privileged_groups))} "
-            f"{'involve' if len(privileged_groups) != 1 else 'involves'} "
-            f"{'accounts' if len(privileged_groups) != 1 else 'an account'} "
-            f"in {group_description}."
+            f"{'include' if len(privileged_groups) != 1 else 'includes'} "
+            f"{accounts}."
         )
-    description = (
-        "The following table shows example masked NTLM hashes and their "
-        "associated accounts:"
-    )
-    table = ["| NTLM Hash | Accounts |", "| ---------- | ---------- |"]
-    for group in groups[:5]:
-        accounts = ", ".join(
-            _display_username(account["username"])
-            for account in group["accounts"]
+    samples = groups[:5]
+    privileged_samples = [
+        group for group in samples if any(account["groups"] for account in group["accounts"])
+    ]
+    other_samples = [
+        group for group in samples if not any(account["groups"] for account in group["accounts"])
+    ]
+    sections = [paragraph]
+    if privileged_samples:
+        table = [
+            "| NTLM Hash | Privileged Accounts (Groups) | Other Accounts |",
+            "| ---------- | ---------- | ---------- |",
+        ]
+        for group in privileged_samples:
+            privileged_accounts = []
+            other_accounts = []
+            for account in group["accounts"]:
+                username = _display_username(account["username"])
+                if account["groups"]:
+                    names = ", ".join(dict.fromkeys(
+                        _display_group(name) for name in account["groups"]
+                    ))
+                    privileged_accounts.append(f"{username} ({names})")
+                else:
+                    other_accounts.append(username)
+            table.append(
+                f"| {group['masked_hash']} | {'; '.join(privileged_accounts)} | "
+                f"{', '.join(other_accounts) or '-'} |"
+            )
+        sections.extend([
+            "The following table shows example masked NTLM hashes shared by "
+            "accounts in selected privileged groups:",
+            "\n".join(table),
+        ])
+    if other_samples:
+        table = ["| NTLM Hash | Accounts |", "| ---------- | ---------- |"]
+        for group in other_samples:
+            accounts = ", ".join(
+                _display_username(account["username"])
+                for account in group["accounts"]
+            )
+            table.append(f"| {group['masked_hash']} | {accounts} |")
+        description = (
+            "The following table shows other example masked NTLM hashes and "
+            "their associated accounts:"
+            if privileged_samples else
+            "The following table shows example masked NTLM hashes and their associated accounts:"
         )
-        table.append(f"| {group['masked_hash']} | {accounts} |")
-    return "\n\n".join([paragraph, description, "\n".join(table)])
+        sections.extend([description, "\n".join(table)])
+    return "\n\n".join(sections)
 
 
 def commentary_password_reuse(results):
