@@ -61,9 +61,9 @@ They remain available independently; for a typical assessment, start with
 | [Analyse](analyse.md) | Re-analyse mapped passwords and regenerate reports. |
 | [LM](lm.md) | Map recovered LM passwords or generate LM-derived candidates. |
 
-## Knowledge base
+## Learn more
 
-For assessment background and practical resources, see the
-[password audit overview](knowledge-base/password-audits.md),
-[tools](knowledge-base/tools.md), and
-[wordlists and rules](knowledge-base/wordlists-and-rules.md).
+See the [workflow](knowledge-base/password-audits.md) for collection and
+assessment stages, [Checks](checks/index.md) for what the analysis examines,
+and [Wordlists and rules](knowledge-base/wordlists-and-rules.md) for recovery
+resources.

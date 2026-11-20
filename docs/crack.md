@@ -90,6 +90,26 @@ change its statistical identity. Filenames are case-sensitive and do not
 verify file contents: different files with the same name are grouped together,
 while renamed copies are not. Use distinct filenames for different versions.
 
+## Hashcat command
+
+Password Audit runs Hashcat for each enabled campaign phase. A phase with a
+rule uses the following command shape:
+
+```text
+<hashcat_binary> -m <hash_mode> <hash_file> <wordlist> \
+    --potfile-path <potfile> -r <rule> <configured_flags> \
+    --status --status-timer=5 --session <session_name>
+```
+
+The `-r` arguments are omitted when a wordlist phase has no rule. NTLM uses
+mode `1000` and LM uses mode `3000`. Session names include the campaign and
+phase IDs; audit runs also include the run ID. Loopback phases generate a
+wordlist from recovered passwords and pass it to Hashcat as another phase.
+
+Paths and flags come from the campaign and workflow. Use
+`password-audit crack run --debug` to display the generated phase command.
+See [LM workflows](lm.md) for the separate LM reconstruction command.
+
 ## Run a campaign
 
 ```bash

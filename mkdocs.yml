@@ -47,6 +47,7 @@ nav:
   - Overview: index.md
   - Getting Started:
       - Installation: installation.md
+      - Workflow: knowledge-base/password-audits.md
   - Modules:
       - Audit (Recommended): audit.md
       - Organise: organise.md
@@ -67,8 +68,5 @@ nav:
       - Date-Related Passwords: checks/date-passwords.md
       - Keyboard Patterns: checks/keyboard-patterns.md
       - Password Statistics: checks/password-statistics.md
-  - Knowledge Base:
-      - Password Audits: knowledge-base/password-audits.md
-      - Tools: knowledge-base/tools.md
-      - Wordlists and Rules: knowledge-base/wordlists-and-rules.md
+  - Wordlists and Rules: knowledge-base/wordlists-and-rules.md
       

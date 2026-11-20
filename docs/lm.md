@@ -56,8 +56,15 @@ with `--output-dir`.
 | `-O`, `--output-dir` | Output directory; defaults to `password-audit`. |
 
 Unlike the standalone workflow, `audit` runs the LM `--show` and mapping steps
-for you. If an LM campaign is included in the campaign file, `audit` also runs
-it when LM hashes are present. LM reconstruction uses that campaign's Hashcat
+for you. It invokes Hashcat with the following command shape and saves the
+output for mapping:
+
+```text
+<hashcat_binary> -m 3000 --show <lm_hash_file> --potfile-path <potfile>
+```
+
+If an LM campaign is included in the campaign file, `audit` also runs it when
+LM hashes are present. LM reconstruction uses that campaign's Hashcat
 binary and potfile; without an LM campaign, it uses the NTLM campaign's
 configuration. If `--show` fails, the audit stops rather than reporting an
 empty LM recovery.

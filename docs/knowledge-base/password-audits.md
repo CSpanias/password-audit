@@ -1,4 +1,4 @@
-# Password audits
+# Password audit workflow
 
 A password audit assesses the strength and reuse of passwords in an
 environment by analysing password-hash datasets and recovered
@@ -25,9 +25,10 @@ the tool's prerequisites.
 1. **Extract:** Run `ad-kit enum` and select RustHound collection and the
    NTDS dump to obtain a BloodHound ZIP and an NTDS hash export. The hashes
    provide the input for password recovery, while the domain data adds
-   account and policy context. The [tools reference](tools.md#ad-kit-enumeration)
-   describes the collection commands; for more on NTDS extraction methods,
-   read [Password Audits Part 1](https://mollysec.com/posts/password-audits-part-1/).
+   account and policy context. See the [ad-kit enumeration guide](https://cspanias.github.io/ad-kit/commands/enum/)
+   for collection details and [Password Audits Part 1](https://mollysec.com/posts/password-audits-part-1/)
+   for more on NTDS extraction methods. Password Audit consumes these exports;
+   it does not run the collection tools.
 2. **Organise:** Prepare the hashes and supporting account data for the
    remaining stages. The [Organise guide](../organise.md) describes the
    generated datasets; [Password Audits Part 2](https://mollysec.com/posts/password-audits-part-2/)
