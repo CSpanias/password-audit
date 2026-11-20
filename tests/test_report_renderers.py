@@ -168,7 +168,10 @@ class HtmlReportTests(unittest.TestCase):
         mappings = [
             ("PWD-AUDIT-001", "SC-1930"),
             ("DOMAIN-ADMIN-001", "SC-2113"),
-            ("PWD-REUSE-001", "SC-1708"),
+            ("DOMAIN-ADMIN-002", "SC-10673"),
+            ("PRIV-ACCOUNT-001", "SC-10672"),
+            ("PWD-REUSE-001", "SC-10671"),
+            ("PWD-REUSE-002", "SC-2202"),
             ("PWD-PATTERN-003", "SC-2201"),
             ("PWD-PATTERN-005", "SC-2203"),
             ("PWD-PATTERN-002", "SC-2204"),
@@ -182,13 +185,13 @@ class HtmlReportTests(unittest.TestCase):
             {"id": finding_id, "description": f"{finding_id} < B & C"}
             for finding_id, _ in mappings
         ]
-        findings.append({"id": "PWD-REUSE-002", "description": "No mapping."})
+        findings.append({"id": "UNMAPPED-TEST", "description": "No mapping."})
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "findings.xml"
             with patch("reports.sureformat.warn") as warning:
                 write_sureformat(path, "example.test", findings)
             warning.assert_called_once_with(
-                "No SureFormat mapping found for finding: PWD-REUSE-002"
+                "No SureFormat mapping found for finding: UNMAPPED-TEST"
             )
             root = ET.parse(path).getroot()
             self.assertEqual(root.tag, "items")
@@ -209,11 +212,17 @@ class HtmlReportTests(unittest.TestCase):
             write_sureformat(path, "example.test", [
                 {"id": "PWD-REUSE-001", "description": "Recovered reuse."},
                 {"id": "PWD-REUSE-003", "description": "Hash reuse."},
+                {"id": "PWD-REUSE-002", "description": "Similar accounts."},
+                {"id": "DOMAIN-ADMIN-002", "description": "Domain admin LM."},
             ])
             entries = ET.parse(path).findall(".//vulnerability")
-            self.assertEqual(len(entries), 1)
-            self.assertEqual(entries[0].attrib["id"], "SC-1708")
+            self.assertEqual(len(entries), 3)
+            self.assertEqual(entries[0].attrib["id"], "SC-10671")
             self.assertEqual(entries[0].findtext("information"), "Recovered reuse.\nHash reuse.")
+            self.assertEqual(entries[1].attrib["id"], "SC-2202")
+            self.assertEqual(entries[1].findtext("information"), "Similar accounts.")
+            self.assertEqual(entries[2].attrib["id"], "SC-10673")
+            self.assertEqual(entries[2].findtext("information"), "Domain admin LM.")
 
     def test_ntds_user_loading_deduplicates_and_rejects_bad_records(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -3,6 +3,7 @@
 Password Audit analyses organised Active Directory password hashes and
 recovered credentials. These pages explain what each check looks for, how it
 works, why it matters, and how to interpret its results.
+
 Checks run as part of [`audit`](../audit.md) or [`analyse`](../analyse.md);
 they are not separate commands. Which results are available depends on the
 input datasets.
