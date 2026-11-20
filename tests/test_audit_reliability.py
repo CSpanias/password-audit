@@ -207,7 +207,7 @@ class AuditReliabilityTests(unittest.TestCase):
             self.assertIn("Backup Operators", reuse["evidence"][0])
             self.assertNotIn("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", report.lower())
             self.assertNotIn("example.test\\excluded", reuse["evidence"][0])
-            self.assertIn("1 of these also include accounts not identified", report)
+            self.assertIn("A total of one of these hashes is shared with accounts", report)
             self.assertTrue((second / "password-audit-report.html").exists())
             self.assertTrue((second / "password-audit-findings.xml").exists())
             self.assertFalse((second / "lm-users.txt").exists())

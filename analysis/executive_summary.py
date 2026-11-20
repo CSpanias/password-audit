@@ -219,24 +219,28 @@ def executive_summary(results):
 
     if systemic_weaknesses:
 
-        systemic_message = (
-            "The assessment also identified a number of broader "
-            "password-management weaknesses, including "
-            f"{natural_join(systemic_weaknesses)}. Collectively, these "
-            "weaknesses increase the likelihood of credential compromise and "
-            "reduce the overall effectiveness of password-based security "
-            "controls. "
-        )
+        if len(systemic_weaknesses) == 1:
+            systemic_message = (
+                "The assessment also identified a broader password-management "
+                f"weakness: {systemic_weaknesses[0]}. This weakness increases the "
+                "likelihood of credential compromise and reduces the effectiveness "
+                "of password-based security controls. "
+            )
+        else:
+            systemic_message = (
+                "The assessment also identified a number of broader "
+                "password-management weaknesses, including "
+                f"{natural_join(systemic_weaknesses)}. Collectively, these "
+                "weaknesses increase the likelihood of credential compromise and "
+                "reduce the overall effectiveness of password-based security "
+                "controls. "
+            )
 
-        if (general_reuse_passwords or hash_reuse or failure_count or weaknesses):
-
+        if general_reuse_passwords or hash_reuse:
             systemic_message += (
                 "Password reuse increases the potential impact of a compromised "
                 "credential by potentially providing access to multiple accounts "
-                "or systems, whilst weak and predictable password choices reduce "
-                "the effort required to successfully compromise user accounts. "
-                "Together, these conditions increase organisational exposure to "
-                "unauthorised access and credential-based attacks. "
+                "or systems. "
             )
 
             if similar_account_reuse_count:
@@ -247,12 +251,26 @@ def executive_summary(results):
                     "privilege escalation. "
                 )
 
-            if any(any(account["groups"] for account in group) for group in hash_reuse):
+            if any(
+                any(account["groups"] for account in group["accounts"])
+                for group in hash_reuse
+            ):
                 systemic_message += (
-                    "Matching NTLM hashes also identified shared credentials "
-                    "involving selected privileged accounts, including cases "
-                    "where passwords may not have been recovered. "
+                    "This included shared credentials involving selected "
+                    "privileged accounts; NTLM hash comparison can identify "
+                    "such reuse without recovering the passwords. "
                 )
+
+        if failure_count or weaknesses:
+            systemic_message += (
+                "Weak or predictable password choices can reduce the effort "
+                "required to compromise user accounts. "
+            )
+        if len(systemic_weaknesses) > 1:
+            systemic_message += (
+                "Together, these weaknesses increase organisational exposure to "
+                "unauthorised access and credential-based attacks."
+            )
 
         summary.append(systemic_message)
 

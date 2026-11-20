@@ -8,6 +8,7 @@ security guidance.
 """
 
 from collections import Counter
+import re
 
 from common.utils import mask_password, natural_join, num_to_word
 
@@ -41,8 +42,9 @@ def commentary_admins(results):
         lines = []
 
         lines.append(
-            f"{num_to_word(count).capitalize()} Domain Administrator account"
-            f"{'s were' if count > 1 else ' was'} successfully recovered during the password audit. "
+            f"A total of {num_to_word(count)} Domain Administrator account"
+            f"{'s had passwords' if count != 1 else ' had a password'} "
+            "successfully recovered during the password audit. "
             "Domain Administrator accounts represent some of the most privileged identities within "
             "Active Directory and typically provide broad access to authentication services, directory "
             "data, and domain-joined systems. Compromise of these credentials significantly increases "
@@ -61,6 +63,18 @@ def commentary_admins(results):
 
     return "\n".join(lines)
 
+def _format_privileged_warning(warning):
+    match = re.fullmatch(r"(\d+) (.+?)\((s|es)\)(.*)", warning)
+    if not match:
+        return warning
+    count = int(match.group(1))
+    noun = match.group(2) + (match.group(3) if count != 1 else "")
+    remainder = match.group(4)
+    if count == 1 and remainder.startswith(" were "):
+        remainder = " was " + remainder[len(" were "):]
+    return f"A total of {num_to_word(count)} {noun}{remainder}"
+
+
 def commentary_privileged_users(results):
     """Describe recovered passwords for members of selected groups."""
     privileged = results["privileged_users"]
@@ -71,21 +85,41 @@ def commentary_privileged_users(results):
             f"NTDS account matching used the user-confirmed source domain "
             f"{domain['name']} ({domain['sid']})."
         )
-    if privileged["status"] != "available":
+    if domain and privileged["status"] != "available":
+        lines.append("")
+    if privileged["status"] == "incomplete":
+        matching_note = (
+            " Unmatched NTDS accounts are not necessarily privileged."
+            if any(
+                "could not be matched to a BloodHound domain" in warning
+                for warning in privileged["warnings"]
+            )
+            else ""
+        )
         lines.append(
-            "Privileged group analysis is incomplete: "
-            + " ".join(privileged["warnings"])
-            + " Other affected accounts may be missing from the results."
+            "Coverage of the selected privileged groups is incomplete. "
+            + " ".join(_format_privileged_warning(warning) for warning in privileged["warnings"])
+            + matching_note
+            + " As a result, some affected privileged accounts may be missing from the results."
+        )
+    elif privileged["status"] == "unavailable":
+        lines.append(
+            "Privileged group analysis is unavailable. "
+            + " ".join(_format_privileged_warning(warning) for warning in privileged["warnings"])
         )
     if privileged["count"]:
+        if lines:
+            lines.append("")
+        count = privileged["count"]
         lines.append(
-            f"Passwords were recovered for {privileged['count']} account(s) "
+            f"Passwords were recovered for {num_to_word(count)} "
+            f"account{'s' if count != 1 else ''} "
             "belonging to selected privileged groups. The group memberships "
             "include nested membership and are limited to the collected "
             "BloodHound data; they are not a complete assessment of all "
             "privileged access or attack paths."
         )
-        lines.extend(["", "| Username | Group(s) | Password |",
+        lines.extend(["", "| Username | Groups | Password |",
                       "| ---------- | ---------- | ---------- |"])
         for account in privileged["accounts"]:
             username = account["username"].replace("|", "\\|")
@@ -280,24 +314,28 @@ def commentary_password_lengths(results):
 
             lines.append(
                 "The domain enforced a minimum password length requirement of "
-                f"{num_to_word(minimum_length)} characters. Analysis of the recovered credentials "
-                f"identified {num_to_word(failure_count)} passwords ({failure_percentage}% of "
+                f"{num_to_word(minimum_length)} character{'s' if minimum_length != 1 else ''}. "
+                "Analysis of the recovered credentials "
+                f"identified {num_to_word(failure_count)} password{'s' if failure_count != 1 else ''} ({failure_percentage}% of "
                 "recovered passwords) that did not comply with this requirement. The most "
                 f"frequently observed non-compliant password length was {num_to_word(top_length)} "
-                "characters, which was also the most commonly observed password length overall."
+                f"character{'s' if top_length != 1 else ''}, which was also the most "
+                "commonly observed password length overall."
             )
 
         else:
 
             lines.append("The domain enforced a minimum password length requirement of "
-                f"{num_to_word(minimum_length)} characters. Analysis of the recovered credentials "
-                f"identified {num_to_word(failure_count)} passwords ({failure_percentage}% of "
+                f"{num_to_word(minimum_length)} character{'s' if minimum_length != 1 else ''}. "
+                "Analysis of the recovered credentials "
+                f"identified {num_to_word(failure_count)} password{'s' if failure_count != 1 else ''} ({failure_percentage}% of "
                 "recovered passwords) that did not comply with this requirement. The most "
                 "frequently observed non-compliant password "
                 f"length{'s were' if len(common_lengths) > 1 else ' was'} {top_lengths} "
-                f"character{'s' if len(common_lengths) == 1 else ''}, while the most commonly "
+                f"character{'s' if len(common_lengths) != 1 or int(common_lengths[0]) != 1 else ''}, "
+                "while the most commonly "
                 f"observed password length overall was {num_to_word(most_common_length)} "
-                "characters."
+                f"character{'s' if most_common_length != 1 else ''}."
             )
 
         lines.append(
@@ -345,32 +383,46 @@ def commentary_ntlm_hash_reuse(results):
         return ""
     privileged_groups = [
         group for group in groups
-        if any(account["groups"] for account in group)
+        if any(account["groups"] for account in group["accounts"])
     ]
     cross_groups = [
         group for group in privileged_groups
-        if any(not account["groups"] for account in group)
+        if any(not account["groups"] for account in group["accounts"])
     ]
     lines = [
-        f"Matching NTLM hashes identified {len(groups)} shared credential group(s) "
-        f"covering {reuse['account_count']} enabled user account(s), regardless "
+        f"A total of {num_to_word(len(groups))} shared NTLM "
+        f"hash{'es were' if len(groups) != 1 else ' was'} identified across "
+        f"{num_to_word(reuse['account_count'])} enabled user accounts, regardless "
         "of whether their passwords were recovered. These results may overlap with "
         "the recovered-password reuse findings and should not be added together.",
     ]
     if privileged_groups:
         lines.append(
-            f"{len(privileged_groups)} group(s) include accounts in selected "
-            "privileged groups and at least one other account. "
-            f"{len(cross_groups)} of these also include accounts not identified "
-            "in selected privileged groups. Those accounts are not necessarily "
-            "unprivileged; membership coverage is limited to the collected "
-            "data and selected groups."
+            f"Of these, {num_to_word(len(privileged_groups))} "
+            f"{'involve' if len(privileged_groups) != 1 else 'involves'} "
+            "an account in a selected privileged group and at least one other account."
+        )
+    if cross_groups:
+        lines.append(
+            f"A total of {num_to_word(len(cross_groups))} of these hashes "
+            f"{'are' if len(cross_groups) != 1 else 'is'} shared with accounts "
+            "not identified in selected privileged groups. These accounts are "
+            "not necessarily unprivileged; membership coverage is limited "
+            "to the collected data and selected groups."
         )
     lines.append(
-        "The hash reuse finding lists all affected account groups; hashes "
-        "and passwords are not included in its evidence."
+        "The following table shows example masked NTLM hashes and their "
+        "associated accounts. The hash reuse finding lists all affected account "
+        "groups without exposing full hashes or passwords."
     )
-    return "\n\n".join(lines)
+    table = ["| NTLM Hash | Accounts |", "| ---------- | ---------- |"]
+    for group in groups[:5]:
+        accounts = ", ".join(
+            account["username"].replace("|", "\\|")
+            for account in group["accounts"]
+        )
+        table.append(f"| {group['masked_hash']} | {accounts} |")
+    return "\n\n".join(lines) + "\n\n" + "\n".join(table)
 
 
 def commentary_password_reuse(results):

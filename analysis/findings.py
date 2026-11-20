@@ -14,6 +14,7 @@ import os
 import yaml
 
 from analysis.finding import Finding
+from common.utils import num_to_word
 
 
 def _load_yaml_definitions():
@@ -86,7 +87,7 @@ def _format_description(template, count, **fmt_kwargs):
     s = "s" if count != 1 else ""
     were_was = "were" if count != 1 else "was"
 
-    values = {"count": count, "s": s, "were_was": were_was}
+    values = {"count": num_to_word(count), "s": s, "were_was": were_was}
     values.update(fmt_kwargs)
 
     return template.format(**values)
@@ -130,7 +131,9 @@ def build_findings(results):
         description_template = definition.get("description_template")
         fmt_values = {}
         if finding_id == "password-audit":
-            fmt_values["enabled"] = results.get("enabled_users", 0)
+            enabled = results.get("enabled_users", 0)
+            fmt_values["enabled"] = num_to_word(enabled)
+            fmt_values["enabled_s"] = "s" if enabled != 1 else ""
         description = _format_description(description_template, count, **fmt_values)
         if not description:
             description = definition.get("description", "")
@@ -140,16 +143,19 @@ def build_findings(results):
         if finding_id == "ntlm-hash-reuse":
             groups = results["ntlm_hash_reuse"]["groups"]
             cross_groups = sum(
-                any(account["groups"] for account in group)
-                and any(not account["groups"] for account in group)
+                any(account["groups"] for account in group["accounts"])
+                and any(not account["groups"] for account in group["accounts"])
                 for group in groups
             )
             description += (
-                f" {results['ntlm_hash_reuse']['account_count']} accounts are affected."
+                f" A total of {num_to_word(results['ntlm_hash_reuse']['account_count'])} "
+                "accounts are affected."
             )
             if cross_groups:
                 description += (
-                    f" {cross_groups} group(s) include selected privileged accounts "
+                    f" A total of {num_to_word(cross_groups)} "
+                    f"group{'s' if cross_groups != 1 else ''} "
+                    f"{'include' if cross_groups != 1 else 'includes'} selected privileged accounts "
                     "and accounts not identified in those groups; other accounts "
                     "are not necessarily unprivileged."
                 )
@@ -159,10 +165,10 @@ def build_findings(results):
                         f" (selected privileged groups: {', '.join(account['groups'])})"
                         if account["groups"] else ""
                     )
-                    for account in group
+                    for account in group["accounts"]
                 ]
                 evidence.append(f"Group {index}: " + ", ".join(accounts))
-                affected_assets.extend(account["username"] for account in group)
+                affected_assets.extend(account["username"] for account in group["accounts"])
 
         finding = Finding(
             id=definition.get("id", finding_id.upper().replace("-", "-")),

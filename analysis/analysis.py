@@ -21,6 +21,7 @@ from analysis.constants import (
 )
 
 from common.utils import (
+    mask_password,
     normalise_password,
     normalise_text,
     username_base,
@@ -483,18 +484,21 @@ def ntlm_hash_reuse(accounts, privileged_users):
         })
 
     groups = [
-        sorted(group, key=lambda account: account["username"].casefold())
-        for group in hashes.values() if len(group) > 1
+        {
+            "masked_hash": mask_password(ntlm),
+            "accounts": sorted(group, key=lambda account: account["username"].casefold()),
+        }
+        for ntlm, group in hashes.items() if len(group) > 1
     ]
     groups.sort(key=lambda group: (
-        not any(account["groups"] for account in group),
-        -len(group),
-        group[0]["username"].casefold(),
+        not any(account["groups"] for account in group["accounts"]),
+        -len(group["accounts"]),
+        group["accounts"][0]["username"].casefold(),
     ))
     return {
         "status": "available",
         "groups": groups,
-        "account_count": sum(len(group) for group in groups),
+        "account_count": sum(len(group["accounts"]) for group in groups),
     }
 
 

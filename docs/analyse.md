@@ -80,10 +80,11 @@ is counted once and its groups are listed together. The existing DA LM analysis
 remains separate.
 
 The hash-based reuse finding and recovered-password reuse findings may overlap;
-their counts should not be added together. The hash finding lists the affected
-account groups without including hashes or plaintext passwords. Accounts not
-identified in selected privileged groups are not necessarily unprivileged,
-particularly when membership coverage is incomplete.
+their counts should not be added together. Technical commentary includes sample
+account groups and masked hashes; the finding lists all affected account groups
+without full hashes or plaintext passwords. Accounts not identified in selected
+privileged groups are not necessarily unprivileged, particularly when membership
+coverage is incomplete.
 
 ## Reports
 

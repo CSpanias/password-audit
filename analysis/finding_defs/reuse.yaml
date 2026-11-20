@@ -22,7 +22,7 @@ shared-account-passwords:
     Investigate accounts sharing passwords with similarly named accounts. Require
     password changes and review for evidence of credential compromise or shared
     account usage.
-  description_template: "A total of {count} password{s} were shared across similarly named accounts."
+  description_template: "A total of {count} password{s} {were_was} shared across similarly named accounts."
 
 ntlm-hash-reuse:
   id: PWD-REUSE-003
@@ -33,4 +33,4 @@ ntlm-hash-reuse:
     Review the affected accounts and replace shared passwords with unique
     credentials. Prioritise accounts in privileged groups and review
     credential separation between privileged and other accounts.
-  description_template: "{count} shared NTLM credential group{s} {were_was} identified across enabled user accounts, including passwords that may not have been recovered. These results may overlap with recovered-password reuse findings."
+  description_template: "A total of {count} shared NTLM credential group{s} {were_was} identified across enabled user accounts, including passwords that may not have been recovered. These results may overlap with recovered-password reuse findings."

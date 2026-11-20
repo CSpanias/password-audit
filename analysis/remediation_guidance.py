@@ -137,7 +137,7 @@ def remediation_guidance(results):
         )
 
     if any(
-        any(account["groups"] for account in group)
+        any(account["groups"] for account in group["accounts"])
         for group in results["ntlm_hash_reuse"]["groups"]
     ):
         lines.append(

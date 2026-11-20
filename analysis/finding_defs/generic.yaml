@@ -11,7 +11,7 @@ password-audit:
     Review the findings in this report and prioritise remediation based on
     severity. Address critical and high findings first to reduce the risk
     of credential-based attacks.
-  description_template: "A total of {count} plaintext passwords were recovered from {enabled} enabled accounts."
+  description_template: "A total of {count} plaintext password{s} {were_was} recovered from {enabled} enabled account{enabled_s}."
 
 password-statistics:
   id: PWD-STATS-001
