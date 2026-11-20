@@ -85,10 +85,18 @@ The audit runs the following stages:
 
 1. Validate the NTDS file, BloodHound export, and campaign configuration.
 2. Organise the datasets into the run directory, including NTLM hashes,
-   enabled users, Domain Administrators, and policy data.
+   enabled users, Domain Administrators, selected privileged group memberships,
+   and policy data.
 3. Recover NTLM passwords using the enabled NTLM, and optionally LM, campaign phases.
 4. Map and analyse recovered passwords.
 5. Write the requested reports.
+
+The report includes recovered NTLM passwords belonging to members of selected
+privileged groups, with group membership and masked passwords. Nested groups
+are included where present in the BloodHound collection. Identifiable gaps or
+ambiguous matches are reported as incomplete; group membership alone does not
+cover every privileged account or attack path. See
+[Analyse](analyse.md#what-is-analysed) for the group list and limitations.
 
 If LM hashes are present but no LM campaign is configured, the LM cracking
 stage is skipped. Existing LM recoveries can still be mapped when available in

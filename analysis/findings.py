@@ -47,6 +47,7 @@ _FINDING_GATES = {
     "password-audit": ("total_passwords", lambda r: r["total_passwords"]),
     "password-statistics": (None, lambda r: True),
     "domain-admin-passwords": ("admins", lambda r: r["admins"]["count"]),
+    "privileged-passwords": ("privileged_users", lambda r: r["privileged_users"]["count"]),
     "lm-hashes-present": ("lm_hashes", lambda r: r["lm_hashes"]["count"]),
     "domain-admin-lm-hashes": ("lm_admins", lambda r: r["lm_admins"]["count"]),
     "non-compliant-passwords": ("password_length", lambda r: r["password_length"]["count"]),

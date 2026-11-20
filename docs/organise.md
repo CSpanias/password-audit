@@ -36,6 +36,7 @@ Use `password-audit organise --help` for the installed version's full help.
 | `ntlm-hashes.txt` | NTLM hashes extracted from the NTDS dataset. |
 | `ntds-users-clean.txt` | Normalized enabled-user records. |
 | `domain-admins.txt` | Domain Administrator accounts identified from BloodHound data, when available. |
+| `privileged-users.json` | Enabled NTDS accounts in selected privileged groups, their group memberships, and coverage warnings. |
 | `domain-policy.txt` | Password policy values extracted from BloodHound data, when available. |
 | `company-words.txt` | Basic terms derived from domain/account data; not a realistic company vocabulary. |
 | `lm-hashes.txt`, `lm-users.txt` | LM hashes and associated accounts, when present. |
@@ -45,6 +46,14 @@ Use `password-audit organise --help` for the installed version's full help.
 
 The output includes password hashes and may include recovered plaintext
 passwords. Store it securely and restrict access to the assessment team.
+
+Privileged membership includes nested groups and primary-group membership.
+Accounts are matched to NTDS using the account name and RID, with domain
+checks when a domain prefix is present. Ambiguous identities are omitted and
+reported as incomplete coverage. A NetBIOS domain name that differs from the
+DNS domain's first label cannot be confirmed by this matching and is also
+reported. The JSON file contains account names and group memberships, but no
+passwords.
 
 The generated `company-words.txt` is a basic seed and is regenerated when
 organising data. For more realistic company-specific password analysis, keep a

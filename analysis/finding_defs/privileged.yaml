@@ -14,6 +14,17 @@ domain-admin-passwords:
     identities.
   description_template: "A total of {count} Domain Administrator password{s} {were_was} recovered."
 
+privileged-passwords:
+  id: PRIV-ACCOUNT-001
+  title: Recovered Privileged Account Passwords
+  severity: high
+  category: privileged_accounts
+  remediation: |
+    Reset the affected account passwords, review privileged group membership,
+    and protect privileged identities with strong, unique credentials and
+    appropriate additional controls.
+  description_template: "{count} account{s} in selected privileged groups {were_was} found with recovered passwords."
+
 domain-admin-lm-hashes:
   id: DOMAIN-ADMIN-002
   title: Domain Administrator LM Hashes

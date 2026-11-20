@@ -6,6 +6,8 @@ for dataset organisation, password mapping, and report
 generation pipelines.
 """
 
+import json
+
 from ntds.parsers import parse_ntds_file, load_bloodhound_zip, load_potfile
 from ntds.results import build_results
 from ntds.exports import export_results
@@ -70,5 +72,10 @@ def organise_dataset(
     results["domain_admins_available"] = bool(users_json and groups_json)
 
     export_results(results, output_dir)
+
+    (output_dir / "privileged-users.json").write_text(
+        json.dumps(results["privileged_users"], indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     return results

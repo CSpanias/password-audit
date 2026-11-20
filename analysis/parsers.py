@@ -7,6 +7,7 @@ domain policy information, organisation-specific terminology,
 and supporting account lists.
 """
 
+import json
 from os import PathLike
 
 # ---------------------------------------------------------------------------
@@ -48,6 +49,42 @@ def load_passwords(path):
 # ---------------------------------------------------------------------------
 # Generic Lists
 # ---------------------------------------------------------------------------
+
+def load_privileged_users(path):
+    """Load the organiser's privileged membership dataset."""
+    if path is None:
+        return {
+            "status": "unavailable",
+            "accounts": [],
+            "warnings": ["No privileged group membership dataset was supplied."],
+        }
+
+    with open(path, encoding="utf-8") as file:
+        data = json.load(file)
+    if (
+        not isinstance(data, dict)
+        or data.get("status") not in {"available", "incomplete", "unavailable"}
+        or not isinstance(data.get("accounts"), list)
+        or not isinstance(data.get("warnings"), list)
+        or any(not isinstance(warning, str) or not warning for warning in data["warnings"])
+        or (data["status"] != "available" and not data["warnings"])
+        or (data["status"] == "available" and data["warnings"])
+        or (data["status"] == "unavailable" and data["accounts"])
+        or any(
+            not isinstance(account, dict)
+            or not isinstance(account.get("username"), str)
+            or not account["username"]
+            or not isinstance(account.get("groups"), list)
+            or not account["groups"]
+            or any(not isinstance(group, str) or not group for group in account["groups"])
+            for account in data["accounts"]
+        )
+        or len({account["username"].casefold() for account in data["accounts"]})
+        != len(data["accounts"])
+    ):
+        raise ValueError(f"Invalid privileged group membership dataset: {path}")
+    return data
+
 
 def load_list(path):
     """

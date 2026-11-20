@@ -54,7 +54,7 @@ def remediation_guidance(results):
     # Privileged Accounts
     # ------------------------
 
-    if results["admins"]["count"]:
+    if results["admins"]["count"] or results["privileged_users"]["count"]:
 
         lines.append(
             "- The affected privileged accounts should have their passwords "
@@ -197,7 +197,7 @@ def remediation_references(results):
     references.add("https://pages.nist.gov/800-63-4/sp800-63b.html#appA")
 
     # Privileged accounts
-    if results["admins"]["count"]:
+    if results["admins"]["count"] or results["privileged_users"]["count"]:
         references.add(
             "https://learn.microsoft.com/security/privileged-access-workstations/privileged-access-access-model"
         )

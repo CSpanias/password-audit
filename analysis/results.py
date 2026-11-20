@@ -40,7 +40,8 @@ def build_results(
     enabled_users,
     lm_users=None,
     lm_mapped_passwords=None,
-    domain_name=None
+    domain_name=None,
+    privileged_users=None,
 ):
     """
     Build the complete password analysis results dataset.
@@ -143,6 +144,33 @@ def build_results(
     results["admins"] = {
         "accounts": admins,
         "count": len(admins)
+    }
+
+    privileged_users = privileged_users or {
+        "status": "unavailable",
+        "accounts": [],
+        "warnings": ["No privileged group membership dataset was supplied."],
+    }
+    memberships = {
+        account["username"].casefold(): account["groups"]
+        for account in privileged_users["accounts"]
+    }
+    recovered_privileged = {}
+    for account in ntlm_mapped_passwords:
+        username = account["username"].casefold()
+        if username not in memberships:
+            continue
+        previous = recovered_privileged.get(username)
+        if previous and previous["password"] != account["password"]:
+            raise ValueError(
+                f"Conflicting recovered passwords for privileged account: {account['username']}"
+            )
+        recovered_privileged[username] = {**account, "groups": memberships[username]}
+    results["privileged_users"] = {
+        "accounts": list(recovered_privileged.values()),
+        "count": len(recovered_privileged),
+        "status": privileged_users["status"],
+        "warnings": privileged_users["warnings"],
     }
 
     # Domain Admins with LM

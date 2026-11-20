@@ -68,6 +68,8 @@ def executive_summary(results):
     
     # Privileged Accounts
     admin_count = results["admins"]["count"]
+    privileged_count = results["privileged_users"]["count"]
+    has_privileged = bool(admin_count or privileged_count)
 
     # Presence of LM hashes
     lm_count = results["lm_hashes"]["count"]
@@ -78,11 +80,11 @@ def executive_summary(results):
     # Domain Admins with LM hashes
     lm_admin_count = results["lm_admins"]["count"]
 
-    if not admin_count:
+    if not admin_count and results["privileged_users"]["status"] == "available":
         
         positive_findings.append("no recovered Domain Administrator passwords")
 
-    if admin_count and lm_count:
+    if has_privileged and lm_count:
 
         high_impact_message = (
             "Of particular concern, the assessment identified privileged "
@@ -91,7 +93,7 @@ def executive_summary(results):
             "the risk and impact of a credential compromise."
         )
 
-    elif admin_count:
+    elif has_privileged:
 
         high_impact_message = (
             "Of particular concern, the assessment resulted in the "
@@ -108,7 +110,7 @@ def executive_summary(results):
     else:
         high_impact_message = None
 
-    if high_impact_message and admin_count:
+    if high_impact_message and has_privileged:
 
         high_impact_message += (
             "Privileged accounts provide elevated access to directory "
@@ -274,7 +276,7 @@ def executive_summary(results):
     #---------------------------------------------------------------------------
     conclusion_findings = []
 
-    if admin_count:
+    if has_privileged:
         conclusion_findings.append("privileged accounts")
 
     if weaknesses:

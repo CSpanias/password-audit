@@ -300,6 +300,64 @@ class HtmlReportTests(unittest.TestCase):
             finally:
                 os.chdir(original_cwd)
 
+    def test_analyse_cli_accepts_privileged_membership_from_organise(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "mapped.txt").write_text(
+                "EXAMPLE\\alice:Password123!\nEXAMPLE\\alice:Password123!\n"
+                "OTHER\\alice:Different123!\n",
+                encoding="utf-8",
+            )
+            (root / "policy.txt").write_text(
+                "Domain: example.test\nMinimum Password Length: 12\n", encoding="utf-8"
+            )
+            (root / "admins.txt").write_text("", encoding="utf-8")
+            (root / "users.txt").write_text(
+                "EXAMPLE\\alice\nOTHER\\alice\n", encoding="utf-8"
+            )
+            (root / "privileged.json").write_text(json.dumps({
+                "status": "available",
+                "accounts": [{"username": "EXAMPLE\\alice", "groups": ["Backup Operators"]}],
+                "warnings": [],
+            }), encoding="utf-8")
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(root)
+                args = [
+                    "password-audit", "analyse", "-M", "mapped.txt",
+                    "-P", "policy.txt", "-D", "admins.txt", "-E", "users.txt",
+                    "--privileged-users", "privileged.json",
+                ]
+                with patch.object(sys, "argv", args):
+                    cli_main.main()
+                findings = json.loads((root / "password-audit-findings.json").read_text())
+                finding = next(f for f in findings["findings"]
+                               if f["id"] == "PRIV-ACCOUNT-001")
+                self.assertIn("1 account", finding["description"])
+                report = (root / "password-audit-report.html").read_text(encoding="utf-8")
+                self.assertIn("Backup Operators", report)
+                self.assertIn("Pa********3!", report)
+                self.assertNotIn("Di**********3!", report)
+                (root / "privileged.json").write_text(json.dumps({
+                    "status": "incomplete",
+                    "accounts": [{"username": "EXAMPLE\\alice", "groups": ["Backup Operators"]}],
+                    "warnings": ["Some group members were not resolved."],
+                }), encoding="utf-8")
+                with patch.object(sys, "argv", args):
+                    cli_main.main()
+                report = (root / "password-audit-report.html").read_text(encoding="utf-8")
+                self.assertIn("Some group members were not resolved.", report)
+                self.assertIn("Backup Operators", report)
+                (root / "mapped.txt").write_text(
+                    "EXAMPLE\\alice:Password123!\nEXAMPLE\\alice:OtherPass123!\n",
+                    encoding="utf-8",
+                )
+                with patch.object(sys, "argv", args):
+                    with self.assertRaisesRegex(ValueError, "Conflicting recovered passwords"):
+                        cli_main.main()
+            finally:
+                os.chdir(original_cwd)
+
     def test_audit_cli_forwards_without_report_format_option(self):
         arguments = [
             "password-audit",

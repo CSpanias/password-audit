@@ -13,7 +13,151 @@ handled elsewhere.
 """
 
 import re
+from collections import defaultdict
 from ntds.constants import LM_EMPTY
+
+
+PRIVILEGED_GROUP_RIDS = {
+    "512": "Domain Admins",
+    "518": "Schema Admins",
+    "519": "Enterprise Admins",
+    "544": "Administrators",
+    "548": "Account Operators",
+    "549": "Server Operators",
+    "551": "Backup Operators",
+    "517": "Cert Publishers",
+}
+PRIVILEGED_GROUP_NAMES = {
+    "dnsadmins": "DNSAdmins",
+    "exchange windows permissions": "Exchange Windows Permissions",
+}
+
+
+def extract_privileged_users(users_data, groups_data, entries):
+    """Resolve selected group memberships and match them to NTDS accounts."""
+    if users_data is None or groups_data is None:
+        return {"status": "unavailable", "accounts": [], "warnings": [
+            "BloodHound users or groups data is unavailable."
+        ]}
+
+    users = {user["ObjectIdentifier"].upper(): user for user in users_data["data"]}
+    groups = {group["ObjectIdentifier"].upper(): group for group in groups_data["data"]}
+    primary_groups = defaultdict(list)
+    candidates = defaultdict(list)
+    for sid, user in users.items():
+        primary = user.get("PrimaryGroupSID")
+        if primary:
+            primary_groups[primary.upper()].append(sid)
+        name = user.get("Properties", {}).get("samaccountname")
+        if name and "-" in sid:
+            candidates[(name.casefold(), sid.rsplit("-", 1)[-1])].append(sid)
+
+    entry_matches = {}
+    ambiguous_sids = set()
+    ambiguous = 0
+    unconfirmed_domains = 0
+    for entry in entries:
+        username = entry["username"]
+        prefix, separator, name = username.rpartition("\\")
+        if not separator:
+            name = username
+        matching = candidates.get((name.casefold(), str(entry["rid"])), [])
+        if separator and matching:
+            domain_matches = [
+                sid for sid in matching
+                if prefix.casefold() in {
+                    users[sid].get("Properties", {}).get("domain", "").casefold(),
+                    users[sid].get("Properties", {}).get("domain", "").split(".", 1)[0].casefold(),
+                }
+            ]
+            if not domain_matches:
+                unconfirmed_domains += 1
+            matching = domain_matches
+        if len(matching) == 1:
+            sid = matching[0]
+            if sid in ambiguous_sids:
+                continue
+            if sid in entry_matches and entry_matches[sid].casefold() != username.casefold():
+                del entry_matches[sid]
+                ambiguous_sids.add(sid)
+                ambiguous += 1
+            else:
+                entry_matches[sid] = username
+        elif len(matching) > 1:
+            ambiguous += 1
+
+    memberships = defaultdict(set)
+    unresolved = set()
+    missing_members = set()
+    selected_groups = set()
+    for sid, group in groups.items():
+        props = group.get("Properties", {})
+        raw_name = props.get("samaccountname") or props.get("name", "").split("@", 1)[0]
+        label = PRIVILEGED_GROUP_NAMES.get(raw_name.casefold())
+        if re.fullmatch(r"S-1-5-(?:21-(?:\d+-){3}|32-)\d+", sid):
+            label = PRIVILEGED_GROUP_RIDS.get(sid.rsplit("-", 1)[-1], label)
+        if not label:
+            continue
+        selected_groups.add(label)
+        domain = props.get("domain")
+        if domain:
+            label = f"{label} ({domain.lower()})"
+
+        pending = [sid]
+        visited = set()
+        while pending:
+            current = pending.pop()
+            if current in visited:
+                continue
+            visited.add(current)
+            if current in users:
+                if current in entry_matches:
+                    memberships[entry_matches[current]].add(label)
+                continue
+            nested = groups.get(current)
+            if nested is None:
+                unresolved.add(current)
+                continue
+            if "Members" not in nested:
+                missing_members.add(current)
+            pending.extend(primary_groups.get(current, []))
+            for member in nested.get("Members", []):
+                member_sid = member["ObjectIdentifier"].upper()
+                if member.get("ObjectType", "").casefold() not in ("computer",):
+                    pending.append(member_sid)
+
+    warnings = []
+    missing_groups = {"Domain Admins", "Administrators"} - selected_groups
+    if missing_groups:
+        warnings.append(
+            "Expected privileged groups were not found in BloodHound data: "
+            + ", ".join(sorted(missing_groups)) + "."
+        )
+    if unresolved:
+        warnings.append(
+            f"{len(unresolved)} group member object(s) could not be resolved."
+        )
+    if missing_members:
+        warnings.append(
+            f"{len(missing_members)} group(s) lacked membership data."
+        )
+    if ambiguous:
+        warnings.append(
+            f"{ambiguous} ambiguous NTDS/BloodHound account match(es) were omitted."
+        )
+    if unconfirmed_domains:
+        warnings.append(
+            f"{unconfirmed_domains} NTDS account(s) could not be matched to a "
+            "BloodHound domain; NetBIOS names may differ from DNS names."
+        )
+    return {
+        "status": "incomplete" if warnings else "available",
+        "accounts": [
+            {"username": username, "groups": sorted(labels)}
+            for username, labels in sorted(memberships.items(), key=lambda item: item[0].casefold())
+        ],
+        "warnings": warnings,
+    }
 
 
 def extract_ntlm_hashes(entries):

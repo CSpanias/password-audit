@@ -21,6 +21,7 @@ from analysis.parsers import (
     load_list,
     load_lm_users,
     load_passwords,
+    load_privileged_users,
 )
 from analysis.remediation_guidance import remediation_guidance, remediation_references
 from analysis.results import build_results
@@ -42,6 +43,7 @@ def analyse_passwords(
     output_file="password-audit-report.html",
     csacyber=False,
     findings_file=None,
+    privileged_users=None,
 ):
     """
     Analyse recovered passwords and generate a report.
@@ -77,6 +79,9 @@ def analyse_passwords(
         findings_file:
             Optional findings output path.
 
+        privileged_users:
+            Optional organiser-generated privileged group membership dataset.
+
     Returns:
         dict:
             Password analysis results.
@@ -99,6 +104,7 @@ def analyse_passwords(
             enabled_users=enabled_users,
             lm_users=lm_users,
             mapped_lm_passwords=mapped_lm_passwords,
+            privileged_users=privileged_users,
         )
         progress.advance(task_id)
 
@@ -155,6 +161,7 @@ def _build_analysis_results(
     enabled_users,
     lm_users,
     mapped_lm_passwords,
+    privileged_users,
 ):
     """Load analysis inputs and build the structured results."""
     enabled_users = load_list(enabled_users)
@@ -162,6 +169,11 @@ def _build_analysis_results(
     policy = load_domain_policy(pass_policy)
     domain_name = policy.get("Domain")
     company_words = load_company_words(company_words)
+    privileged_users = load_privileged_users(privileged_users)
+    if privileged_users["status"] != "available":
+        warn("Privileged group analysis is incomplete: " + " ".join(
+            privileged_users["warnings"]
+        ))
 
     ntlm_passwords = []
     if mapped_ntlm_passwords and Path(mapped_ntlm_passwords).exists():
@@ -197,6 +209,7 @@ def _build_analysis_results(
         lm_users=lm_users,
         lm_mapped_passwords=lm_passwords,
         domain_name=domain_name,
+        privileged_users=privileged_users,
     )
 
 

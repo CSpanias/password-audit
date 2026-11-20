@@ -22,6 +22,7 @@ from ntds.analysis import (
     extract_username_domains,
     extract_domain_admins,
     extract_domain_policy,
+    extract_privileged_users,
 )
 
 from ntds.mapping import map_passwords, map_lm_passwords
@@ -132,6 +133,7 @@ def build_results(
         "lm_users": lm_users,
         "lm_hashes": lm_hashes,
         "domain_admins": domain_admins,
+        "privileged_users": extract_privileged_users(users_json, groups_json, users),
         "policy": policy,
         "company_words": sorted(company_words),
         "mapped_ntlm_passwords": mapped_ntlm_passwords,

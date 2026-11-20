@@ -41,9 +41,16 @@ def run_password_analysis(args):
         if custom_words.resolve() != generated_words.resolve():
             company_words.append(custom_words)
 
+    privileged_users = args.privileged_users
+    if privileged_users is None:
+        default_privileged_users = Path("password-audit/privileged-users.json")
+        if default_privileged_users.is_file():
+            privileged_users = default_privileged_users
+
     analyse_passwords(
         mapped_ntlm_passwords=args.mapped_ntlm_passwords,
         domain_admins=args.domain_admins,
+        privileged_users=privileged_users,
         company_words=company_words,
         pass_policy=args.pass_policy,
         enabled_users=args.enabled_users,

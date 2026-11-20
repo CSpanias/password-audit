@@ -252,6 +252,7 @@ def run_audit(
     ntlm_mapping_results = organise_dataset(
         ntds_file=ntds_file,
         output_dir=output_dir,
+        bloodhound_file=bloodhound_file,
         potfile=hashcat_potfile,
         username_filter=username_filter,
     )
@@ -355,6 +356,7 @@ def run_audit(
     analyse_passwords(
         mapped_ntlm_passwords=mapped_ntlm_passwords,
         domain_admins=domain_admins,
+        privileged_users=output_dir / "privileged-users.json",
         company_words=company_word_sources,
         pass_policy=pass_policy,
         enabled_users=enabled_users,

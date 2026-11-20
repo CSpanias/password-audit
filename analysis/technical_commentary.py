@@ -61,6 +61,35 @@ def commentary_admins(results):
 
     return "\n".join(lines)
 
+def commentary_privileged_users(results):
+    """Describe recovered passwords for members of selected groups."""
+    privileged = results["privileged_users"]
+    lines = []
+    if privileged["status"] != "available":
+        lines.append(
+            "Privileged group analysis is incomplete: "
+            + " ".join(privileged["warnings"])
+            + " Other affected accounts may be missing from the results."
+        )
+    if privileged["count"]:
+        lines.append(
+            f"Passwords were recovered for {privileged['count']} account(s) "
+            "belonging to selected privileged groups. The group memberships "
+            "include nested membership and are limited to the collected "
+            "BloodHound data; they are not a complete assessment of all "
+            "privileged access or attack paths."
+        )
+        lines.extend(["", "| Username | Group(s) | Password |",
+                      "| ---------- | ---------- | ---------- |"])
+        for account in privileged["accounts"]:
+            username = account["username"].replace("|", "\\|")
+            groups = ", ".join(account["groups"]).replace("|", "\\|")
+            password = mask_password(account["password"]).replace("|", "\\|")
+            lines.append(
+                f"| {username} | {groups} | {password} |"
+            )
+    return "\n".join(lines)
+
 
 # ---------------------------------------------------------------------------
 # LM-related findings
@@ -807,6 +836,7 @@ def technical_commentary(results):
 
     # Privileged accounts
     lines.append(commentary_admins(results))
+    lines.append(commentary_privileged_users(results))
 
     # LM-related findings
     lines.append(commentary_lm_hashes(results))
