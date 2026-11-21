@@ -14,6 +14,7 @@ from pathlib import Path
 
 from rich.table import Table
 
+from analysis.hibp import HibpDataError
 from analysis.workflow import analyse_passwords
 from auditing.company_words import (
     prepare_company_word_sources,
@@ -111,7 +112,7 @@ def run_audit(
     # Pre-flight checks
     #---------------------------------------------------------------------------
     if hibp is not None and not Path(hibp).is_dir():
-        raise ValueError(f"HIBP range directory does not exist: {hibp}")
+        raise HibpDataError(f"HIBP range directory does not exist: {hibp}")
     print()
     info("Validating Inputs")
     print()

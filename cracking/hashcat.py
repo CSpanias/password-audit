@@ -286,6 +286,8 @@ def run_phase(
         print(" ".join(command))
         print()
 
+    print()
+
     output = []
     status = {}
     displayed_status = {}

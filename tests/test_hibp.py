@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from analysis.hibp import check_hibp
+from analysis.hibp import HibpDataError, check_hibp
 from cli import audit, main
 
 
@@ -38,12 +38,30 @@ def test_invalid_or_incomplete_range_is_rejected(tmp_path, content):
 
 
 def test_missing_range_and_missing_ntds_are_rejected(tmp_path):
-    with pytest.raises(ValueError, match="Missing HIBP NTLM range"):
+    with pytest.raises(ValueError, match="dataset is incomplete or still downloading"):
         check_hibp([{"username": "alice", "ntlm": "ABCDE" + "1" * 27}], tmp_path)
     with pytest.raises(ValueError, match="requires organised NTDS"):
         check_hibp(None, tmp_path)
     with pytest.raises(ValueError, match="does not exist"):
         check_hibp([], tmp_path / "missing")
+
+
+def test_cli_shows_clear_message_for_dataset_still_downloading(capsys):
+    args = [
+        "password-audit", "analyse", "-M", "mapped.txt", "--hibp", "ranges",
+    ]
+    with patch.object(sys, "argv", args), patch.object(
+        main, "run_password_analysis",
+        side_effect=HibpDataError(
+            "HIBP dataset is incomplete or still downloading: required NTLM "
+            "range B1C58 is missing from ranges. Complete and verify the "
+            "download, then run the check again."
+        ),
+    ), pytest.raises(SystemExit) as exc:
+        main.main()
+
+    assert exc.value.code == 2
+    assert "HIBP dataset is incomplete or still downloading" in capsys.readouterr().err
 
 
 def test_duplicate_matching_suffix_is_rejected(tmp_path):

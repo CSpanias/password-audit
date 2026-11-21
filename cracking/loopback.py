@@ -7,10 +7,15 @@ passwords stored within Hashcat potfiles.
 
 import os
 
-from common.console import (
-    ok,
-    summary
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
 )
+
+from common.console import console, ok, summary
 
 
 def generate_loopback_wordlist(hashcat_potfile, hash_file):
@@ -62,10 +67,20 @@ def generate_loopback_wordlist(hashcat_potfile, hash_file):
     if not passwords:
         return None
 
-    with open(loopback_file, "w", encoding="utf-8") as handle:
-
-        for password in sorted(passwords):
-            handle.write(password + "\n")
+    ordered_passwords = sorted(passwords)
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TextColumn("Passwords {task.completed}/{task.total}", markup=False),
+        console=console,
+    ) as progress:
+        task_id = progress.add_task("Generating loopback dictionary", total=len(passwords))
+        with open(loopback_file, "w", encoding="utf-8") as handle:
+            for password in ordered_passwords:
+                handle.write(password + "\n")
+                progress.advance(task_id)
 
     print()
 

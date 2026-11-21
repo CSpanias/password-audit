@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 from cracking.hashcat import live_status_flags, run_phase
 
@@ -40,6 +40,7 @@ class HashcatProgressTests(unittest.TestCase):
             patch("cracking.hashcat.windows_path", side_effect=str),
             patch("cracking.hashcat.subprocess.Popen", return_value=process) as popen,
             patch("cracking.hashcat.time.time", side_effect=[10, 20]),
+            patch("builtins.print") as print_mock,
         ):
             result = run_phase(
                 phase_id=1,
@@ -49,7 +50,7 @@ class HashcatProgressTests(unittest.TestCase):
                 hash_mode=1000,
                 hashcat_potfile="potfile.txt",
                 wordlist="words.txt",
-                rule=None,
+                rule="rules.rule",
                 session_name="campaign-first",
                 flags=["-O", "--status", "--status-timer", "300"],
             )
@@ -70,6 +71,9 @@ class HashcatProgressTests(unittest.TestCase):
         self.assertEqual(last_update["eta"], "0 secs")
         self.assertEqual(result["newRecovered"], 1)
         self.assertEqual(result["totalRecovered"], 4)
+        printed = print_mock.call_args_list
+        rule_line = printed.index(call("    Rule     : rules.rule"))
+        self.assertEqual(printed[rule_line + 1], call())
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from textwrap import dedent
 
 from rich_argparse import RawDescriptionRichHelpFormatter
 
+from analysis.hibp import HibpDataError
 from cli.analyse import run_password_analysis
 from cli.audit import run_audit_workflow
 from cli.crack import run_cracking_campaign
@@ -702,7 +703,10 @@ def main():
 
     args = parser.parse_args()
 
-    args.func(args)
+    try:
+        args.func(args)
+    except HibpDataError as exc:
+        parser.error(str(exc))
 
 
 if __name__ == "__main__":
