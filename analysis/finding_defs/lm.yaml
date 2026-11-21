@@ -7,7 +7,6 @@ lm-hashes-present:
   title: LM Hashes Present
   severity: high
   category: legacy_auth
-  summary_unit: accounts
   remediation: |
     Disable LM hash storage and require affected users to change their passwords
     to ensure previously stored LM hashes are removed. Identify and remediate any

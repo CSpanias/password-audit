@@ -7,6 +7,7 @@ domain-admin-passwords:
   title: Recovered Domain Administrator Passwords
   severity: critical
   category: privileged_accounts
+  summary_label: Domain Admins
   summary_unit: accounts
   remediation: |
     Immediately reset passwords for all affected Domain Administrator accounts.
@@ -20,6 +21,7 @@ privileged-passwords:
   title: Recovered Privileged Account Passwords
   severity: high
   category: privileged_accounts
+  summary_label: Privileged
   summary_unit: accounts
   remediation: |
     Reset the affected account passwords, review privileged group membership,
@@ -32,6 +34,7 @@ domain-admin-lm-hashes:
   title: Domain Administrator LM Hashes
   severity: critical
   category: legacy_auth
+  summary_label: LM Admins
   summary_unit: accounts
   remediation: |
     Disable LM hash storage and require affected Domain Administrator accounts

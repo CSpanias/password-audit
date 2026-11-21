@@ -121,8 +121,11 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn('id="severity-filter"', html)
         self.assertIn('id="category-filter"', html)
         self.assertIn('id="search"', html)
-        self.assertIn('id="lm-recovery-rate"', html)
-        self.assertIn('id="finding-summary-cards"', html)
+        self.assertIn('id="ntlm-recovery"', html)
+        self.assertIn('id="lm-recovery"', html)
+        self.assertLess(html.index('id="ntlm-recovery"'), html.index('id="lm-recovery"'))
+        self.assertIn('id="audit-summary"', html)
+        self.assertNotIn("Findings at a glance", html)
         self.assertIn("title.textContent =", html)
         self.assertIn('createCopyControls("Copy Markdown", sectionMarkdown)', html)
         self.assertIn('createCopyControls("Copy All Markdown", allMarkdown.join("\\n\\n"))', html)
@@ -159,6 +162,7 @@ class HtmlReportTests(unittest.TestCase):
         cards = {card["id"]: card for card in build_finding_summary(results, findings)}
         self.assertEqual((cards["PWD-BREACH-001"]["count"], cards["PWD-BREACH-001"]["unit"]),
                          (2, "accounts"))
+        self.assertEqual(cards["PWD-BREACH-001"]["label"], "Breached")
         self.assertEqual((cards["PWD-REUSE-001"]["count"], cards["PWD-REUSE-001"]["unit"]),
                          (1, "unique passwords"))
         self.assertEqual((cards["PWD-REUSE-002"]["count"], cards["PWD-REUSE-002"]["unit"]),
@@ -167,7 +171,7 @@ class HtmlReportTests(unittest.TestCase):
                          (1, "shared credential groups"))
         self.assertEqual(set(cards), {
             finding["id"] for finding in findings
-            if finding["id"] not in {"PWD-AUDIT-001", "PWD-STATS-001"}
+            if finding["id"] not in {"PWD-AUDIT-001", "PWD-STATS-001", "LM-AUTH-001"}
         })
 
         results["hibp"]["count"] = 0
@@ -207,13 +211,15 @@ class HtmlReportTests(unittest.TestCase):
             results[key]["count"] = 1
         findings = build_findings_dict(results)
         cards = build_finding_summary(results, findings)
-        self.assertEqual(len(cards), 14)
+        self.assertEqual(len(cards), 13)
         self.assertEqual(
             {card["id"] for card in cards},
             {finding["id"] for finding in findings}
-            - {"PWD-AUDIT-001", "PWD-STATS-001"},
+            - {"PWD-AUDIT-001", "PWD-STATS-001", "LM-AUTH-001"},
         )
         self.assertTrue(all(card["count"] == 1 and card["unit"] for card in cards))
+        self.assertTrue(all(card["label"] and "password" not in card["label"].lower()
+                            for card in cards))
 
     def test_password_findings_and_report_include_relevant_nist_references(self):
         results = build_results(
@@ -263,7 +269,7 @@ class HtmlReportTests(unittest.TestCase):
             output = Path(directory) / "audit.txt"
             cards = [{
                 "id": "PWD-BREACH-001", "title": "Passwords Found in Known Breach Data",
-                "count": 2, "unit": "accounts",
+                "label": "Breached", "count": 2, "unit": "accounts",
             }]
             mocks["build_finding_summary"].return_value = cards
 

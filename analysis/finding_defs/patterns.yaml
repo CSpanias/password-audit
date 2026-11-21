@@ -7,6 +7,7 @@ username-derived-passwords:
   title: Username-Derived Passwords
   severity: medium
   category: predictable_patterns
+  summary_label: Username
   summary_unit: recovered passwords
   remediation: |
     Advise users to select passwords unrelated to their username. Consider
@@ -19,6 +20,7 @@ organisation-related-passwords:
   title: Organisation-Related Passwords
   severity: medium
   category: predictable_patterns
+  summary_label: Organisation
   summary_unit: recovered passwords
   remediation: |
     Advise users to select passwords unrelated to organisational terminology.
@@ -31,6 +33,7 @@ common-passwords:
   title: Common Passwords
   severity: medium
   category: predictable_patterns
+  summary_label: Common
   summary_unit: recovered passwords
   remediation: |
     Advise users to avoid common dictionary words in passwords. Consider deploying
@@ -42,6 +45,7 @@ date-based-passwords:
   title: Date-Based Passwords
   severity: low
   category: predictable_patterns
+  summary_label: Date-Based
   summary_unit: recovered passwords
   remediation: |
     Advise users to avoid date-related references in passwords. Consider deploying
@@ -53,6 +57,7 @@ keyboard-patterns:
   title: Keyboard Patterns
   severity: low
   category: predictable_patterns
+  summary_label: Keyboard
   summary_unit: recovered passwords
   remediation: |
     Advise users to avoid keyboard walking patterns in passwords. Consider

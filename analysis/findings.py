@@ -209,7 +209,7 @@ def build_finding_summary(results, findings):
     findings_by_id = {finding["id"]: finding for finding in findings}
     cards = []
     for key, (_, count_accessor) in _FINDING_GATES.items():
-        if key in {"password-audit", "password-statistics"}:
+        if key in {"password-audit", "password-statistics", "lm-hashes-present"}:
             continue
         definition = definitions[key]
         finding = findings_by_id.get(definition["id"])
@@ -218,6 +218,7 @@ def build_finding_summary(results, findings):
         cards.append({
             "id": finding["id"],
             "title": finding["title"],
+            "label": definition["summary_label"],
             "count": count_accessor(results),
             "unit": definition["summary_unit"],
         })

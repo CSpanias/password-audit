@@ -7,6 +7,7 @@ non-compliant-passwords:
   title: Non-Compliant Passwords
   severity: medium
   category: password_policy
+  summary_label: Non-Compliant
   summary_unit: recovered passwords
   remediation: |
     Enforce the configured minimum password length policy. Review accounts with

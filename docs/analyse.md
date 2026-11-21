@@ -103,10 +103,13 @@ coverage is incomplete.
 ## Reports
 
 Analysis writes a self-contained HTML report and, by default, a JSON findings
-sidecar. The dashboard shows cards for checks with findings, with each count's
-unit shown separately. Counts may overlap and should not be added together.
-Checks without findings, including an optional check that was not run, do not
-have a finding card.
+sidecar. The dashboard combines NTLM and LM recovery counts with their rates.
+NTLM recovery is measured against enabled users; LM recovery is measured
+against accounts with LM hashes and includes fully recovered passwords only.
+Rates with a zero denominator are shown as `N/A`.
+Cards also show counts for checks with findings. Counts may overlap and should
+not be added together. Checks without findings, including an optional check
+that was not run, do not have a finding card.
 
 ```bash
 password-audit analyse \

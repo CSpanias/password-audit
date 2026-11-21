@@ -29,10 +29,11 @@ def render_html(report):
     header {{ padding: 2rem max(1rem, calc((100% - 1100px) / 2)); background: #10233f; color: white; }}
     header h1 {{ margin: 0; }}
     main {{ max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }}
-    .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 2rem; }}
+    .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 1rem; margin-bottom: 2rem; }}
     .card, .finding, .narrative details {{ background: white; border: 1px solid #dce3ed; border-radius: .6rem; }}
-    .card {{ padding: 1rem; }}
+    .card {{ padding: 1rem; white-space: nowrap; overflow-x: auto; }}
     .card strong {{ display: block; font-size: 1.6rem; margin-top: .35rem; }}
+    .card strong.recovery {{ font-size: 1.15rem; }}
     .card .unit {{ display: block; color: #53647b; font-size: .9rem; }}
     .filters {{ display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }}
     input, select {{ padding: .6rem; border: 1px solid #9aa8bb; border-radius: .35rem; background: white; color: inherit; }}
@@ -62,18 +63,10 @@ def render_html(report):
 <body>
   <header><h1>Password Audit Report</h1><p>Interactive, local-only findings summary</p></header>
   <main>
-    <section class="cards" aria-label="Audit summary">
-      <div class="card">Crack rate<strong id="crack-rate">-</strong></div>
-      <div class="card">Recovered passwords<strong id="total-passwords">-</strong></div>
-      <div class="card">Enabled users<strong id="enabled-users">-</strong></div>
-      <div class="card">Unique passwords<strong id="unique-passwords">-</strong></div>
-      <div class="card">Accounts with LM hashes<strong id="lm-hashes">-</strong></div>
-      <div class="card">LM passwords recovered<strong id="lm-passwords-recovered">-</strong></div>
-      <div class="card">LM recovery rate<strong id="lm-recovery-rate">-</strong></div>
-    </section>
-    <section id="finding-summary" aria-labelledby="finding-summary-heading" hidden>
-      <h2 id="finding-summary-heading">Findings at a glance</h2>
-      <div class="cards" id="finding-summary-cards"></div>
+    <section class="cards" id="audit-summary" aria-label="Audit summary">
+      <div class="card" role="group" aria-label="Recovered NTLM passwords / enabled users" title="Recovered NTLM passwords / enabled users">Recovered NTLM<strong class="recovery" id="ntlm-recovery">-</strong></div>
+      <div class="card" role="group" aria-label="Fully recovered LM passwords / accounts with LM hashes" title="Fully recovered LM passwords / accounts with LM hashes">Recovered LM<strong class="recovery" id="lm-recovery">-</strong></div>
+      <div class="card" role="group" aria-label="Unique recovered NTLM passwords" title="Unique recovered NTLM passwords">Unique NTLM<strong id="unique-passwords">-</strong></div>
     </section>
     <section class="narrative" id="narrative" aria-label="Report narrative"></section>
     <section aria-labelledby="findings-heading">
@@ -95,33 +88,39 @@ def render_html(report):
     const findings = report.findings || [];
     const number = value => new Intl.NumberFormat().format(Number(value) || 0);
 
-    document.getElementById("crack-rate").textContent = `${{summary.crack_rate ?? 0}}%`;
-    document.getElementById("total-passwords").textContent = number(summary.total_passwords);
-    document.getElementById("enabled-users").textContent = number(summary.enabled_users);
+    const recovery = (count, total, rate) =>
+      `${{number(count)}}/${{number(total)}} (${{total ? `${{rate}}%` : "N/A"}})`;
+    document.getElementById("ntlm-recovery").textContent =
+      recovery(summary.total_passwords, summary.enabled_users, summary.crack_rate);
+    document.getElementById("lm-recovery").textContent =
+      recovery(summary.lm_passwords_recovered, summary.lm_hashes, summary.lm_recovery_rate);
     document.getElementById("unique-passwords").textContent = number(summary.unique_passwords);
-    document.getElementById("lm-hashes").textContent = number(summary.lm_hashes);
-    document.getElementById("lm-passwords-recovered").textContent =
-      number(summary.lm_passwords_recovered);
-    document.getElementById("lm-recovery-rate").textContent =
-      `${{summary.lm_recovery_rate ?? 0}}%`;
 
     const findingSummary = report.finding_summary || [];
-    if (findingSummary.length) {{
-      const cards = document.getElementById("finding-summary-cards");
-      for (const item of findingSummary) {{
-        const card = document.createElement("div");
-        card.className = "card";
-        const title = document.createElement("span");
-        title.textContent = item.title;
-        const count = document.createElement("strong");
-        count.textContent = number(item.count);
-        const unit = document.createElement("span");
-        unit.className = "unit";
-        unit.textContent = item.unit;
-        card.append(title, count, unit);
-        cards.append(card);
-      }}
-      document.getElementById("finding-summary").hidden = false;
+    const units = {{
+      "accounts": "accounts",
+      "recovered passwords": "recovered",
+      "unique passwords": "unique",
+      "account pairs": "pairs",
+      "shared credential groups": "groups"
+    }};
+    const cards = document.getElementById("audit-summary");
+    for (const item of findingSummary) {{
+      const card = document.createElement("div");
+      card.className = "card";
+      card.setAttribute("role", "group");
+      const description = `${{item.title}} (${{item.unit}}): ${{number(item.count)}}`;
+      card.setAttribute("aria-label", description);
+      card.title = description;
+      const title = document.createElement("span");
+      title.textContent = item.label;
+      const count = document.createElement("strong");
+      count.textContent = number(item.count);
+      const unit = document.createElement("span");
+      unit.className = "unit";
+      unit.textContent = units[item.unit] || item.unit;
+      card.append(title, count, unit);
+      cards.append(card);
     }}
 
     const narrative = document.getElementById("narrative");
