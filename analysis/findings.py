@@ -201,3 +201,24 @@ def build_findings_dict(results):
             Findings as dictionaries.
     """
     return [f.to_dict() for f in build_findings(results)]
+
+
+def build_finding_summary(results, findings):
+    """Return counts and units for generated check findings."""
+    definitions = _load_yaml_definitions()
+    findings_by_id = {finding["id"]: finding for finding in findings}
+    cards = []
+    for key, (_, count_accessor) in _FINDING_GATES.items():
+        if key in {"password-audit", "password-statistics"}:
+            continue
+        definition = definitions[key]
+        finding = findings_by_id.get(definition["id"])
+        if finding is None:
+            continue
+        cards.append({
+            "id": finding["id"],
+            "title": finding["title"],
+            "count": count_accessor(results),
+            "unit": definition["summary_unit"],
+        })
+    return cards

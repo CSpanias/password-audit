@@ -13,6 +13,9 @@ The organiser generates basic terms from domain names and NTDS account
 prefixes. A curated company-word list can supplement those terms. Analysis
 compares terms and passwords case-insensitively, normalises common character
 substitutions, and records the longest matching term for each password.
+Common non-specific labels such as `and` and `local` are omitted from newly
+generated terms; explicitly supplied curated terms are retained. Regenerate
+older organiser output to apply this filtering to an existing generated list.
 
 See [Analyse](../analyse.md) for company-word input options and
 [Organise](../organise.md) for the generated list.

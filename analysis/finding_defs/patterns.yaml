@@ -7,6 +7,7 @@ username-derived-passwords:
   title: Username-Derived Passwords
   severity: medium
   category: predictable_patterns
+  summary_unit: recovered passwords
   remediation: |
     Advise users to select passwords unrelated to their username. Consider
     deploying password filtering solutions that block username-derived password
@@ -18,6 +19,7 @@ organisation-related-passwords:
   title: Organisation-Related Passwords
   severity: medium
   category: predictable_patterns
+  summary_unit: recovered passwords
   remediation: |
     Advise users to select passwords unrelated to organisational terminology.
     Consider deploying password filtering solutions that block organisation-related
@@ -29,6 +31,7 @@ common-passwords:
   title: Common Passwords
   severity: medium
   category: predictable_patterns
+  summary_unit: recovered passwords
   remediation: |
     Advise users to avoid common dictionary words in passwords. Consider deploying
     password filtering solutions that block commonly used password terms.
@@ -39,6 +42,7 @@ date-based-passwords:
   title: Date-Based Passwords
   severity: low
   category: predictable_patterns
+  summary_unit: recovered passwords
   remediation: |
     Advise users to avoid date-related references in passwords. Consider deploying
     password filtering solutions that block date-based password constructions.
@@ -49,6 +53,7 @@ keyboard-patterns:
   title: Keyboard Patterns
   severity: low
   category: predictable_patterns
+  summary_unit: recovered passwords
   remediation: |
     Advise users to avoid keyboard walking patterns in passwords. Consider
     deploying password filtering solutions that block keyboard sequence patterns.

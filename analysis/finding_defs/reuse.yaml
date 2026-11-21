@@ -7,6 +7,7 @@ password-reuse:
   title: Password Reuse
   severity: high
   category: password_reuse
+  summary_unit: unique passwords
   remediation: |
     Enforce unique passwords across all accounts. Require password changes for
     accounts sharing passwords and implement technical controls to prevent
@@ -18,6 +19,7 @@ shared-account-passwords:
   title: Shared Passwords
   severity: high
   category: password_reuse
+  summary_unit: account pairs
   remediation: |
     Investigate accounts sharing passwords with similarly named accounts. Require
     password changes and review for evidence of credential compromise or shared
@@ -29,6 +31,7 @@ ntlm-hash-reuse:
   title: Password Reuse Identified from NTLM Hashes
   severity: high
   category: password_reuse
+  summary_unit: shared credential groups
   remediation: |
     Review the affected accounts and replace shared passwords with unique
     credentials. Prioritise accounts in privileged groups and review
@@ -40,6 +43,7 @@ hibp-passwords:
   title: Passwords Found in Known Breach Data
   severity: high
   category: password_reuse
+  summary_unit: accounts
   remediation: |
     Reset the passwords of affected accounts, prioritising privileged accounts,
     and require strong, unique replacements. Screen new passwords against a

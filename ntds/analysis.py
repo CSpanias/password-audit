@@ -329,8 +329,7 @@ def extract_company_words(domains):
 
     Top-level domains are removed and resulting names are
     further split into component words using non-alphanumeric
-    delimiters. Terms shorter than three characters are
-    excluded.
+    delimiters. Short terms and common non-specific domain labels are excluded.
 
     Example:
 
@@ -352,6 +351,7 @@ def extract_company_words(domains):
     """
 
     words = set()
+    excluded = {"and", "the", "for", "local", "internal", "corp", "com", "net", "org"}
 
     for domain in domains:
         domain = domain.lower().strip()
@@ -363,14 +363,15 @@ def extract_company_words(domains):
         base = domain.rsplit(".", 1)[0]
 
         # Full company string
-        words.add(base)
+        if len(base) >= 3 and base not in excluded:
+            words.add(base)
 
         # Special character split
         for token in re.split(r"[^a-z0-9]+", base):
 
             token = token.strip()
 
-            if len(token) >= 3:
+            if len(token) >= 3 and token not in excluded:
                 words.add(token)
 
     return sorted(words)

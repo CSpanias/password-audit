@@ -33,6 +33,7 @@ def render_html(report):
     .card, .finding, .narrative details {{ background: white; border: 1px solid #dce3ed; border-radius: .6rem; }}
     .card {{ padding: 1rem; }}
     .card strong {{ display: block; font-size: 1.6rem; margin-top: .35rem; }}
+    .card .unit {{ display: block; color: #53647b; font-size: .9rem; }}
     .filters {{ display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }}
     input, select {{ padding: .6rem; border: 1px solid #9aa8bb; border-radius: .35rem; background: white; color: inherit; }}
     input {{ flex: 1; min-width: 220px; }}
@@ -70,6 +71,10 @@ def render_html(report):
       <div class="card">LM passwords recovered<strong id="lm-passwords-recovered">-</strong></div>
       <div class="card">LM recovery rate<strong id="lm-recovery-rate">-</strong></div>
     </section>
+    <section id="finding-summary" aria-labelledby="finding-summary-heading" hidden>
+      <h2 id="finding-summary-heading">Findings at a glance</h2>
+      <div class="cards" id="finding-summary-cards"></div>
+    </section>
     <section class="narrative" id="narrative" aria-label="Report narrative"></section>
     <section aria-labelledby="findings-heading">
       <h2 id="findings-heading">Findings</h2>
@@ -99,6 +104,25 @@ def render_html(report):
       number(summary.lm_passwords_recovered);
     document.getElementById("lm-recovery-rate").textContent =
       `${{summary.lm_recovery_rate ?? 0}}%`;
+
+    const findingSummary = report.finding_summary || [];
+    if (findingSummary.length) {{
+      const cards = document.getElementById("finding-summary-cards");
+      for (const item of findingSummary) {{
+        const card = document.createElement("div");
+        card.className = "card";
+        const title = document.createElement("span");
+        title.textContent = item.title;
+        const count = document.createElement("strong");
+        count.textContent = number(item.count);
+        const unit = document.createElement("span");
+        unit.className = "unit";
+        unit.textContent = item.unit;
+        card.append(title, count, unit);
+        cards.append(card);
+      }}
+      document.getElementById("finding-summary").hidden = false;
+    }}
 
     const narrative = document.getElementById("narrative");
     const narrativeSections = [

@@ -145,8 +145,8 @@ def executive_summary(results):
 
     if lm_count or lm_recovered:
         findings.append(
-            "Legacy LanMan (LM) password hashes were identified; their weak "
-            "hashing makes them more susceptible to offline password cracking."
+            "Legacy LanMan (LM) password hashes were present, making credentials "
+            "more susceptible to offline password cracking."
         )
         if lm_recovered:
             findings.append("Passwords were recovered from accounts storing LM hashes.")
@@ -158,8 +158,8 @@ def executive_summary(results):
 
     if general_reuse_passwords or hash_reuse:
         findings.append(
-            "Password reuse was identified, potentially allowing a compromised "
-            "credential to affect multiple accounts or systems."
+            "Password reuse could allow a compromised credential to affect "
+            "multiple accounts or systems."
         )
         if similar_account_reuse_count:
             findings.append(
@@ -169,8 +169,8 @@ def executive_summary(results):
 
     if results.get("hibp", {}).get("count"):
         findings.append(
-            "Passwords matching known breach data were identified, potentially "
-            "making those credentials easier to guess."
+            "Some account password hashes matched known breach data, suggesting "
+            "their passwords may be easier to guess."
         )
 
     if failure_count:
@@ -181,7 +181,7 @@ def executive_summary(results):
 
     if weaknesses:
         findings.append(
-            "Predictable password patterns were identified, potentially "
+            "Recovered passwords contained predictable patterns, potentially "
             "reducing the effort required to compromise accounts."
         )
 
@@ -217,14 +217,12 @@ def executive_summary(results):
     if conclusion_findings:
         if results["total_passwords"]:
             summary.append(
-                "Overall, the assessment identified opportunities to further "
-                "strengthen password security across the environment. While many "
-                "baseline controls appear effective, weaknesses affecting "
+                "Overall, the assessment highlighted opportunities to strengthen "
+                "password security across the environment. Issues relating to "
                 f"{natural_join(conclusion_findings)} increase the potential "
-                "impact of credential compromise. Addressing these issues will "
-                "reduce the likelihood of unauthorised access, improve protection "
-                "of sensitive information, and strengthen the organisation's "
-                "overall resilience against credential-based attacks."
+                "impact of credential compromise. Addressing these issues can "
+                "reduce the likelihood of unauthorised access and strengthen "
+                "protection across the environment."
             )
         else:
             summary.append(

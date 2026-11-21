@@ -4,14 +4,28 @@ from pathlib import Path
 from unittest.mock import patch
 
 from analysis.parsers import load_company_words
+from analysis.analysis import company_name_passwords
 from auditing.company_words import (
     prepare_company_word_sources,
     save_company_word_snapshot,
 )
 from ntds.exports import export_results
+from ntds.analysis import extract_company_words
 
 
 class CompanyWordListTests(unittest.TestCase):
+    def test_generated_terms_exclude_generic_labels_but_preserve_curated_terms(self):
+        generated = extract_company_words(["local.smith-and-sons.co.uk", "and.example"])
+        self.assertIn("smith", generated)
+        self.assertIn("sons", generated)
+        self.assertIn("local.smith-and-sons.co", generated)
+        self.assertNotIn("and", generated)
+        self.assertNotIn("local", generated)
+
+        accounts = [{"username": "user", "password": "JoAnd123!"}]
+        self.assertEqual(company_name_passwords(accounts, generated), [])
+        self.assertEqual(company_name_passwords(accounts, ["and"])[0]["matches"], ["and"])
+
     def test_loads_and_deduplicates_multiple_wordlists(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)

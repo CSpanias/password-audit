@@ -24,7 +24,8 @@ def test_hibp_commentary_includes_up_to_five_account_examples():
     ) in text
     assert "against a locally downloaded copy of the dataset." in text
     assert "A total of six accounts had matching password hashes." in text
-    assert "the account itself appeared in a breach." in text
+    assert "A matching hash does not mean the account itself appeared in a breach." in text
+    assert "Matching passwords may not have been recovered" not in text
     assert "A non-match does not establish" not in text
     assert "| Username |\n| ---------- |\n| ali\\|ce |" in text
     assert "| eve |" in text

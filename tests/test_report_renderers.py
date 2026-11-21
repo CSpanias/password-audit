@@ -23,7 +23,7 @@ from reports.sureformat import write_sureformat
 from analysis.parsers import load_ntds_users
 from analysis.analysis import ntlm_hash_reuse
 from analysis.executive_summary import executive_summary
-from analysis.findings import build_findings_dict
+from analysis.findings import build_finding_summary, build_findings_dict
 from analysis.remediation_guidance import remediation_references
 from analysis.results import build_results
 from analysis.technical_commentary import (
@@ -85,6 +85,7 @@ class HtmlReportTests(unittest.TestCase):
             remediation_guidance=DEFAULT,
             remediation_references=DEFAULT,
             build_findings_dict=DEFAULT,
+            build_finding_summary=DEFAULT,
             write_findings=DEFAULT,
             _print_console_summary=DEFAULT,
         )
@@ -111,6 +112,7 @@ class HtmlReportTests(unittest.TestCase):
         values["remediation_guidance"].return_value = "Remediation guidance."
         values["remediation_references"].return_value = "References."
         values["build_findings_dict"].return_value = REPORT["findings"]
+        values["build_finding_summary"].return_value = []
         return values
 
     def test_html_dashboard_is_interactive_and_escapes_embedded_report_data(self):
@@ -120,6 +122,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn('id="category-filter"', html)
         self.assertIn('id="search"', html)
         self.assertIn('id="lm-recovery-rate"', html)
+        self.assertIn('id="finding-summary-cards"', html)
         self.assertIn("title.textContent =", html)
         self.assertIn('createCopyControls("Copy Markdown", sectionMarkdown)', html)
         self.assertIn('createCopyControls("Copy All Markdown", allMarkdown.join("\\n\\n"))', html)
@@ -135,6 +138,82 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("\\u003c/script\\u003e\\u003cimg", html)
         self.assertNotIn("</script><img", html)
         self.assertNotIn("<script src=", html.lower())
+
+    def test_finding_summary_includes_only_findings_with_accurate_units(self):
+        results = build_results(
+            ntlm_mapped_passwords=[
+                {"username": "alice", "password": "Password1"},
+                {"username": "alice_adm", "password": "Password1"},
+            ],
+            domain_admins=[], company_words=[], minimum_length=14,
+            enabled_users=["alice", "alice_adm"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[],
+            privileged_users={"status": "available", "warnings": [], "accounts": []},
+            ntds_users=[
+                {"username": "alice", "ntlm": "a" * 32},
+                {"username": "alice_adm", "ntlm": "a" * 32},
+            ],
+        )
+        results["hibp"] = {"checked": 2, "count": 2, "accounts": ["alice", "alice_adm"]}
+        findings = build_findings_dict(results)
+        cards = {card["id"]: card for card in build_finding_summary(results, findings)}
+        self.assertEqual((cards["PWD-BREACH-001"]["count"], cards["PWD-BREACH-001"]["unit"]),
+                         (2, "accounts"))
+        self.assertEqual((cards["PWD-REUSE-001"]["count"], cards["PWD-REUSE-001"]["unit"]),
+                         (1, "unique passwords"))
+        self.assertEqual((cards["PWD-REUSE-002"]["count"], cards["PWD-REUSE-002"]["unit"]),
+                         (1, "account pairs"))
+        self.assertEqual((cards["PWD-REUSE-003"]["count"], cards["PWD-REUSE-003"]["unit"]),
+                         (1, "shared credential groups"))
+        self.assertEqual(set(cards), {
+            finding["id"] for finding in findings
+            if finding["id"] not in {"PWD-AUDIT-001", "PWD-STATS-001"}
+        })
+
+        results["hibp"]["count"] = 0
+        findings = build_findings_dict(results)
+        self.assertNotIn("PWD-BREACH-001", {
+            card["id"] for card in build_finding_summary(results, findings)
+        })
+        del results["hibp"]
+        findings = build_findings_dict(results)
+        self.assertNotIn("PWD-BREACH-001", {
+            card["id"] for card in build_finding_summary(results, findings)
+        })
+
+    def test_finding_summary_covers_each_check_and_excludes_generic_findings(self):
+        results = build_results(
+            ntlm_mapped_passwords=[], domain_admins=[], company_words=[],
+            minimum_length=14, enabled_users=["alice"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[],
+            privileged_users={"status": "available", "warnings": [], "accounts": []},
+            ntds_users=[],
+        )
+        self.assertEqual(build_finding_summary(results, build_findings_dict(results)), [])
+        results["total_passwords"] = 1
+        results["admins"]["count"] = 1
+        results["privileged_users"]["accounts"] = [{"username": "operator", "groups": []}]
+        results["lm_hashes"]["count"] = 1
+        results["lm_admins"]["count"] = 1
+        results["password_reuse_general"]["sharedPasswords"] = 1
+        results["similar_account_reuse"]["count"] = 1
+        results["ntlm_hash_reuse"].update({
+            "groups": [{"accounts": [{"username": "alice", "groups": []}]}],
+            "account_count": 1,
+        })
+        results["hibp"] = {"count": 1, "accounts": ["alice"]}
+        for key in ("password_length", "username_passwords", "company_words",
+                    "common_passwords", "date_passwords", "keyboard_walks"):
+            results[key]["count"] = 1
+        findings = build_findings_dict(results)
+        cards = build_finding_summary(results, findings)
+        self.assertEqual(len(cards), 14)
+        self.assertEqual(
+            {card["id"] for card in cards},
+            {finding["id"] for finding in findings}
+            - {"PWD-AUDIT-001", "PWD-STATS-001"},
+        )
+        self.assertTrue(all(card["count"] == 1 and card["unit"] for card in cards))
 
     def test_password_findings_and_report_include_relevant_nist_references(self):
         results = build_results(
@@ -182,6 +261,11 @@ class HtmlReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             mocks = self._patch_analysis_workflow()
             output = Path(directory) / "audit.txt"
+            cards = [{
+                "id": "PWD-BREACH-001", "title": "Passwords Found in Known Breach Data",
+                "count": 2, "unit": "accounts",
+            }]
+            mocks["build_finding_summary"].return_value = cards
 
             analysis_workflow.analyse_passwords(
                 mapped_ntlm_passwords=None,
@@ -193,6 +277,13 @@ class HtmlReportTests(unittest.TestCase):
             )
 
             self.assertTrue((Path(directory) / "audit.html").exists())
+            html = (Path(directory) / "audit.html").read_text(encoding="utf-8")
+            data = html.split('<script id="report-data" type="application/json">', 1)[1]
+            report = json.loads(data.split("</script>", 1)[0])
+            self.assertEqual(report["finding_summary"], cards)
+            mocks["build_finding_summary"].assert_called_once_with(
+                mocks["build_results"].return_value, REPORT["findings"]
+            )
             for suffix in (".md", ".json", ".yaml", ".sarif"):
                 self.assertFalse((Path(directory) / f"audit{suffix}").exists())
             mocks["write_findings"].assert_called_once_with(
@@ -436,7 +527,7 @@ class HtmlReportTests(unittest.TestCase):
                                 "failures": [{"length": 10}]},
             "password_lengths": {"lengths": [(15, 5), (10, 1)]},
         })
-        self.assertIn("identified one password (10% of", text)
+        self.assertIn("found one password (10% of", text)
         self.assertIn("password length was 10 characters", text)
 
     def test_executive_summary_includes_generic_positive_sentence_only_when_applicable(self):
@@ -509,8 +600,7 @@ class HtmlReportTests(unittest.TestCase):
             ],
         )
         summary = executive_summary(results)
-        self.assertIn("Password reuse was identified", summary)
-        self.assertIn("potentially allowing a compromised credential to affect multiple accounts", summary)
+        self.assertIn("Password reuse could allow a compromised credential to affect multiple accounts", summary)
         self.assertNotIn("LanMan (LM)", summary)
         self.assertNotIn("shared credentials involving selected privileged", summary)
         self.assertNotIn("NTLM hash comparison", summary)
@@ -537,9 +627,9 @@ class HtmlReportTests(unittest.TestCase):
             ],
         )
         hash_only_summary = executive_summary(hash_only)
-        self.assertIn("Password reuse was identified, potentially allowing a compromised credential",
+        self.assertIn("Password reuse could allow a compromised credential",
                       hash_only_summary)
-        self.assertNotIn("Predictable password patterns were identified", hash_only_summary)
+        self.assertNotIn("Recovered passwords contained predictable patterns", hash_only_summary)
 
     def test_executive_summary_pairs_present_findings_with_impacts(self):
         results = build_results(
@@ -552,13 +642,13 @@ class HtmlReportTests(unittest.TestCase):
         cases = [
             ("admins", "count", "Privileged account credentials were recovered",
              "providing access to critical systems"),
-            ("lm_hashes", "count", "Legacy LanMan (LM) password hashes were identified",
+            ("lm_hashes", "count", "Legacy LanMan (LM) password hashes were present",
              "susceptible to offline password cracking"),
-            ("hibp", "count", "Passwords matching known breach data were identified",
-             "making those credentials easier to guess"),
+            ("hibp", "count", "Some account password hashes matched known breach data",
+             "their passwords may be easier to guess"),
             ("password_length", "count", "Some recovered passwords were shorter",
              "potentially making them easier to crack"),
-            ("keyboard_walks", "count", "Predictable password patterns were identified",
+            ("keyboard_walks", "count", "Recovered passwords contained predictable patterns",
              "reducing the effort required to compromise accounts"),
         ]
         results["hibp"] = {"count": 0}
@@ -587,11 +677,11 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("Passwords were recovered from accounts storing LM hashes.", paragraph)
         self.assertIn("LM passwords were recovered for Domain Administrator accounts", paragraph)
         self.assertIn("Reuse between related accounts", paragraph)
-        self.assertIn("Predictable password patterns were identified", paragraph)
+        self.assertIn("Recovered passwords contained predictable patterns", paragraph)
 
         selected["lm_hashes"]["count"] = 0
         paragraph = executive_summary(selected).split("\n\n")[1]
-        self.assertIn("Legacy LanMan (LM) password hashes were identified", paragraph)
+        self.assertIn("Legacy LanMan (LM) password hashes were present", paragraph)
         self.assertIn("LM passwords were recovered for Domain Administrator accounts", paragraph)
 
     def test_account_tables_omit_prefixes_without_changing_results(self):
@@ -629,6 +719,26 @@ class HtmlReportTests(unittest.TestCase):
                     self.assertNotIn("OTHER\\", text)
         self.assertEqual(account["username"], "EXAMPLE\\Ali|ce")
         self.assertEqual(account["shared_with"], "OTHER\\Bob")
+
+    def test_pattern_commentary_uses_correct_singular_and_plural(self):
+        account = {"username": "alice", "password": "Password1", "shared_with": "alice_adm"}
+        for count, phrase in ((1, "one recovered password contained"),
+                              (2, "two recovered passwords contained")):
+            for function, key in (
+                (commentary_username_passwords, "username_passwords"),
+                (commentary_common_passwords, "common_passwords"),
+                (commentary_date_passwords, "date_passwords"),
+                (commentary_keyboard_walks, "keyboard_walks"),
+            ):
+                with self.subTest(count=count, section=key):
+                    text = function({key: {"accounts": [account], "count": count, "stats": []}})
+                    self.assertIn(phrase, text)
+                    self.assertNotIn("identified", text)
+            reuse = commentary_similar_account_reuse({"similar_account_reuse": {
+                "accounts": [account], "count": count, "similarPairs": count,
+            }})
+            self.assertIn("one account pair shared" if count == 1
+                          else "two account pairs shared", reuse)
 
     def test_domain_and_enterprise_admins_are_not_repeated_in_privileged_table(self):
         admins = [{"username": "EXAMPLE\\Cotton.Adm", "password": "Password123!"}]
@@ -761,7 +871,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("### Password Complexity\n\n", text)
         self.assertNotIn("### Privileged Accounts", text)
         self.assertNotIn("### LM Hashes", text)
-        self.assertLess(text.index("Password reuse was identified"),
+        self.assertLess(text.index("Passwords were reused"),
                         text.index("A total of one shared NTLM hash"))
         results["privileged_users"]["status"] = "incomplete"
         results["lm_hashes"].update({"count": 1, "uniqueHashes": 1, "duplicateHashes": 0})

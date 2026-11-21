@@ -103,7 +103,10 @@ coverage is incomplete.
 ## Reports
 
 Analysis writes a self-contained HTML report and, by default, a JSON findings
-sidecar.
+sidecar. The dashboard shows cards for checks with findings, with each count's
+unit shown separately. Counts may overlap and should not be added together.
+Checks without findings, including an optional check that was not run, do not
+have a finding card.
 
 ```bash
 password-audit analyse \

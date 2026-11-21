@@ -14,7 +14,7 @@ from rich.table import Table
 from rich.text import Text
 
 from analysis.executive_summary import executive_summary
-from analysis.findings import build_findings_dict
+from analysis.findings import build_finding_summary, build_findings_dict
 from analysis.hibp import check_hibp
 from analysis.parsers import (
     load_company_words,
@@ -147,6 +147,7 @@ def analyse_passwords(
             "remediation_guidance": remediation_guidance(results),
             "references": remediation_references(results),
             "findings": findings,
+            "finding_summary": build_finding_summary(results, findings),
         }
         progress.advance(task_id)
 
