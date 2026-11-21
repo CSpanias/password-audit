@@ -97,7 +97,7 @@ def executive_summary(results):
     summary.append(introduction)
 
     #---------------------------------------------------------------------------
-    # HIGH IMPACT FINDINGS
+    # FINDINGS AND IMPACTS
     #---------------------------------------------------------------------------
     
     # Privileged Accounts
@@ -114,85 +114,16 @@ def executive_summary(results):
     # Domain Admins with LM hashes
     lm_admin_count = results["lm_admins"]["count"]
 
-    if has_privileged and lm_count:
-
-        high_impact_message = (
-            "Of particular concern, the assessment identified privileged "
-            "credentials and legacy LanMan (LM) password hashes. The "
-            "combination of these findings could substantially increase "
-            "the risk and impact of a credential compromise."
-        )
-
-    elif has_privileged:
-
-        high_impact_message = (
-            "Of particular concern, the assessment resulted in the "
-            "recovery of one or more privileged credentials. "
-        )
-
-    elif lm_count:
-
-        high_impact_message = (
-            "Of particular concern, the assessment identified the continued "
-            "use of legacy LanMan (LM) password hashes. "
-        )
-
-    else:
-        high_impact_message = None
-
-    if high_impact_message and has_privileged:
-
-        high_impact_message += (
-            "Privileged accounts provide elevated access to directory "
-            "services, business systems, and sensitive information. The "
-            "compromise of such credentials could enable unauthorised "
-            "access to critical systems and data, undermine security "
-            "controls, and increase the risk of operational disruption. "
-        )
-
-    if high_impact_message and lm_recovered:
-
-        high_impact_message += (
-            "Passwords were successfully recovered from accounts storing LM "
-            "hashes, highlighting the insecurity of this legacy authentication "
-            "mechanism and the increased risk of credential compromise."
-        )
-
-    elif high_impact_message and lm_count:
-
-        high_impact_message += (
-            "LM hashing represents an obsolete password storage mechanism "
-            "that is significantly weaker than modern alternatives and "
-            "increases exposure to offline password-cracking attacks. "
-        )
-
-    if high_impact_message and lm_admin_count:
-
-        high_impact_message += (
-            "The presence of LM-related weaknesses on privileged accounts "
-            "further increases the potential impact of a successful "
-            "compromise and should be prioritised for remediation."
-        )
-
-    if high_impact_message:
-        summary.append(high_impact_message)
-
-
-    #---------------------------------------------------------------------------
-    # SYSTEMIC PASSWORD WEAKNESSES
-    #---------------------------------------------------------------------------
-
     # Compliance with password policy
     failure_count = results["password_length"]["count"]
 
-    # Predictable patterns
-    weaknesses = []
-
-    company_count = results["company_words"]["count"]
-    username_count = results["username_passwords"]["count"]
-    common_count = results["common_passwords"]["count"]
-    date_count = results["date_passwords"]["count"]
-    keyboard_count = results["keyboard_walks"]["count"]
+    weaknesses = any(
+        results[key]["count"]
+        for key in (
+            "company_words", "username_passwords", "common_passwords",
+            "date_passwords", "keyboard_walks",
+        )
+    )
 
     # Password reuse
     general_reuse_passwords = (
@@ -205,87 +136,57 @@ def executive_summary(results):
         results["similar_account_reuse"]["count"]
     )
 
-    if username_count:
-        weaknesses.append("username-derived passwords")
+    findings = []
+    if has_privileged:
+        findings.append(
+            "Privileged account credentials were recovered, potentially "
+            "providing access to critical systems and sensitive information."
+        )
 
-    if company_count:
-        weaknesses.append("organisation-related terminology")
-
-    if common_count:
-        weaknesses.append("common password phrases")
-
-    if date_count:
-        weaknesses.append("date-based passwords")
-
-    if keyboard_count:
-        weaknesses.append("keyboard sequences")
-
-    systemic_weaknesses = []
+    if lm_count or lm_recovered:
+        findings.append(
+            "Legacy LanMan (LM) password hashes were identified; their weak "
+            "hashing makes them more susceptible to offline password cracking."
+        )
+        if lm_recovered:
+            findings.append("Passwords were recovered from accounts storing LM hashes.")
+        if lm_admin_count:
+            findings.append(
+                "LM passwords were recovered for Domain Administrator accounts, "
+                "increasing the potential impact of a compromise."
+            )
 
     if general_reuse_passwords or hash_reuse:
-        systemic_weaknesses.append("password reuse")
+        findings.append(
+            "Password reuse was identified, potentially allowing a compromised "
+            "credential to affect multiple accounts or systems."
+        )
+        if similar_account_reuse_count:
+            findings.append(
+                "Reuse between related accounts may also undermine account "
+                "separation and increase the risk of privilege escalation."
+            )
 
     if results.get("hibp", {}).get("count"):
-        systemic_weaknesses.append("passwords found in known breach data")
+        findings.append(
+            "Passwords matching known breach data were identified, potentially "
+            "making those credentials easier to guess."
+        )
 
     if failure_count:
-        systemic_weaknesses.append(
-            "credentials that did not comply with password standards"
+        findings.append(
+            "Some recovered passwords were shorter than the configured domain "
+            "minimum, potentially making them easier to crack."
         )
 
     if weaknesses:
-        systemic_weaknesses.append("predictable password selection practices")
+        findings.append(
+            "Predictable password patterns were identified, potentially "
+            "reducing the effort required to compromise accounts."
+        )
 
-    if systemic_weaknesses:
-
-        if len(systemic_weaknesses) == 1:
-            systemic_message = (
-                "The assessment also identified a broader password-management "
-                f"weakness: {systemic_weaknesses[0]}. "
-            )
-        else:
-            systemic_message = (
-                "The assessment also identified a number of broader "
-                "password-management weaknesses, including "
-                f"{natural_join(systemic_weaknesses)}. "
-            )
-
-        if general_reuse_passwords or hash_reuse:
-            systemic_message += (
-                "Password reuse increases the potential impact of a compromised "
-                "credential by potentially providing access to multiple accounts "
-                "or systems. "
-            )
-
-            if similar_account_reuse_count:
-
-                systemic_message += (
-                    "Password reuse between related accounts may also undermine "
-                    "administrative account separation and increase the risk of "
-                    "privilege escalation. "
-                )
-
-        if failure_count or weaknesses:
-            systemic_message += (
-                "Weak or predictable password choices can reduce the effort "
-                "required to compromise user accounts. "
-            )
-        if len(systemic_weaknesses) > 1:
-            systemic_message += (
-                "Together, these weaknesses increase the likelihood of credential "
-                "compromise, reduce the effectiveness of password-based security "
-                "controls, and increase organisational exposure to unauthorised "
-                "access and credential-based attacks."
-            )
-        else:
-            systemic_message += (
-                "This weakness increases the likelihood of credential compromise, "
-                "reduces the effectiveness of password-based security controls, "
-                "and increases organisational exposure to unauthorised access and "
-                "credential-based attacks."
-            )
-
-        summary.append(systemic_message)
+    if findings:
+        summary.append(" ".join(findings))
 
     #---------------------------------------------------------------------------
     # CONCLUSION
@@ -307,10 +208,10 @@ def executive_summary(results):
     # if weaknesses:
     #     conclusion_findings.append("predictable password selection practices")
 
-    # if failure_count:
-    #     conclusion_findings.append("password policy non-compliance")
+    if failure_count:
+        conclusion_findings.append("password length")
 
-    if lm_count:
+    if lm_count or lm_recovered:
         conclusion_findings.append("legacy authentication mechanisms")
 
     if conclusion_findings:

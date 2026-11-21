@@ -509,10 +509,9 @@ class HtmlReportTests(unittest.TestCase):
             ],
         )
         summary = executive_summary(results)
-        self.assertIn("password reuse", summary)
-        self.assertNotIn("Collectively, these weaknesses", summary)
-        self.assertEqual(summary.count("increase the likelihood of credential compromise"), 1)
-        self.assertIn("Together, these weaknesses increase the likelihood of credential compromise", summary)
+        self.assertIn("Password reuse was identified", summary)
+        self.assertIn("potentially allowing a compromised credential to affect multiple accounts", summary)
+        self.assertNotIn("LanMan (LM)", summary)
         self.assertNotIn("shared credentials involving selected privileged", summary)
         self.assertNotIn("NTLM hash comparison", summary)
         finding = next(f for f in build_findings_dict(results) if f["id"] == "PWD-REUSE-003")
@@ -538,11 +537,62 @@ class HtmlReportTests(unittest.TestCase):
             ],
         )
         hash_only_summary = executive_summary(hash_only)
-        self.assertIn("a broader password-management weakness: password reuse",
+        self.assertIn("Password reuse was identified, potentially allowing a compromised credential",
                       hash_only_summary)
-        self.assertIn("This weakness increases the likelihood of credential compromise",
-                      hash_only_summary)
-        self.assertNotIn("Together, these weaknesses", hash_only_summary)
+        self.assertNotIn("Predictable password patterns were identified", hash_only_summary)
+
+    def test_executive_summary_pairs_present_findings_with_impacts(self):
+        results = build_results(
+            ntlm_mapped_passwords=[], domain_admins=[], company_words=[],
+            minimum_length=14, enabled_users=["alice"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[],
+            privileged_users={"status": "available", "warnings": [], "accounts": []},
+            ntds_users=[],
+        )
+        cases = [
+            ("admins", "count", "Privileged account credentials were recovered",
+             "providing access to critical systems"),
+            ("lm_hashes", "count", "Legacy LanMan (LM) password hashes were identified",
+             "susceptible to offline password cracking"),
+            ("hibp", "count", "Passwords matching known breach data were identified",
+             "making those credentials easier to guess"),
+            ("password_length", "count", "Some recovered passwords were shorter",
+             "potentially making them easier to crack"),
+            ("keyboard_walks", "count", "Predictable password patterns were identified",
+             "reducing the effort required to compromise accounts"),
+        ]
+        results["hibp"] = {"count": 0}
+        for key, field, finding, impact in cases:
+            with self.subTest(finding=key):
+                selected = deepcopy(results)
+                selected[key][field] = 1
+                paragraphs = executive_summary(selected).split("\n\n")
+                self.assertEqual(len(paragraphs), 3)
+                self.assertIn(finding, paragraphs[1])
+                self.assertIn(impact, paragraphs[1])
+                for other_key, _, other_finding, _ in cases:
+                    if key != other_key:
+                        self.assertNotIn(other_finding, paragraphs[1])
+
+        selected = deepcopy(results)
+        selected["lm_hashes"]["count"] = 1
+        selected["lm_passwords"]["count"] = 1
+        selected["lm_admins"]["count"] = 1
+        selected["admins"]["count"] = 1
+        selected["keyboard_walks"]["count"] = 1
+        selected["ntlm_hash_reuse"]["groups"] = [{"accounts": []}]
+        selected["similar_account_reuse"]["count"] = 1
+        paragraph = executive_summary(selected).split("\n\n")[1]
+        self.assertIn("Privileged account credentials were recovered", paragraph)
+        self.assertIn("Passwords were recovered from accounts storing LM hashes.", paragraph)
+        self.assertIn("LM passwords were recovered for Domain Administrator accounts", paragraph)
+        self.assertIn("Reuse between related accounts", paragraph)
+        self.assertIn("Predictable password patterns were identified", paragraph)
+
+        selected["lm_hashes"]["count"] = 0
+        paragraph = executive_summary(selected).split("\n\n")[1]
+        self.assertIn("Legacy LanMan (LM) password hashes were identified", paragraph)
+        self.assertIn("LM passwords were recovered for Domain Administrator accounts", paragraph)
 
     def test_account_tables_omit_prefixes_without_changing_results(self):
         account = {"username": "EXAMPLE\\Ali|ce", "password": "Password123!",
