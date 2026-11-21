@@ -6,21 +6,34 @@ dataset. It does not require password recovery or make network requests.
 
 ## Input
 
-Provide a directory of NTLM ranges downloaded from the Pwned Passwords API.
-Each range must be named with its five-character uppercase hexadecimal
-prefix, either without an extension (as with the curl download) or with
-`.txt` (as with the official downloader). Each line contains a 27-character
-hexadecimal NT hash suffix, a colon, and a positive occurrence count.
+Provide a directory of NTLM ranges downloaded from the Pwned Passwords API. 
+
+Each range must be named with its five-character uppercase hexadecimal prefix, 
+either without an extension (as with the `curl` download) or with `.txt` (as 
+with the [official Pwned Passwords Downloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader#what-is-haveibeenpwned-downloader)). 
+Each line contains a 27-character hexadecimal NT hash suffix, a colon, and a 
+positive occurrence count:
+
+```powershell
+> GC C:\tools\hashcat\hibp-ntlm\00000 -Head 5
+0018C025E9A2B8275701A958ABC:4
+001F4A473ED6959F04464F91BB5:4
+00331CF90016BD557B8439422B7:1
+0034C209E9CA85D03512759C405:40
+00AA2C3C74802F6434C1EEEB925:1
+```
+
 SHA-1 ranges and a single full-hash file are not supported.
 
 ### Downloading NTLM ranges
 
 The [Pwned Passwords Downloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader#what-is-haveibeenpwned-downloader)
 provides an offline dataset. Alternatively, use `curl.exe` from PowerShell.
+
 The script below downloads missing ranges in batches, so it can be run again
-after an interruption. Adjust `$dir` if needed. Use a new directory or an
+after an interruption. Adjust `$dir` as needed. Use a new directory or an
 existing partial curl download, not a directory containing `.txt` ranges from
-the official downloader. Do not run multiple downloads into it at once:
+the official downloader, and do not run multiple downloads into it at once:
 
 ```powershell
 $dir = 'C:\tools\hashcat\hibp-ntlm'
@@ -96,10 +109,11 @@ if (Test-Path -LiteralPath $config) { Remove-Item -LiteralPath $config }
 
 The full download contains 1,048,576 range files. The script skips existing
 range files and writes new downloads to temporary `.part` files before moving
-them into place. If interrupted, run it again. Existing files are not verified
-and may include incomplete downloads from earlier attempts; for a reliable
-dataset, download them again into a new, empty directory. Counting files alone
-does not establish their integrity.
+them into place. If interrupted, run it again.
+
+Existing files are not verified and may include incomplete downloads from 
+earlier attempts; for a reliable dataset, download them again into a new, empty 
+directory. Counting files alone does not establish their integrity.
 
 ### Running the check
 
@@ -121,8 +135,8 @@ syntax and presence of required files cannot detect every truncated or
 outdated file. Results depend on the supplied dataset's completeness and
 age; a non-match does not establish that a password is safe.
 
-A matching hash indicates that the password is represented in the dataset,
-not that the account itself appeared in a breach. Hash collisions are
+**A matching hash indicates that the password is represented in the dataset,
+not that the account itself appeared in a breach**; hash collisions are
 theoretically possible. Counts refer to affected accounts, not unique
 passwords or distinct breaches, and may overlap with other findings.
 
