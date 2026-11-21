@@ -143,9 +143,21 @@ option list.
 | `-E`, `--enabled-users` | Enabled account list | `password-audit/<run-id>/enabled-users.txt` |
 | `--hibp` | Local Pwned Passwords NTLM range directory for an offline comparison | None |
 
-Pass `--hibp` to include the optional
-[Passwords in Breach Data](checks/breached-passwords.md) check. It uses
-the run's organised NTDS user records and does not make network requests.
+Pass `--hibp` with the path to a local NTLM range directory to include the
+optional [Passwords in Breach Data](checks/breached-passwords.md) check:
+
+```bash
+password-audit audit \
+    --ntds company.ntds \
+    --bloodhound bloodhound.zip \
+    --campaign campaign.json \
+    --campaign-name internal-audit \
+    --hibp /path/to/ntlm-ranges
+```
+
+The check uses the run's organised NTDS user records, including hashes whose
+passwords were not recovered, and does not make network requests. See the
+check guide for dataset download instructions, format, and limitations.
 
 ## Outputs and advanced standalone commands
 
