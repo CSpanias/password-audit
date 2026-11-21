@@ -21,7 +21,6 @@ download the NTLM ranges. Choose a new, empty destination directory and
 adjust the path for your system:
 
 ```powershell
-New-Item -ItemType Directory -Force -Path 'C:\tools\hashcat\hibp-ntlm'
 curl.exe --fail --silent --show-error --retry 10 --retry-all-errors --parallel --parallel-max 20 --output 'C:\tools\hashcat\hibp-ntlm\#1#2#3#4#5' 'https://api.pwnedpasswords.com/range/{0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F}{0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F}{0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F}{0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F}{0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F}?mode=ntlm'
 ```
 
