@@ -23,7 +23,7 @@ existing partial curl download, not a directory containing `.txt` ranges from
 the official downloader. Do not run multiple downloads into it at once:
 
 ```powershell
-$dir = 'C:\pentest\tools\hashcat\hibp-ntlm'
+$dir = 'C:\tools\hashcat\hibp-ntlm'
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Path $dir -Force | Out-Null
 
