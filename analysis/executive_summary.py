@@ -18,7 +18,27 @@ def executive_summary(results):
         str: Summary paragraphs separated by blank lines.
     """
     summary = []
-    positive_findings = []
+
+    has_positive_findings = (
+        (
+            results["total_passwords"]
+            and (
+                (
+                    not results["admins"]["count"]
+                    and results["privileged_users"]["status"] == "available"
+                )
+                or (
+                    not results["password_reuse_general"]["sharedPasswords"]
+                    and not results["ntlm_hash_reuse"]["groups"]
+                )
+                or not results["password_length"]["count"]
+            )
+        )
+        or (
+            results["similar_account_reuse"]["similarPairs"]
+            and not results["similar_account_reuse"]["count"]
+        )
+    )
 
     #---------------------------------------------------------------------------
     # Introduction
@@ -56,9 +76,15 @@ def executive_summary(results):
         "effectiveness of password controls, and the resilience of privileged "
         "accounts. "
     )
+    if has_positive_findings:
+        introduction += (
+            "Some results suggest that existing password security controls and "
+            "user practices may be reducing exposure to credential compromise. "
+        )
     if results["total_passwords"]:
         introduction += (
-            f"The audit demonstrated that {size} of user credentials could be "
+            f"{'However, the' if has_positive_findings else 'The'} audit "
+            f"demonstrated that {size} of user credentials could be "
             "recovered through offline password-cracking techniques, indicating "
             f"that {impact} remain susceptible to compromise following credential "
             "exposure."
@@ -87,11 +113,6 @@ def executive_summary(results):
 
     # Domain Admins with LM hashes
     lm_admin_count = results["lm_admins"]["count"]
-
-    if (results["total_passwords"] and not admin_count
-            and results["privileged_users"]["status"] == "available"):
-        
-        positive_findings.append("no recovered Domain Administrator passwords")
 
     if has_privileged and lm_count:
 
@@ -179,11 +200,6 @@ def executive_summary(results):
     )
     hash_reuse = results["ntlm_hash_reuse"]["groups"]
 
-    # similarPairs counts comparable account pairs
-    similar_account_reuse_pairs = (
-        results["similar_account_reuse"]["similarPairs"]
-    )
-
     # count counts pairs that actually share a password.
     similar_account_reuse_count = (
         results["similar_account_reuse"]["count"]
@@ -270,38 +286,6 @@ def executive_summary(results):
             )
 
         summary.append(systemic_message)
-
-    if results["total_passwords"] and not general_reuse_passwords and not hash_reuse:
-        positive_findings.append(
-            "no evidence of password reuse was identified across the "
-            "recovered credential dataset"
-        )
-
-    if results["total_passwords"] and not failure_count:
-        positive_findings.append(
-            "full compliance with the configured minimum password length "
-            "policy among recovered passwords"
-        )
-
-    if similar_account_reuse_pairs and not similar_account_reuse_count:
-        positive_findings.append(
-            "the absence of password reuse between similarly named accounts"
-        )
-
-    #---------------------------------------------------------------------------
-    # POSITIVE SECURITY FINDINGS
-    #---------------------------------------------------------------------------
-    if positive_findings:
-
-        summary.append(
-            "Several positive security outcomes were also observed, including "
-            f"{natural_join(positive_findings)}. These findings suggest that "
-            "several password security controls and user practices are "
-            "operating effectively and help reduce the likelihood and impact "
-            "of credential compromise. While they do not eliminate risk "
-            "entirely, they provide a strong foundation for continued "
-            "improvement."
-        )
 
     #---------------------------------------------------------------------------
     # CONCLUSION

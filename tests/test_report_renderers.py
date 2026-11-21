@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from contextlib import redirect_stdout
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import DEFAULT, patch
 
@@ -402,6 +403,60 @@ class HtmlReportTests(unittest.TestCase):
         })
         self.assertIn("identified one password (10% of", text)
         self.assertIn("password length was 10 characters", text)
+
+    def test_executive_summary_includes_generic_positive_sentence_only_when_applicable(self):
+        results = build_results(
+            ntlm_mapped_passwords=[
+                {"username": "alice", "password": "weak"},
+                {"username": "alice_adm", "password": "weak"},
+            ],
+            domain_admins=["alice"], company_words=[], minimum_length=14,
+            enabled_users=["alice", "alice_adm"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[],
+            privileged_users={"status": "available", "warnings": [], "accounts": []},
+        )
+        results["admins"]["count"] = 1
+        results["password_reuse_general"]["sharedPasswords"] = [("weak", 2)]
+        results["ntlm_hash_reuse"]["groups"] = []
+        results["password_length"]["count"] = 1
+        results["similar_account_reuse"]["similarPairs"] = 1
+        results["similar_account_reuse"]["count"] = 1
+        positive = (
+            "Some results suggest that existing password security controls and "
+            "user practices may be reducing exposure to credential compromise."
+        )
+
+        summary = executive_summary(results)
+        self.assertNotIn(positive, summary)
+        self.assertIn("The audit demonstrated", summary.split("\n\n")[0])
+
+        for finding in ("admins", "reuse", "length", "similar"):
+            with self.subTest(finding=finding):
+                positive_results = deepcopy(results)
+                if finding == "admins":
+                    positive_results["admins"]["count"] = 0
+                elif finding == "reuse":
+                    positive_results["password_reuse_general"]["sharedPasswords"] = []
+                elif finding == "length":
+                    positive_results["password_length"]["count"] = 0
+                else:
+                    positive_results["similar_account_reuse"]["count"] = 0
+                summary = executive_summary(positive_results)
+                self.assertIn(
+                    positive + " However, the audit demonstrated",
+                    summary.split("\n\n")[0],
+                )
+                self.assertNotIn("Several positive security outcomes", summary)
+
+        incomplete = deepcopy(results)
+        incomplete["admins"]["count"] = 0
+        incomplete["privileged_users"]["status"] = "incomplete"
+        self.assertNotIn(positive, executive_summary(incomplete))
+
+        results["total_passwords"] = 0
+        summary = executive_summary(results)
+        self.assertNotIn(positive, summary)
+        self.assertIn("No plaintext passwords were recovered", summary.split("\n\n")[0])
 
     def test_hash_reuse_summary_and_finding(self):
         results = build_results(
