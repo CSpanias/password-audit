@@ -432,15 +432,22 @@ def commentary_hibp(results):
         "against a locally downloaded copy of the dataset. "
         f"A total of {num_to_word(count)} account{'s' if count != 1 else ''} "
         "had matching password hashes. "
-        "A matching hash does not mean the account itself appeared in a breach."
+        + (
+            "However, a matching hash does not mean the account itself appeared in a breach."
+            if count else
+            "A matching hash would not mean the account itself appeared in a breach."
+        )
     )
     if not count:
         return paragraph
-    table = ["| Username |", "| ---------- |"]
-    table.extend(f"| {_display_username(account)} |" for account in hibp["accounts"][:5])
+    table = ["| Username | NTLM Hash |", "| ---------- | ---------- |"]
+    table.extend(
+        f"| {_display_username(account['username'])} | {account['masked_hash']} |"
+        for account in hibp["examples"]
+    )
     return "\n\n".join([
         paragraph,
-        "The following table shows example accounts with matching password hashes:",
+        "The following table shows example accounts and their masked matching NTLM hashes:",
         "\n".join(table),
     ])
 

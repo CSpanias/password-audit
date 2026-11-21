@@ -3,6 +3,8 @@
 import re
 from pathlib import Path
 
+from common.utils import mask_password
+
 _RANGE_LINE = re.compile(r"([0-9A-Fa-f]{27}):([0-9]+)")
 
 
@@ -62,9 +64,18 @@ def check_hibp(accounts, directory):
                             f"Duplicate HIBP NTLM hash at {path}, line {line_number}."
                         )
                     matched_suffixes.add(suffix)
-                    matches.extend(suffixes[suffix])
+                    masked_hash = mask_password((prefix + suffix).lower())
+                    matches.extend(
+                        {"username": username, "masked_hash": masked_hash}
+                        for username in suffixes[suffix]
+                    )
         if not entries:
             raise HibpDataError(f"Empty HIBP NTLM range: {path}")
 
-    matches.sort(key=str.casefold)
-    return {"checked": len(accounts), "accounts": matches, "count": len(matches)}
+    matches.sort(key=lambda account: account["username"].casefold())
+    return {
+        "checked": len(accounts),
+        "accounts": [account["username"] for account in matches],
+        "count": len(matches),
+        "examples": matches[:5],
+    }

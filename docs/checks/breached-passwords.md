@@ -148,8 +148,8 @@ appeared in a breach**; hash collisions are theoretically possible.
 Counts refer to affected accounts, not unique passwords or distinct breaches, 
 and may overlap with other findings.
 
-The technical commentary includes up to five example affected account names;
-it does not expose their passwords or hashes.
+The technical commentary includes up to five example affected account names
+and their masked NTLM hashes; it does not expose full hashes or passwords.
 
 ## Findings
 

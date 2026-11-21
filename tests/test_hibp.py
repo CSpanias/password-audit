@@ -16,7 +16,11 @@ def test_hibp_commentary_includes_up_to_five_account_examples():
         "DOMAIN\\ali|ce", "DOMAIN\\bob", "DOMAIN\\carol",
         "DOMAIN\\dave", "DOMAIN\\eve", "DOMAIN\\frank",
     ]
-    text = commentary_hibp({"hibp": {"checked": 10, "count": 6, "accounts": accounts}})
+    masked_hash = "ab" + "*" * 28 + "11"
+    examples = [{"username": name, "masked_hash": masked_hash} for name in accounts[:5]]
+    text = commentary_hibp({
+        "hibp": {"checked": 10, "count": 6, "accounts": accounts, "examples": examples}
+    })
 
     assert (
         "Have I Been Pwned (HIBP) maintains Pwned Passwords, a dataset of "
@@ -24,16 +28,16 @@ def test_hibp_commentary_includes_up_to_five_account_examples():
     ) in text
     assert "against a locally downloaded copy of the dataset." in text
     assert "A total of six accounts had matching password hashes." in text
-    assert "A matching hash does not mean the account itself appeared in a breach." in text
+    assert "However, a matching hash does not mean the account itself appeared in a breach." in text
     assert "Matching passwords may not have been recovered" not in text
     assert "A non-match does not establish" not in text
-    assert "| Username |\n| ---------- |\n| ali\\|ce |" in text
-    assert "| eve |" in text
+    assert f"| Username | NTLM Hash |\n| ---------- | ---------- |\n| ali\\|ce | {masked_hash} |" in text
+    assert f"| eve | {masked_hash} |" in text
     assert "frank" not in text
 
-    assert "| Username |" not in commentary_hibp(
-        {"hibp": {"checked": 1, "count": 0, "accounts": []}}
-    )
+    zero = commentary_hibp({"hibp": {"checked": 1, "count": 0, "accounts": [], "examples": []}})
+    assert "| Username |" not in zero
+    assert "A matching hash would not mean the account itself appeared in a breach." in zero
     assert commentary_hibp({}) == ""
 
 
@@ -77,7 +81,25 @@ def test_range_matching_deduplicates_hashes_and_supports_both_filenames(tmp_path
 
     assert check_hibp(accounts, tmp_path) == {
         "checked": 4, "count": 3, "accounts": ["alice", "bob", "dave"],
+        "examples": [
+            {"username": "alice", "masked_hash": "ab" + "*" * 28 + "11"},
+            {"username": "bob", "masked_hash": "ab" + "*" * 28 + "11"},
+            {"username": "dave", "masked_hash": "12" + "*" * 28 + "33"},
+        ],
     }
+
+
+def test_range_matching_limits_examples_without_limiting_affected_accounts(tmp_path):
+    (tmp_path / "ABCDE").write_text("1" * 27 + ":2\n")
+    accounts = [
+        {"username": f"user{index}", "ntlm": "ABCDE" + "1" * 27}
+        for index in reversed(range(6))
+    ]
+    result = check_hibp(accounts, tmp_path)
+    assert result["count"] == 6
+    assert result["accounts"] == [f"user{index}" for index in range(6)]
+    assert [item["username"] for item in result["examples"]] == result["accounts"][:5]
+    assert all(item["masked_hash"] == "ab" + "*" * 28 + "11" for item in result["examples"])
 
 
 @pytest.mark.parametrize(
@@ -155,8 +177,11 @@ def test_analyse_reports_matches_without_recovered_passwords(monkeypatch, tmp_pa
     assert "A total of one enabled user account was" in finding["description"]
     assert "A total of two enabled user accounts were checked" in report
     assert "A total of one account had matching password hashes" in report
+    assert "| alice | ab" + "*" * 28 + "11 |" in report
+    assert "However, a matching hash does not mean the account itself appeared in a breach." in report
     assert "did not identify any significant" not in report
     assert "ABCDE" + "1" * 27 not in report
+    assert ("ABCDE" + "1" * 27).lower() not in report
     assert "ABCDE" + "1" * 27 not in json.dumps(finding)
 
     with patch.object(sys, "argv", args + ["--csacyber"]):
