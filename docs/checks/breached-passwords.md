@@ -4,13 +4,12 @@ The optional `--hibp` check compares enabled user NT hashes against a local
 [Have I Been Pwned Pwned Passwords](https://haveibeenpwned.com/Passwords)
 dataset. It does not require password recovery or make network requests.
 
-## Input
+It takes as input a directory of NTLM ranges downloaded from the Pwned 
+Passwords API. Each range must be named with its five-character uppercase 
+hexadecimal prefix, either without an extension (as with the `curl` download) 
+or with `.txt` (as with the 
+[official Pwned Passwords Downloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader#what-is-haveibeenpwned-downloader)). 
 
-Provide a directory of NTLM ranges downloaded from the Pwned Passwords API. 
-
-Each range must be named with its five-character uppercase hexadecimal prefix, 
-either without an extension (as with the `curl` download) or with `.txt` (as 
-with the [official Pwned Passwords Downloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader#what-is-haveibeenpwned-downloader)). 
 Each line contains a 27-character hexadecimal NT hash suffix, a colon, and a 
 positive occurrence count:
 
@@ -27,13 +26,13 @@ SHA-1 ranges and a single full-hash file are not supported.
 
 ### Downloading NTLM ranges
 
-The [Pwned Passwords Downloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader#what-is-haveibeenpwned-downloader)
-provides an offline dataset. Alternatively, use `curl.exe` from PowerShell.
+The dataset can be downloaded via the [Pwned Passwords Downloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader#what-is-haveibeenpwned-downloader)
+or `curl.exe` from PowerShell.
 
 The script below downloads missing ranges in batches, so it can be run again
-after an interruption. Adjust `$dir` as needed. Use a new directory or an
-existing partial curl download, not a directory containing `.txt` ranges from
-the official downloader, and do not run multiple downloads into it at once:
+after an interruption; adjust `$dir` as needed. Use a new directory or an
+existing partial `curl` download, not a directory containing `.txt` ranges from
+the official downloader. Finally, do not run multiple downloads into it at once:
 
 ```powershell
 $dir = 'C:\tools\hashcat\hibp-ntlm'
@@ -109,13 +108,18 @@ if (Test-Path -LiteralPath $config) { Remove-Item -LiteralPath $config }
 
 The full download contains 1,048,576 range files. The script skips existing
 range files and writes new downloads to temporary `.part` files before moving
-them into place. If interrupted, run it again.
+them into place; if interrupted, run it again.
 
 Existing files are not verified and may include incomplete downloads from 
-earlier attempts; for a reliable dataset, download them again into a new, empty 
-directory. Counting files alone does not establish their integrity.
+earlier attempts. For a reliable dataset, download them again into a new, empty 
+directory; counting files alone does not establish their integrity.
 
 ### Running the check
+
+For `analyse`, the organiser's enabled NTDS records must be auto-detected or 
+supplied using `--ntds-users`. The check opens only ranges needed for the 
+supplied accounts; missing, empty, or malformed required ranges stop report 
+generation with an error.
 
 ```bash
 password-audit analyse \
@@ -123,22 +127,17 @@ password-audit analyse \
     --hibp /path/to/ntlm-ranges
 ```
 
-The `audit` command also accepts `--hibp`. For `analyse`, the organiser's
-enabled NTDS records must be auto-detected or supplied using `--ntds-users`.
-The check opens only ranges needed for the supplied accounts. Missing, empty,
-or malformed required ranges stop report generation with an error.
+The `audit` command also accepts `--hibp`.
 
 ## Interpreting results
 
-Verify the download is complete and uncorrupted before using it. Checking the
-syntax and presence of required files cannot detect every truncated or
-outdated file. Results depend on the supplied dataset's completeness and
-age; a non-match does not establish that a password is safe.
+Results depend on the supplied dataset's completeness and age; a non-match does 
+not establish that a password is safe. Similarly, **a matching hash indicates 
+that the password is represented in the dataset, not that the account itself 
+appeared in a breach**; hash collisions are theoretically possible.
 
-**A matching hash indicates that the password is represented in the dataset,
-not that the account itself appeared in a breach**; hash collisions are
-theoretically possible. Counts refer to affected accounts, not unique
-passwords or distinct breaches, and may overlap with other findings.
+Counts refer to affected accounts, not unique passwords or distinct breaches, 
+and may overlap with other findings.
 
 ## Findings
 
