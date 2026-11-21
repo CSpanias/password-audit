@@ -136,6 +136,11 @@ option list.
 | `-P`, `--pass-policy` | Domain password policy | `password-audit/<run-id>/domain-policy.txt` |
 | `-W`, `--company-words` | Optional curated terms added to the generated list | `./company-words.txt` when present; otherwise none |
 | `-E`, `--enabled-users` | Enabled account list | `password-audit/<run-id>/enabled-users.txt` |
+| `--hibp` | Local Pwned Passwords NTLM range directory for an offline comparison | None |
+
+Pass `--hibp` to include the optional
+[Passwords in Breach Data](checks/breached-passwords.md) check. It uses
+the run's organised NTDS user records and does not make network requests.
 
 ## Outputs and advanced standalone commands
 

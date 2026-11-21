@@ -15,6 +15,7 @@ from rich.text import Text
 
 from analysis.executive_summary import executive_summary
 from analysis.findings import build_findings_dict
+from analysis.hibp import check_hibp
 from analysis.parsers import (
     load_company_words,
     load_domain_policy,
@@ -47,6 +48,7 @@ def analyse_passwords(
     findings_file=None,
     privileged_users=None,
     ntds_users=None,
+    hibp=None,
 ):
     """
     Analyse recovered passwords and generate a report.
@@ -88,6 +90,9 @@ def analyse_passwords(
         ntds_users:
             Optional organiser-generated enabled NTDS user records.
 
+        hibp:
+            Optional local Pwned Passwords NTLM range directory.
+
     Returns:
         dict:
             Password analysis results.
@@ -112,6 +117,7 @@ def analyse_passwords(
             mapped_lm_passwords=mapped_lm_passwords,
             privileged_users=privileged_users,
             ntds_users=ntds_users,
+            hibp=hibp,
         )
         progress.advance(task_id)
 
@@ -170,6 +176,7 @@ def _build_analysis_results(
     mapped_lm_passwords,
     privileged_users,
     ntds_users,
+    hibp=None,
 ):
     """Load analysis inputs and build the structured results."""
     enabled_users = load_list(enabled_users)
@@ -213,7 +220,7 @@ def _build_analysis_results(
     else:
         warn("NTLM hash reuse analysis is unavailable: no organised NTDS user records supplied.")
 
-    return build_results(
+    results = build_results(
         ntlm_mapped_passwords=ntlm_passwords,
         domain_admins=domain_admins,
         company_words=company_words,
@@ -225,6 +232,9 @@ def _build_analysis_results(
         privileged_users=privileged_users,
         ntds_users=ntds_users,
     )
+    if hibp is not None:
+        results["hibp"] = check_hibp(ntds_users, hibp)
+    return results
 
 
 def _print_console_summary(results, findings, report_path, findings_path):

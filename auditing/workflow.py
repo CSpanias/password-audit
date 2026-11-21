@@ -60,6 +60,7 @@ def run_audit(
     enabled_users=None,
     pass_policy=None,
     csacyber=False,
+    hibp=None,
 ):
     """
     Execute an end-to-end password audit workflow.
@@ -98,6 +99,9 @@ def run_audit(
         csacyber:
             Export SureFormat XML instead of JSON findings.
 
+        hibp:
+            Optional local Pwned Passwords NTLM range directory.
+
     Returns:
         dict:
             Workflow execution results.
@@ -106,6 +110,8 @@ def run_audit(
     #---------------------------------------------------------------------------
     # Pre-flight checks
     #---------------------------------------------------------------------------
+    if hibp is not None and not Path(hibp).is_dir():
+        raise ValueError(f"HIBP range directory does not exist: {hibp}")
     print()
     info("Validating Inputs")
     print()
@@ -385,6 +391,7 @@ def run_audit(
         domain_admins=domain_admins,
         privileged_users=output_dir / "privileged-users.json",
         ntds_users=output_dir / "ntds-users-clean.txt",
+        hibp=hibp,
         company_words=company_word_sources,
         pass_policy=pass_policy,
         enabled_users=enabled_users,

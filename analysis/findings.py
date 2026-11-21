@@ -63,6 +63,7 @@ _FINDING_GATES = {
     "password-reuse": ("password_reuse_general", lambda r: r["password_reuse_general"]["sharedPasswords"]),
     "shared-account-passwords": ("similar_account_reuse", lambda r: r["similar_account_reuse"]["count"]),
     "ntlm-hash-reuse": ("ntlm_hash_reuse", lambda r: len(r["ntlm_hash_reuse"]["groups"])),
+    "hibp-passwords": ("hibp", lambda r: r["hibp"]["count"]),
     "username-derived-passwords": ("username_passwords", lambda r: r["username_passwords"]["count"]),
     "organisation-related-passwords": ("company_words", lambda r: r["company_words"]["count"]),
     "common-passwords": ("common_passwords", lambda r: r["common_passwords"]["count"]),
@@ -148,6 +149,8 @@ def build_findings(results):
 
         evidence = []
         affected_assets = []
+        if finding_id == "hibp-passwords":
+            affected_assets = results["hibp"]["accounts"]
         if finding_id == "ntlm-hash-reuse":
             groups = results["ntlm_hash_reuse"]["groups"]
             description += (

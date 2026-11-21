@@ -418,6 +418,24 @@ def commentary_password_lengths(results):
 # Password Reuse
 # ---------------------------------------------------------------------------
 
+def commentary_hibp(results):
+    """Describe offline Pwned Passwords matching."""
+    hibp = results.get("hibp")
+    if hibp is None:
+        return ""
+    count = hibp["count"]
+    return (
+        f"A total of {num_to_word(hibp['checked'])} enabled user "
+        f"account{'s were' if hibp['checked'] != 1 else ' was'} checked "
+        "against the supplied local Have I Been Pwned Pwned Passwords dataset. "
+        f"A total of {num_to_word(count)} account{'s' if count != 1 else ''} "
+        "had matching password hashes. "
+        "Matching passwords may not have been recovered, and a match does not "
+        "establish that the account itself appeared in a breach. A non-match "
+        "does not establish that a password is safe."
+    )
+
+
 def commentary_ntlm_hash_reuse(results):
     """Describe hash-based reuse independently of password recovery."""
     reuse = results["ntlm_hash_reuse"]
@@ -1020,6 +1038,7 @@ def technical_commentary(results):
             commentary_password_reuse, commentary_ntlm_hash_reuse,
             commentary_similar_account_reuse,
         )),
+        ("Passwords in Breach Data", (commentary_hibp,)),
         ("Common Patterns", (
             commentary_username_passwords, commentary_company_words,
             commentary_common_passwords, commentary_date_passwords,

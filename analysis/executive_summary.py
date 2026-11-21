@@ -209,6 +209,9 @@ def executive_summary(results):
     if general_reuse_passwords or hash_reuse:
         systemic_weaknesses.append("password reuse")
 
+    if results.get("hibp", {}).get("count"):
+        systemic_weaknesses.append("passwords found in known breach data")
+
     if failure_count:
         systemic_weaknesses.append(
             "credentials that did not comply with password standards"
@@ -313,6 +316,9 @@ def executive_summary(results):
 
     if general_reuse_passwords or hash_reuse:
         conclusion_findings.append("credential separation")
+
+    if results.get("hibp", {}).get("count"):
+        conclusion_findings.append("passwords found in known breach data")
 
     # if weaknesses:
     #     conclusion_findings.append("predictable password selection practices")

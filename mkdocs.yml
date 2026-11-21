@@ -61,6 +61,7 @@ nav:
       - Password Length: checks/password-length.md
       - Password Reuse: checks/password-reuse.md
       - NTLM Hash Reuse: checks/ntlm-hash-reuse.md
+      - Passwords in Breach Data: checks/breached-passwords.md
       - Similarly Named Accounts: checks/similar-accounts.md
       - Username-Derived Passwords: checks/username-passwords.md
       - Organisation-Related Passwords: checks/organisation-passwords.md

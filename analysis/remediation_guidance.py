@@ -98,6 +98,13 @@ def remediation_guidance(results):
     # Password Length Compliance
     # -------------------------------
 
+    if results.get("hibp", {}).get("count"):
+        lines.append(
+            "- Reset passwords found in known breach data, prioritising "
+            "privileged accounts, and screen new passwords against a "
+            "regularly updated compromised-password blocklist."
+        )
+
     if results["password_length"]["count"]:
         lines.append(
             "- Password policy settings should be reviewed to ensure that all accounts meet "
@@ -207,6 +214,9 @@ def remediation_references(results):
     references.add("https://www.ncsc.gov.uk/collection/passwords")
     references.add("https://www.ncsc.gov.uk/guidance/multi-factor-authentication-online-services")
     references.add("https://pages.nist.gov/800-63-4/sp800-63b.html#appA")
+
+    if results.get("hibp", {}).get("count"):
+        references.add("https://haveibeenpwned.com/Passwords")
 
     # Privileged accounts
     if results["admins"]["count"] or results["privileged_users"]["count"]:

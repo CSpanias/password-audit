@@ -34,3 +34,14 @@ ntlm-hash-reuse:
     credentials. Prioritise accounts in privileged groups and review
     credential separation between privileged and other accounts.
   description_template: "A total of {count} shared NTLM credential group{s} {were_was} identified across enabled user accounts, including passwords that may not have been recovered. These results may overlap with recovered-password reuse findings."
+
+hibp-passwords:
+  id: PWD-BREACH-001
+  title: Passwords Found in Known Breach Data
+  severity: high
+  category: password_reuse
+  remediation: |
+    Reset the passwords of affected accounts, prioritising privileged accounts,
+    and require strong, unique replacements. Screen new passwords against a
+    regularly updated compromised-password blocklist.
+  description_template: "A total of {count} enabled user account{s} {were_was} using passwords whose NTLM hashes matched the local Have I Been Pwned Pwned Passwords dataset. A match does not establish that the account itself appeared in a breach."

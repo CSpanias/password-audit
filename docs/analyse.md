@@ -31,6 +31,12 @@ locations, pass `--ntds-users` with the corresponding organised file's path.
 The file contains enabled NTDS users after filtering, including hashes for
 passwords that were not recovered. If it is unavailable, the report says so.
 
+To also compare these hashes offline against Pwned Passwords, pass `--hibp`
+with a local NTLM range directory. This check requires the organised NTDS user
+records; use `--ntds-users` when they are not auto-detected. See
+[Passwords in Breach Data](checks/breached-passwords.md) for the required
+format and limitations.
+
 A curated `./company-words.txt` file is also included automatically when 
 present; use `-G` to select a different curated list. Curated terms supplement 
 generated terms.
@@ -41,7 +47,8 @@ generated terms.
 | `-L`, `--mapped-lm-passwords` | Optional mapped LM dataset. |
 | `-D`, `--domain-admins` | Domain Administrator account list. |
 | `--privileged-users` | Organiser-generated privileged group membership JSON. |
-| `--ntds-users` | Organiser-generated enabled NTDS user records for hash reuse analysis. |
+| `--ntds-users` | Organiser-generated enabled NTDS user records for hash-based analysis. |
+| `--hibp` | Optional local Pwned Passwords NTLM range directory. |
 | `-P`, `--pass-policy` | Domain password policy. |
 | `-G`, `--company-words` | Optional curated terms added to generated terms; `./company-words.txt` is auto-detected when present. |
 | `-E`, `--enabled-users` | Enabled account list used for summary statistics. |
@@ -62,6 +69,7 @@ rate, and LM exposure. Findings cover:
 - Password reuse, including reuse among similarly named accounts.
 - Matching NTLM hashes across enabled user accounts, including passwords not
   recovered; affected accounts in selected privileged groups are highlighted.
+- Password hashes found in the optional local Pwned Passwords dataset.
 - Common, username-derived, organisation-related, date-based, and keyboard
   pattern passwords.
 
@@ -146,5 +154,5 @@ The default JSON findings sidecar has this shape:
 ```
 
 The hash reuse finding includes affected account groups in its evidence and
-affected accounts in its affected-assets field. Other findings do not
-currently populate these fields with account-level evidence.
+affected accounts in its affected-assets field. The Pwned Passwords finding
+also lists affected accounts, without exposing passwords or hashes.

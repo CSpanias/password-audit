@@ -980,10 +980,12 @@ class HtmlReportTests(unittest.TestCase):
                 domain_admins="custom-admins.txt",
                 pass_policy="custom-policy.txt",
                 enabled_users="custom-users.txt",
+                hibp=directory,
             )
 
             analysis_args = values["analyse_passwords"].call_args.kwargs
             self.assertTrue(analysis_args["csacyber"])
+            self.assertEqual(analysis_args["hibp"], directory)
             for field, path in (
                 ("mapped_ntlm_passwords", "custom-ntlm.txt"),
                 ("mapped_lm_passwords", "custom-lm.txt"),

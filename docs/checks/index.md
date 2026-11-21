@@ -13,6 +13,7 @@ input datasets.
 | Privileged and legacy credentials | [Privileged accounts](privileged-accounts.md), [LM hashes](lm-hashes.md) |
 | Password policy | [Password length](password-length.md) |
 | Reuse | [Recovered passwords](password-reuse.md), [NTLM hashes](ntlm-hash-reuse.md), [similarly named accounts](similar-accounts.md) |
+| Breach data | [Pwned Passwords](breached-passwords.md) (optional local dataset) |
 | Predictable patterns | [Username-derived](username-passwords.md), [organisation-related](organisation-passwords.md), [common terms](common-passwords.md), [date-related](date-passwords.md), [keyboard patterns](keyboard-patterns.md) |
 | Statistics | [Password statistics](password-statistics.md) |
 
@@ -24,7 +25,7 @@ Passwords not recovered during a campaign are not necessarily strong.
 Recovery depends on the campaign, wordlists, rules, hardware, and time
 available.
 
-NTLM hash reuse and LM hash presence can be assessed without recovering
+NTLM hash reuse, Pwned Passwords matching, and LM hash presence can be assessed without recovering
 passwords. The organiser normally limits these datasets to enabled user
 accounts after exclusions; standalone analysis depends on the files supplied.
 Machine accounts and disabled accounts are not included in the organiser's

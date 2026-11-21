@@ -62,6 +62,7 @@ def run_password_analysis(args):
         domain_admins=args.domain_admins,
         privileged_users=privileged_users,
         ntds_users=ntds_users,
+        hibp=args.hibp,
         company_words=company_words,
         pass_policy=args.pass_policy,
         enabled_users=args.enabled_users,
