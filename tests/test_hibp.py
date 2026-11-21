@@ -61,7 +61,10 @@ def test_cli_shows_clear_message_for_dataset_still_downloading(capsys):
         main.main()
 
     assert exc.value.code == 2
-    assert "HIBP dataset is incomplete or still downloading" in capsys.readouterr().err
+    error_output = capsys.readouterr().err
+    assert "HIBP dataset is incomplete or still downloading" in error_output
+    assert "Usage:" not in error_output
+    assert "-h" not in error_output
 
 
 def test_duplicate_matching_suffix_is_rejected(tmp_path):

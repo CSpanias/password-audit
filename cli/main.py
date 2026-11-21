@@ -706,7 +706,7 @@ def main():
     try:
         args.func(args)
     except HibpDataError as exc:
-        parser.error(str(exc))
+        parser.exit(2, f"{parser.prog}: error: {exc}\n")
 
 
 if __name__ == "__main__":
