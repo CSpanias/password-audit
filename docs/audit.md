@@ -19,13 +19,8 @@ configuration.
   LM recovery when LM hashes are present.
 
 See [Campaign configuration](crack.md#campaign-configuration) for the JSON
-structure. The repository includes
-[NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json)
-and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json)
-campaign examples for `audit`. The
-[LM-only example](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json)
-is for standalone `crack run`; it cannot be used with `audit` unless an `ntlm`
-section is added.
+structure and example campaigns. An LM-only campaign is for standalone
+`crack run`; it cannot be used with `audit` unless an `ntlm` section is added.
 
 ## Run an audit
 
@@ -99,27 +94,13 @@ when reassessing the same company.
 
 ## Workflow
 
-The audit runs the following stages:
+See the [password audit workflow](knowledge-base/password-audits.md#workflow)
+for the assessment stages and [Privileged Account Passwords](checks/privileged-accounts.md)
+for the privileged findings and their limitations.
 
-1. Validate the NTDS file, BloodHound export, and campaign configuration.
-2. Organise the datasets into the run directory, including NTLM hashes,
-   enabled users, Domain Administrators, selected privileged group memberships,
-   and policy data.
-3. Recover NTLM passwords using the enabled NTLM, and optionally LM, campaign phases.
-4. Map and analyse recovered passwords.
-5. Write the requested reports.
-
-The report includes recovered NTLM passwords belonging to members of selected
-privileged groups, with group membership and masked passwords. Nested groups
-are included where present in the BloodHound collection. Identifiable gaps or
-ambiguous matches are reported as incomplete; group membership alone does not
-cover every privileged account or attack path. See
-[Analyse](analyse.md#what-is-analysed) for the group list and limitations.
-
-If LM hashes are present but no LM campaign is configured, the LM cracking
-stage is skipped. Existing LM recoveries can still be mapped when available in
-the NTLM campaign's Hashcat potfile. When an LM campaign is configured, its
-Hashcat binary and potfile are used to reconstruct LM recoveries.
+An LM campaign is optional; existing LM recoveries may still be mapped without
+one. See [LM workflows](lm.md#lm-recovery-and-mapping) for how the audit
+selects the Hashcat binary and potfile.
 
 ## Options
 

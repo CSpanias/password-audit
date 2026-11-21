@@ -6,8 +6,10 @@ analysis to make it easier to turn assessment data into actionable findings.
 
 The project was created to streamline a workflow that often involves several
 separate tools, combining a practical need for password auditing with an
-interest in password cracking. It brings together and extends the earlier
-`ntds-organiser`, `hashcat-scheduler`, and `password-analyser` projects.
+interest in password cracking.
+
+It brings together and extends the earlier `ntds-organiser`,
+`hashcat-scheduler`, and `password-analyser` projects.
 
 ## What it does
 
@@ -30,5 +32,6 @@ has been collected.
 
 For advanced or partial workflows, the [Organise](organise.md), [Crack](crack.md),
 [Analyse](analyse.md), and [LM](lm.md) commands are also available separately.
+
 See [Wordlists and rules](knowledge-base/wordlists-and-rules.md) for password
 recovery resources.

@@ -52,18 +52,9 @@ recovery, mapping, and analysis after the data has been collected.
 
 ## Recommended workflow
 
-[Install](../installation.md) Password Audit and prepare an NTDS export, a
-BloodHound ZIP export, Hashcat, and a
-[campaign configuration](../crack.md#campaign-configuration).
-
-!!! tip "Example campaigns"
-    The repository includes
-    [NTLM](https://github.com/CSpanias/password-audit/blob/main/example-ntlm-config.json),
-    [LM](https://github.com/CSpanias/password-audit/blob/main/example-lm-config.json),
-    and [dual NTLM/LM](https://github.com/CSpanias/password-audit/blob/main/example-dual-config.json)
-    campaign examples. The campaign file must include an `ntlm` section. An
-    optional `lm` section enables LM recovery; see the [Audit guide](../audit.md)
-    for the workflow details.
+[Install](../installation.md) Password Audit and prepare the inputs listed
+above. See [Campaign configuration](../crack.md#campaign-configuration)
+for the format and example campaigns.
 
 ```bash
 password-audit audit \

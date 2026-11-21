@@ -80,16 +80,8 @@ findings; the report does not calculate an overall risk score.
 See [Checks](checks/index.md) for what each analysis looks for, how it works,
 and how to interpret the results.
 
-The selected groups are DAs, Enterprise Admins, Schema Admins,
-Administrators, DNSAdmins, Account Operators, Backup Operators, Server
-Operators, Cert Publishers, and Exchange Windows Permissions.
-
-Group membership does not represent every privileged account or attack path,
-and the impact of membership depends on the environment. Recovered DA
-credentials appear in the DA finding only; the privileged-account finding
-counts other accounts in selected groups, including Enterprise Admins.
-An account in multiple groups is counted once. The existing DA LM analysis
-remains separate.
+The [Privileged Account Passwords](checks/privileged-accounts.md) check
+describes the selected groups, finding scope, and coverage limitations.
 
 In the technical commentary, recovered Domain and Enterprise Administrator
 accounts are shown together with their known selected group memberships.

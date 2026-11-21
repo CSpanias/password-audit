@@ -57,9 +57,8 @@ section. Each section contains parameters and an ordered list of phases.
 ```
 
 Set `hashcatDir` and `hashcatBinary` to match the local Hashcat installation.
-The current default directory is `/mnt/c/tools/hashcat`; set both
-values explicitly on systems where that path or the default `hashcat.exe`
-name does not apply. 
+The built-in defaults are specific to the developer's environment, so set
+both values explicitly for your system.
 
 Wordlists and rules are resolved relative to `hashcatDir/wordlists/` and 
 `hashcatDir/rules/`, respectively.
@@ -69,7 +68,7 @@ Wordlists and rules are resolved relative to `hashcatDir/wordlists/` and
 | Field | Description |
 | --- | --- |
 | `hashMode` | Required Hashcat mode for the campaign. |
-| `hashcatDir` | Hashcat data directory; defaults to `/mnt/c/pentest/tools/hashcat`. |
+| `hashcatDir` | Hashcat data directory; set this to your local installation directory. |
 | `hashcatBinary` | Hashcat executable; defaults to `hashcat.exe` under `hashcatDir`. |
 | `flags` | Additional Hashcat arguments as a JSON list of strings. |
 | `id` | Required, unique phase identifier. |
