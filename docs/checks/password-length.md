@@ -42,3 +42,4 @@ stops rather than treating the check as passed.
 
 - [Microsoft: password policy](https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/password-policy)
 - [NCSC: password policy guidance](https://www.ncsc.gov.uk/collection/passwords/updating-your-approach)
+- [NIST SP 800-63B: password length](https://pages.nist.gov/800-63-4/sp800-63b.html#length)

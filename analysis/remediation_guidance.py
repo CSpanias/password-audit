@@ -215,6 +215,12 @@ def remediation_references(results):
     references.add("https://www.ncsc.gov.uk/guidance/multi-factor-authentication-online-services")
     references.add("https://pages.nist.gov/800-63-4/sp800-63b.html#appA")
 
+    if results["password_length"]["count"]:
+        references.add("https://pages.nist.gov/800-63-4/sp800-63b.html#length")
+
+    if results["character_classes"]:
+        references.add("https://pages.nist.gov/800-63-4/sp800-63b.html#complexity")
+
     if results.get("hibp", {}).get("count"):
         references.add("https://haveibeenpwned.com/Passwords")
 

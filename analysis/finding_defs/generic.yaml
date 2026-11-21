@@ -11,6 +11,8 @@ password-audit:
     Review the findings in this report and prioritise remediation based on
     severity. Address critical and high findings first to reduce the risk
     of credential-based attacks.
+  references:
+    - https://pages.nist.gov/800-63-4/sp800-63b.html#appA
   description_template: "A total of {count} plaintext password{s} {were_was} recovered from {enabled} enabled account{enabled_s}."
 
 password-statistics:
@@ -21,4 +23,7 @@ password-statistics:
   remediation: |
     Use password statistics to identify weak password construction patterns
     and inform password policy decisions.
+  references:
+    - https://pages.nist.gov/800-63-4/sp800-63b.html#appA
+    - https://pages.nist.gov/800-63-4/sp800-63b.html#complexity
   description: "Password frequency and character usage statistics were analysed."

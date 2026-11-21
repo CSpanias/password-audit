@@ -29,6 +29,9 @@ SHA-1 ranges and a single full-hash file are not supported.
 The dataset can be downloaded via the [Pwned Passwords Downloader](https://github.com/HaveIBeenPwned/PwnedPasswordsDownloader#what-is-haveibeenpwned-downloader)
 or `curl.exe` from PowerShell.
 
+As of November 2026, a full NTLM download contains 1,048,576 range files and
+occupies approximately 60.3 GB. The download size can change over time.
+
 The script below downloads missing ranges in batches, so it can be run again
 after an interruption; adjust `$dir` as needed. Use a new directory or an
 existing partial `curl` download, not a directory containing `.txt` ranges from
@@ -106,13 +109,19 @@ Invoke-RangeBatch
 if (Test-Path -LiteralPath $config) { Remove-Item -LiteralPath $config }
 ```
 
-The full download contains 1,048,576 range files. The script skips existing
-range files and writes new downloads to temporary `.part` files before moving
-them into place; if interrupted, run it again.
+The script skips existing range files and writes new downloads to temporary
+`.part` files before moving them into place; if interrupted, run it again.
 
 Existing files are not verified and may include incomplete downloads from 
 earlier attempts. For a reliable dataset, download them again into a new, empty 
 directory; counting files alone does not establish their integrity.
+
+HIBP updates Pwned Passwords over time, but the local copy does not update
+automatically. The script skips existing ranges, so rerunning it does not
+refresh them. For audit records, note the source (Pwned Passwords NTLM), the
+download method, and the download or refresh start and completion dates.
+Ranges downloaded at different times may reflect different states of the
+dataset; the completion date is not a guaranteed snapshot date.
 
 ### Running the check
 
@@ -138,6 +147,9 @@ appeared in a breach**; hash collisions are theoretically possible.
 
 Counts refer to affected accounts, not unique passwords or distinct breaches, 
 and may overlap with other findings.
+
+The technical commentary includes up to five example affected account names;
+it does not expose their passwords or hashes.
 
 ## Findings
 

@@ -366,6 +366,7 @@ def run_audit(
         custom_path=company_words,
         state_path=output_root / ".company-words-state.json",
     )
+    print()
 
     pass_policy = (
         pass_policy

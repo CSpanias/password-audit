@@ -1,12 +1,64 @@
 import json
 import sys
 import xml.etree.ElementTree as ET
-from unittest.mock import patch
+from unittest.mock import DEFAULT, patch
 
 import pytest
 
 from analysis.hibp import HibpDataError, check_hibp
+from analysis.technical_commentary import commentary_hibp
+import auditing.workflow as audit_workflow
 from cli import audit, main
+
+
+def test_hibp_commentary_includes_up_to_five_account_examples():
+    accounts = [
+        "DOMAIN\\ali|ce", "DOMAIN\\bob", "DOMAIN\\carol",
+        "DOMAIN\\dave", "DOMAIN\\eve", "DOMAIN\\frank",
+    ]
+    text = commentary_hibp({"hibp": {"checked": 10, "count": 6, "accounts": accounts}})
+
+    assert (
+        "Have I Been Pwned (HIBP) maintains Pwned Passwords, a dataset of "
+        "passwords exposed in known data breaches."
+    ) in text
+    assert "against a locally downloaded copy of the dataset." in text
+    assert "A total of six accounts had matching password hashes." in text
+    assert "the account itself appeared in a breach." in text
+    assert "A non-match does not establish" not in text
+    assert "| Username |\n| ---------- |\n| ali\\|ce |" in text
+    assert "| eve |" in text
+    assert "frank" not in text
+
+    assert "| Username |" not in commentary_hibp(
+        {"hibp": {"checked": 1, "count": 0, "accounts": []}}
+    )
+    assert commentary_hibp({}) == ""
+
+
+def test_audit_separates_company_word_notice_from_analysis_progress(monkeypatch, tmp_path, capsys):
+    monkeypatch.chdir(tmp_path)
+    with patch.multiple(
+        audit_workflow,
+        validate_audit_inputs=DEFAULT, organise_dataset=DEFAULT,
+        load_campaign=DEFAULT, has_enabled_phases=DEFAULT,
+        analyse_passwords=DEFAULT,
+    ) as mocks:
+        mocks["organise_dataset"].side_effect = [
+            {"filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
+             "lm_hashes": [], "domain_admins": [],
+             "privileged_users": {"status": "available", "accounts": []}},
+            {"mapped_ntlm_passwords": []},
+        ]
+        mocks["load_campaign"].return_value = {"ntlm": {"parameters": {}, "phases": []}}
+        mocks["has_enabled_phases"].return_value = False
+        mocks["analyse_passwords"].side_effect = lambda **kwargs: print(
+            "Loading and analyzing datasets"
+        )
+        audit_workflow.run_audit("ntds", "zip", "config", "run")
+
+    output = capsys.readouterr().out
+    assert "This list is optional.\n\nLoading and analyzing datasets" in output
 
 
 def test_range_matching_deduplicates_hashes_and_supports_both_filenames(tmp_path):

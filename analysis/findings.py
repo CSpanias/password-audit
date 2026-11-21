@@ -177,6 +177,7 @@ def build_findings(results):
             remediation=definition.get("remediation", ""),
             evidence=evidence,
             affected_assets=affected_assets,
+            references=definition.get("references", []),
         )
 
         findings.append(finding)

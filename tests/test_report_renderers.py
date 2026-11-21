@@ -24,6 +24,7 @@ from analysis.parsers import load_ntds_users
 from analysis.analysis import ntlm_hash_reuse
 from analysis.executive_summary import executive_summary
 from analysis.findings import build_findings_dict
+from analysis.remediation_guidance import remediation_references
 from analysis.results import build_results
 from analysis.technical_commentary import (
     commentary_admins,
@@ -128,10 +129,44 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("link.href = match[2]", html)
         self.assertIn('link.rel = "noopener noreferrer"', html)
         self.assertIn('markdown.push(`### References\\n\\n${references}`)', html)
+        self.assertIn("const references = finding.references || []", html)
+        self.assertIn("detail.append(heading, renderReferenceList(markdown))", html)
         self.assertNotIn('["references", "References"]', html)
         self.assertIn("\\u003c/script\\u003e\\u003cimg", html)
         self.assertNotIn("</script><img", html)
         self.assertNotIn("<script src=", html.lower())
+
+    def test_password_findings_and_report_include_relevant_nist_references(self):
+        results = build_results(
+            ntlm_mapped_passwords=[{"username": "alice", "password": "short"}],
+            domain_admins=[], company_words=[], minimum_length=14,
+            enabled_users=["alice"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[],
+            privileged_users={"status": "available", "warnings": [], "accounts": []},
+            ntds_users=[],
+        )
+        base = "https://pages.nist.gov/800-63-4/sp800-63b.html"
+        findings = {finding["id"]: finding for finding in build_findings_dict(results)}
+        self.assertIn(base + "#appA", findings["PWD-AUDIT-001"]["references"])
+        self.assertIn(base + "#length", findings["PWD-POLICY-001"]["references"])
+        self.assertIn(base + "#complexity", findings["PWD-STATS-001"]["references"])
+        references = remediation_references(results)
+        for anchor in ("appA", "length", "complexity"):
+            self.assertEqual(references.count(f"({base}#{anchor})"), 1)
+        self.assertIn(
+            "Strict composition rules can encourage predictable choices and make passwords harder to remember.",
+            technical_commentary(results),
+        )
+
+        results["password_length"]["count"] = 0
+        results["character_classes"] = {}
+        references = remediation_references(results)
+        self.assertIn(base + "#appA", references)
+        self.assertNotIn(base + "#length", references)
+        self.assertNotIn(base + "#complexity", references)
+        self.assertNotIn("PWD-POLICY-001", {
+            finding["id"] for finding in build_findings_dict(results)
+        })
 
     def test_findings_sidecar_keeps_its_json_envelope(self):
         with tempfile.TemporaryDirectory() as directory:

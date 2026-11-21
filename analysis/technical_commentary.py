@@ -424,16 +424,26 @@ def commentary_hibp(results):
     if hibp is None:
         return ""
     count = hibp["count"]
-    return (
+    paragraph = (
+        "Have I Been Pwned (HIBP) maintains Pwned Passwords, a dataset of "
+        "passwords exposed in known data breaches. "
         f"A total of {num_to_word(hibp['checked'])} enabled user "
         f"account{'s were' if hibp['checked'] != 1 else ' was'} checked "
-        "against the supplied local Have I Been Pwned Pwned Passwords dataset. "
+        "against a locally downloaded copy of the dataset. "
         f"A total of {num_to_word(count)} account{'s' if count != 1 else ''} "
         "had matching password hashes. "
         "Matching passwords may not have been recovered, and a match does not "
-        "establish that the account itself appeared in a breach. A non-match "
-        "does not establish that a password is safe."
+        "establish that the account itself appeared in a breach."
     )
+    if not count:
+        return paragraph
+    table = ["| Username |", "| ---------- |"]
+    table.extend(f"| {_display_username(account)} |" for account in hibp["accounts"][:5])
+    return "\n\n".join([
+        paragraph,
+        "The following table shows example accounts with matching password hashes:",
+        "\n".join(table),
+    ])
 
 
 def commentary_ntlm_hash_reuse(results):
@@ -968,7 +978,8 @@ def commentary_character_classes(results):
 
     lines.append("Recovered passwords were analysed to determine the adoption of common character classes. Whilst the "
         "presence of uppercase characters, numbers, and special characters may increase password complexity, "
-        "their use alone does not guarantee resistance to password guessing or password-cracking attacks.")
+        "their use alone does not guarantee resistance to password guessing or password-cracking attacks. "
+        "Strict composition rules can encourage predictable choices and make passwords harder to remember.")
 
     lines.append("")
     lines.append("| Character Type | Adoption (%) |")

@@ -271,6 +271,15 @@ def render_html(report):
         detail.append(heading, list);
         card.append(detail);
       }}
+      const references = finding.references || [];
+      if (references.length) {{
+        const detail = document.createElement("details");
+        const heading = document.createElement("summary");
+        heading.textContent = "References";
+        const markdown = references.map(url => `- [${{url}}](${{url}})`).join("\\n");
+        detail.append(heading, renderReferenceList(markdown));
+        card.append(detail);
+      }}
       list.append(card);
     }}
 

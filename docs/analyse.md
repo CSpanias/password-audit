@@ -139,7 +139,9 @@ The default JSON findings sidecar has this shape:
       "remediation": "Review the findings in this report and prioritise remediation based on severity. Address critical and high findings first to reduce the risk of credential-based attacks.",
       "evidence": [],
       "affected_assets": [],
-      "references": []
+      "references": [
+        "https://pages.nist.gov/800-63-4/sp800-63b.html#appA"
+      ]
     }
   ]
 }

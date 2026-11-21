@@ -35,6 +35,11 @@ a separate complexity-policy compliance test. A password using several
 character classes can still be predictable. Unrecovered passwords are not
 necessarily strong.
 
+Strict composition rules can encourage predictable substitutions or make
+passwords harder to remember, increasing the temptation to store them
+insecurely. Consider usable passphrases and screening against known weak or
+compromised passwords instead of relying on character classes alone.
+
 ## Findings
 
 | Finding ID | Title |
@@ -44,5 +49,6 @@ necessarily strong.
 
 ## References
 
-- [NIST SP 800-63B: password guidance](https://pages.nist.gov/800-63-4/sp800-63b.html)
+- [NIST SP 800-63B: password strength](https://pages.nist.gov/800-63-4/sp800-63b.html#appA)
+- [NIST SP 800-63B: password complexity](https://pages.nist.gov/800-63-4/sp800-63b.html#complexity)
 - [NCSC: password policy guidance](https://www.ncsc.gov.uk/collection/passwords/updating-your-approach)
