@@ -40,19 +40,24 @@ password-audit audit \
 Each audit creates a timestamped directory under `password-audit/` and prints
 its path. If that name already exists, a numeric suffix is added. Organised
 datasets, campaign results and reports for that run are kept together there.
+
 The organising summary shows counts of enabled, unfiltered NTDS accounts matched
 to each selected privileged group, including Domain Admins. Accounts in multiple
 groups appear in each group's count.
-Domain qualifiers are omitted, so counts combine groups with the same name
-across domains and count each matched account once per group name.
-Incomplete or unavailable coverage is reported with its reasons.
-See `privileged-users.json` in the run directory for memberships and warnings.
+
+Domain qualifiers are omitted, so counts combine groups with the same name 
+across domains and count each matched account once per group name. Incomplete 
+or unavailable coverage is reported with its reasons. See 
+`privileged-users.json` in the run directory for memberships and warnings.
+
 The report also identifies matching NTLM hashes across enabled, unfiltered
 user accounts, including passwords that were not recovered. Hash-based and
 recovered-password reuse findings may overlap; their counts should not be added.
+
 If BloodHound contains multiple domains, an interactive run asks you to
 confirm the NTDS source domain. See [Organise](organise.md) for matching
 details and non-interactive behaviour.
+
 By default, the reports are:
 
 - `password-audit-report.html`, an offline dashboard with filters and
