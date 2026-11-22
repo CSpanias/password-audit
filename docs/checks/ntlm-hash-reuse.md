@@ -16,7 +16,9 @@ hash. The check compares hash values and groups those shared by more than
 one account. It does not need the plaintext passwords. Hashes in report
 examples are masked, while the finding lists affected account groups without
 full hashes or passwords. Examples involving selected privileged accounts
-identify their groups separately from other accounts sharing the hash.
+identify their groups separately from other accounts sharing the hash. Each
+account list in the commentary shows up to five examples and the number of
+additional accounts; the finding retains the complete affected account groups.
 
 ## Why it matters
 

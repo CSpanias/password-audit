@@ -471,6 +471,53 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("| NTLM Hash | Accounts |", text)
         self.assertNotIn("example.test", text)
 
+    def test_hash_reuse_caps_each_account_list_but_keeps_full_finding(self):
+        admins = [f"EXAMPLE\\admin{i:03}" for i in range(6)]
+        others = [f"EXAMPLE\\other{i:03}" for i in range(7)]
+        users = [f"EXAMPLE\\user{i:03}" for i in range(110)]
+        boundary = [f"EXAMPLE\\boundary{i:03}" for i in range(5)]
+        ntds_users = [
+            {"username": username, "ntlm": ntlm * 32}
+            for names, ntlm in ((admins + others, "a"), (users, "b"), (boundary, "c"))
+            for username in names
+        ]
+        results = build_results(
+            ntlm_mapped_passwords=[], domain_admins=[], company_words=[],
+            minimum_length=12, enabled_users=[item["username"] for item in ntds_users],
+            domain_name="example.test", lm_users=[], lm_mapped_passwords=[],
+            privileged_users={
+                "status": "available", "warnings": [],
+                "accounts": [{"username": username, "groups": ["Domain Admins (example.test)"]}
+                             for username in admins],
+            },
+            ntds_users=ntds_users,
+        )
+        text = commentary_ntlm_hash_reuse(results)
+        privileged_row = next(line for line in text.splitlines() if line.startswith("| aa"))
+        user_row = next(line for line in text.splitlines() if line.startswith("| bb"))
+        boundary_row = next(line for line in text.splitlines() if line.startswith("| cc"))
+        self.assertIn(
+            "; ".join(f"admin{i:03} (Domain Admins)" for i in range(5)) + "; +1 more",
+            privileged_row,
+        )
+        self.assertIn(", ".join(f"other{i:03}" for i in range(5)) + ", +2 more",
+                      privileged_row)
+        self.assertNotIn("admin005", privileged_row)
+        self.assertNotIn("other005", privileged_row)
+        self.assertIn(", ".join(f"user{i:03}" for i in range(5)) + ", +105 more", user_row)
+        self.assertNotIn("user005", user_row)
+        self.assertIn(", ".join(f"boundary{i:03}" for i in range(5)), boundary_row)
+        self.assertNotIn("more", boundary_row)
+        self.assertIn("across 128 enabled user accounts", text)
+
+        finding = next(
+            item for item in build_findings_dict(results) if item["id"] == "PWD-REUSE-003"
+        )
+        self.assertEqual(len(finding["affected_assets"]), 128)
+        self.assertIn("EXAMPLE\\admin005", finding["affected_assets"])
+        self.assertIn("EXAMPLE\\user109", finding["affected_assets"])
+        self.assertTrue(any("EXAMPLE\\user109" in entry for entry in finding["evidence"]))
+
     def test_privileged_coverage_warning_is_concise(self):
         text = commentary_privileged_users({"admins": {"accounts": []}, "privileged_users": {
             "status": "incomplete", "count": 1,
@@ -929,7 +976,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertEqual(account["username"], "EXAMPLE\\Ali|ce")
         self.assertEqual(account["shared_with"], "OTHER\\Bob")
 
-    def test_password_reuse_examples_list_all_matching_accounts(self):
+    def test_password_reuse_examples_limit_displayed_accounts(self):
         accounts = [
             {"username": f"EXAMPLE\\user|{i}", "password": "P|ssword1"}
             for i in range(7)
@@ -946,9 +993,11 @@ class HtmlReportTests(unittest.TestCase):
             domain_name="example.test", lm_users=[], lm_mapped_passwords=[], ntds_users=[],
         )
         text = commentary_password_reuse(results)
-        expected_accounts = ", ".join(f"user\\|{i}" for i in range(7))
+        expected_accounts = ", ".join(f"user\\|{i}" for i in range(5)) + ", +2 more"
         self.assertIn("| Password | Times Seen | Percentage | Accounts |", text)
         self.assertIn(f"| P\\|*****d1 | 7 | 38.9% | {expected_accounts} |", text)
+        self.assertNotIn("user\\|5", text)
+        self.assertEqual(len(results["password_reuse_general"]["example_accounts"]["P|ssword1"]), 7)
         self.assertNotIn("different", text)
         self.assertNotIn("group4user0", text)
         self.assertNotIn("EXAMPLE\\", text)
@@ -960,6 +1009,22 @@ class HtmlReportTests(unittest.TestCase):
             domain_name="example.test", lm_users=[], lm_mapped_passwords=[], ntds_users=[],
         )
         self.assertEqual(commentary_password_reuse(no_reuse), "")
+
+    def test_password_reuse_reports_omitted_account_count(self):
+        accounts = [
+            {"username": f"EXAMPLE\\user{i:03}", "password": "shared"}
+            for i in range(110)
+        ]
+        results = build_results(
+            ntlm_mapped_passwords=accounts, domain_admins=[], company_words=[],
+            minimum_length=12, enabled_users=[account["username"] for account in accounts],
+            domain_name="example.test", lm_users=[], lm_mapped_passwords=[], ntds_users=[],
+        )
+        text = commentary_password_reuse(results)
+        self.assertIn("| 110 | 100.0% | user000, user001, user002, user003, user004, +105 more |",
+                      text)
+        self.assertNotIn("user005", text)
+        self.assertEqual(len(results["password_reuse_general"]["example_accounts"]["shared"]), 110)
 
     def test_pattern_commentary_uses_correct_singular_and_plural(self):
         account = {"username": "alice", "password": "Password1", "shared_with": "alice_adm"}

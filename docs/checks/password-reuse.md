@@ -11,7 +11,8 @@ once and summarises the affected accounts and most frequently seen values.
 
 The check compares recovered password strings exactly and groups repeated
 values. Passwords are case-sensitive for this comparison. The report masks up
-to five example passwords and lists all associated accounts for each example.
+to five example passwords and shows up to five associated accounts for each,
+with the number of additional accounts.
 
 ## Why it matters
 

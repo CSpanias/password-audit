@@ -24,6 +24,14 @@ def _display_group(group):
     return privileged_group_name(group).replace("|", "\\|")
 
 
+def _account_examples(accounts, separator=", "):
+    examples = separator.join(accounts[:5])
+    remaining = len(accounts) - 5
+    if remaining > 0:
+        examples += f"{separator}+{remaining:,} more"
+    return examples
+
+
 def _high_privileged_accounts(results):
     privileged = {
         account["username"].casefold(): account
@@ -540,8 +548,8 @@ def commentary_ntlm_hash_reuse(results):
                 else:
                     other_accounts.append(username)
             table.append(
-                f"| {group['masked_hash']} | {'; '.join(privileged_accounts)} | "
-                f"{', '.join(other_accounts) or '-'} |"
+                f"| {group['masked_hash']} | {_account_examples(privileged_accounts, '; ')} | "
+                f"{_account_examples(other_accounts) or '-'} |"
             )
         sections.extend([
             "The following table shows example masked NTLM hashes shared by "
@@ -551,10 +559,10 @@ def commentary_ntlm_hash_reuse(results):
     if other_samples:
         table = ["| NTLM Hash | Accounts |", "| ---------- | ---------- |"]
         for group in other_samples:
-            accounts = ", ".join(
+            accounts = _account_examples([
                 _display_username(account["username"])
                 for account in group["accounts"]
-            )
+            ])
             table.append(f"| {group['masked_hash']} | {accounts} |")
         description = (
             "The following table shows other example masked NTLM hashes and "
@@ -616,10 +624,10 @@ def commentary_password_reuse(results):
     for entry in reused_passwords[:5]:
         percentage = round(entry["count"] / total_passwords * 100, 1)
         password = mask_password(entry["password"]).replace("|", "\\|")
-        accounts = ", ".join(
+        accounts = _account_examples([
             _display_username(username)
             for username in results["password_reuse_general"]["example_accounts"][entry["password"]]
-        )
+        ])
         lines.append(f"| {password} | {entry['count']:,} | {percentage}% | {accounts} |")
     
     lines.append("")
