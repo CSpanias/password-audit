@@ -1958,6 +1958,20 @@ class HtmlReportTests(unittest.TestCase):
         self.assertNotIn("--format", help_text)
         self.assertNotIn("--resume", help_text)
 
+    def test_cli_version_reports_installed_package_version(self):
+        output = io.StringIO()
+        arguments = ["password-audit", "--version"]
+        with (
+            patch.object(sys, "argv", arguments),
+            patch.object(cli_main, "version", return_value="1.1.0"),
+            redirect_stdout(output),
+            self.assertRaises(SystemExit) as exit_info,
+        ):
+            cli_main.main()
+
+        self.assertEqual(exit_info.exception.code, 0)
+        self.assertEqual(output.getvalue(), "password-audit 1.1.0\n")
+
     def test_audit_help_has_no_report_format_option(self):
         output = io.StringIO()
         arguments = ["password-audit", "audit", "--help"]

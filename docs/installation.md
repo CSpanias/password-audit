@@ -28,6 +28,9 @@ uv tool install git+https://github.com/CSpanias/password-audit
 
 # Check installation
 password-audit --help
+
+# Check installed version
+password-audit --version
 ```
 
 To update the installation:

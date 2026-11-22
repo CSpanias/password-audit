@@ -6,6 +6,7 @@ dispatches execution to individual framework components.
 """
 
 import argparse
+from importlib.metadata import version
 from textwrap import dedent
 
 from rich_argparse import RawDescriptionRichHelpFormatter
@@ -46,6 +47,11 @@ def main():
             "Use organise, crack, analyse, and lm for advanced standalone "
             "or partial workflows."
         ),
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {version('password-audit')}",
     )
 
     subparsers = parser.add_subparsers(
