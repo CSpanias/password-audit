@@ -6,7 +6,6 @@ positive observations, and a concluding assessment.
 """
 
 from analysis.findings import build_findings_dict, finding_priority
-from common.utils import natural_join
 
 
 def executive_summary(results, findings_data=None):
@@ -89,12 +88,11 @@ def executive_summary(results, findings_data=None):
             )
         if positive_observations:
             positive = (
-                "a positive observation" if positive_observations == 1
-                else "some positive observations" if positive_observations == 2
-                else "several positive observations"
+                "some positive observations" if positive_observations <= 2
+                else "many positive observations"
             )
             introduction += (
-                f" While the assessment noted {positive} relating to password "
+                f" While the assessment yielded {positive} about password "
                 f"security, {recovery}."
             )
         else:
@@ -216,28 +214,21 @@ def executive_summary(results, findings_data=None):
     #---------------------------------------------------------------------------
     # CONCLUSION
     #---------------------------------------------------------------------------
-    severities = [
-        severity for severity in ("critical", "high", "medium", "low")
-        if any(finding["severity"] == severity for finding in findings_data)
-    ]
-    if severities:
+    if findings:
         conclusion = (
-            f"Overall, prioritise the {severities[0]}-severity findings"
+            "Overall, the assessment highlighted opportunities to strengthen "
+            "password security across the environment. Prioritising remediation "
+            "according to severity and business context can reduce the likelihood "
+            "of unauthorised access and strengthen protection across the environment."
         )
-        if len(severities) > 1:
-            remaining = natural_join([f"{severity}-severity" for severity in severities[1:]])
-            conclusion += f", followed by {remaining} findings"
-        conclusion += ", taking account of affected accounts and business context."
         if has_privileged or lm_admin_count:
             conclusion += (
-                " Reset affected privileged passwords promptly and verify that "
-                "remediation is effective."
+                " Affected privileged passwords should be reset promptly."
             )
-        else:
-            conclusion += (
-                " Track remediation and reassess affected controls to confirm "
-                "that weaknesses have been addressed."
-            )
+        conclusion += (
+            " Tracking remediation and reassessing affected controls will help "
+            "confirm that weaknesses have been addressed."
+        )
         summary.append(conclusion)
 
     elif not results["total_passwords"]:

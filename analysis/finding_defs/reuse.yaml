@@ -45,7 +45,7 @@ hibp-passwords:
   id: PWD-BREACH-001
   title: Passwords Found in Known Breach Data
   severity: high
-  category: password_reuse
+  category: breached_passwords
   summary_label: Breached
   summary_unit: accounts
   remediation: |

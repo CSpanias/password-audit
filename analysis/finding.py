@@ -35,7 +35,8 @@ class Finding:
         category:
             Finding category for grouping and filtering:
             general, privileged_accounts, legacy_auth,
-            password_policy, password_reuse, predictable_patterns.
+            password_policy, password_reuse, breached_passwords,
+            predictable_patterns.
 
         remediation:
             Recommended remediation guidance.

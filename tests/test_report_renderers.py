@@ -161,6 +161,9 @@ class HtmlReportTests(unittest.TestCase):
         )
         results["hibp"] = {"checked": 2, "count": 2, "accounts": ["alice", "alice_adm"]}
         findings = build_findings_dict(results)
+        categories = {finding["id"]: finding["category"] for finding in findings}
+        self.assertEqual(categories["PWD-BREACH-001"], "breached_passwords")
+        self.assertEqual(categories["PWD-REUSE-001"], "password_reuse")
         cards = {card["id"]: card for card in build_finding_summary(results, findings)}
         self.assertEqual((cards["PWD-BREACH-001"]["count"], cards["PWD-BREACH-001"]["unit"]),
                          (2, "accounts"))
@@ -579,7 +582,7 @@ class HtmlReportTests(unittest.TestCase):
                 else:
                     positive_results["similar_account_reuse"]["count"] = 0
                 introduction = executive_summary(positive_results).split("\n\n")[0]
-                self.assertIn("While the assessment noted a positive observation", introduction)
+                self.assertIn("While the assessment yielded some positive observations", introduction)
                 self.assertIn("could be recovered through offline password cracking", introduction)
 
         incomplete = deepcopy(results)
@@ -593,8 +596,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("some positive observations", executive_summary(positive_results))
         positive_results["password_reuse_general"]["sharedPasswords"] = 0
         positive_results["similar_account_reuse"]["count"] = 0
-        self.assertIn("several positive observations", executive_summary(positive_results))
-        self.assertNotIn("many positive", executive_summary(positive_results))
+        self.assertIn("many positive observations", executive_summary(positive_results))
 
         positive_results["enabled_users"] = 0
         introduction = executive_summary(positive_results).split("\n\n")[0]
@@ -1053,11 +1055,10 @@ class HtmlReportTests(unittest.TestCase):
                         paragraph.index("Some recovered passwords fell below"))
         self.assertLess(paragraph.index("passwords matching known breach data"),
                         paragraph.index("Some recovered passwords fell below"))
-        self.assertIn(
-            "prioritise the critical-severity findings, followed by high-severity, "
-            "medium-severity, and low-severity findings", summary.split("\n\n")[-1],
-        )
-        self.assertIn("Reset affected privileged passwords promptly", summary.split("\n\n")[-1])
+        self.assertIn("Prioritising remediation according to severity and business context",
+                      summary.split("\n\n")[-1])
+        self.assertIn("Affected privileged passwords should be reset promptly",
+                      summary.split("\n\n")[-1])
 
         text = technical_commentary(results)
         headings = [
@@ -1078,10 +1079,9 @@ class HtmlReportTests(unittest.TestCase):
                         {"username": "bob", "ntlm": "a" * 32}],
         )
         conclusion = executive_summary(hash_only).split("\n\n")[-1]
-        self.assertIn("prioritise the high-severity findings", conclusion)
-        self.assertNotIn("critical", conclusion)
-        self.assertNotIn("medium", conclusion)
-        self.assertIn("Track remediation and reassess", conclusion)
+        self.assertIn("Prioritising remediation according to severity", conclusion)
+        self.assertIn("Tracking remediation and reassessing", conclusion)
+        self.assertNotIn("privileged passwords", conclusion)
 
         low_only = build_results(
             ntlm_mapped_passwords=[{"username": "user", "password": "Spring#17"}],
@@ -1090,9 +1090,9 @@ class HtmlReportTests(unittest.TestCase):
             lm_users=[], lm_mapped_passwords=[], ntds_users=[],
         )
         conclusion = executive_summary(low_only).split("\n\n")[-1]
-        self.assertIn("prioritise the low-severity findings", conclusion)
+        self.assertIn("Prioritising remediation according to severity", conclusion)
         self.assertNotIn("high-severity", conclusion)
-        self.assertNotIn("medium-severity", conclusion)
+        self.assertNotIn("low-severity", conclusion)
 
     def test_lm_recovery_and_impact_are_separate_paragraphs(self):
         results = {
