@@ -35,4 +35,5 @@ def run_audit_workflow(args):
         username_filter=args.filter,
         csacyber=args.csacyber,
         hibp=args.hibp,
+        test_run=args.test_run,
     )

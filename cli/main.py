@@ -179,6 +179,13 @@ def main():
         help="Local Pwned Passwords NTLM range directory",
     )
 
+    optional_audit_parser.add_argument(
+        "--test",
+        dest="test_run",
+        action="store_true",
+        help="Exclude this run from statistics and estimates; Hashcat still updates its potfile",
+    )
+
     audit_parser.set_defaults(
         func=run_audit_workflow,
     )
@@ -380,6 +387,13 @@ def main():
         "--debug",
         action="store_true",
         help="Display verbose Hashcat output",
+    )
+
+    optional_run_parser.add_argument(
+        "--test",
+        dest="test_run",
+        action="store_true",
+        help="Exclude this run from statistics and estimates; Hashcat still updates its potfile",
     )
 
     run_parser.set_defaults(

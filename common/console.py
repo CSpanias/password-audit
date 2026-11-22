@@ -33,7 +33,8 @@ def confirm_ntds_domain(domain):
     print()
     warn(
         "The BloodHound export does not identify a single source domain. "
-        "Confirm only if you know the NTDS dump belongs to this domain."
+        "Confirm only if you know the NTDS dump belongs to this domain.",
+        end="\n\n",
     )
     try:
         answer = input(

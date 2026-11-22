@@ -27,6 +27,22 @@ from common.console import confirm_ntds_domain, confirm_without_password_policy
 
 
 class AuditReliabilityTests(unittest.TestCase):
+    def test_test_run_notice_precedes_audit_validation(self):
+        for enabled in (False, True):
+            output = io.StringIO()
+            with (
+                self.subTest(test_run=enabled),
+                redirect_stdout(output),
+                patch.object(audit, "validate_audit_inputs", side_effect=ValueError("invalid")),
+            ):
+                audit.run_audit("ntds", "zip", "config", "run", test_run=enabled)
+            text = output.getvalue()
+            notice = "Test run: campaigns will not be included in statistics or estimates"
+            self.assertEqual(notice in text, enabled)
+            if enabled:
+                self.assertLess(text.index(notice), text.index("Validating Inputs"))
+                self.assertIn(f"{notice}\n\n", text)
+
     def test_potfile_progress_preserves_encodings_and_passwords(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "hashcat.potfile"
@@ -819,6 +835,26 @@ class AuditReliabilityTests(unittest.TestCase):
                 "name": "example.test", "sid": "S-1-5-21-1-2-3",
             }))
 
+    def test_domain_warning_is_separated_from_confirmation_prompt(self):
+        output = io.StringIO()
+
+        def confirm(prompt):
+            self.assertTrue(output.getvalue().endswith("belongs to this domain.\n\n"))
+            self.assertEqual(
+                prompt, "Does the NTDS dump belong to example.test (S-1-5-21-1-2-3)? [y/N] "
+            )
+            return "yes"
+
+        with (
+            patch("common.console.sys.stdin") as stdin,
+            patch("builtins.input", side_effect=confirm),
+            redirect_stdout(output),
+        ):
+            stdin.isatty.return_value = True
+            self.assertTrue(confirm_ntds_domain({
+                "name": "example.test", "sid": "S-1-5-21-1-2-3",
+            }))
+
     def test_prefixed_builtin_groups_remain_separate_between_domains(self):
         users = {"data": [
             {"ObjectIdentifier": f"S-1-5-21-{domain}-2-3-1000", "Properties": {
@@ -1207,7 +1243,10 @@ class AuditReliabilityTests(unittest.TestCase):
             mocks["has_enabled_phases"].return_value = True
             mocks["run_campaign"].return_value = {"phases": []}
             mocks["map_lm_passwords"].return_value = {"mapped_lm_passwords": []}
-            audit.run_audit("ntds", "zip", "config", "run")
+            audit.run_audit("ntds", "zip", "config", "run", test_run=True)
+            self.assertEqual(mocks["run_campaign"].call_count, 2)
+            self.assertTrue(all(call.kwargs["test_run"]
+                                for call in mocks["run_campaign"].call_args_list))
             show_args = mocks["generate_lm_results"].call_args.kwargs
             self.assertEqual(show_args["hashcat_binary"], "custom-lm.exe")
             self.assertEqual(show_args["potfile"], os.path.join("lm-dir", "hashcat.potfile"))

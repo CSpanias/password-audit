@@ -27,6 +27,7 @@ def run_campaign(
         campaign_name,
         debug=False,
         session_prefix=None,
+        test_run=False,
     ):
     """
     Execute a password recovery campaign.
@@ -51,6 +52,9 @@ def run_campaign(
 
         session_prefix:
             Optional prefix for Hashcat session names.
+
+        test_run:
+            Exclude the campaign from historical statistics and estimates.
 
     Returns:
         dict:
@@ -228,6 +232,7 @@ def run_campaign(
     results["state"] = "completed"
 
     write_results(results)
-    archive_results(results)
+    if not test_run:
+        archive_results(results)
 
     return results

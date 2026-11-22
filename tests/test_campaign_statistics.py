@@ -10,6 +10,9 @@ from unittest.mock import patch
 
 from rich.console import Console
 
+import cli.audit as cli_audit
+import cli.crack as cli_crack
+import cli.main as cli_main
 from cli.main import main
 from cracking import estimate, results, scheduler, statistics
 from cracking.parsers import parse_recovery_details
@@ -61,6 +64,95 @@ def fake_phase(**kwargs):
 
 
 class CampaignStatisticsTests(unittest.TestCase):
+    def test_test_run_notice_precedes_crack_campaign_loading(self):
+        for enabled in (False, True):
+            output = io.StringIO()
+            notice = "Test run: campaigns will not be included in statistics or estimates"
+
+            def load_config(path):
+                self.assertEqual(notice in output.getvalue(), enabled)
+                return {"ntlm": campaign()}
+
+            arguments = ["password-audit", "crack", "run", "-H", "hashes",
+                         "-C", "config", "-G", "run"]
+            if enabled:
+                arguments.append("--test")
+            with (
+                self.subTest(test_run=enabled),
+                redirect_stdout(output),
+                patch.object(sys, "argv", arguments),
+                patch.object(cli_crack, "load_campaign", side_effect=load_config),
+                patch.object(cli_crack, "run_campaign"),
+                patch.object(cli_crack, "print_summary"),
+            ):
+                main()
+            self.assertEqual(notice in output.getvalue(), enabled)
+            if enabled:
+                self.assertIn(f"{notice}\n\n", output.getvalue())
+
+    def test_test_campaign_keeps_results_but_does_not_change_statistics_or_estimates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            history = root / "history"
+            config = campaign()
+            config["phases"] = config["phases"][:1]
+            with (
+                patch.object(results, "HISTORY_DIR", history),
+                patch.object(statistics, "HISTORY_DIR", history),
+                patch.object(scheduler, "validate_file"),
+                patch.object(scheduler, "run_phase", side_effect=fake_phase),
+                patch.object(estimate, "load_campaign", return_value={"ntlm": config}),
+            ):
+                scheduler.run_campaign(config, root / "hashes.txt", "real")
+                existing_history = list(history.glob("*.json"))
+                before_stats = statistics.local_statistics()
+                before_estimate = estimate.estimate_campaign("unused")
+
+                test_result = scheduler.run_campaign(
+                    config, root / "hashes.txt", "test", test_run=True,
+                )
+
+                self.assertEqual(test_result["state"], "completed")
+                self.assertEqual(
+                    json.loads((root / "test-results.json").read_text(encoding="utf-8")),
+                    test_result,
+                )
+                self.assertEqual(list(history.glob("*.json")), existing_history)
+                self.assertEqual(statistics.local_statistics(), before_stats)
+                self.assertEqual(estimate.estimate_campaign("unused"), before_estimate)
+                self.assertEqual(len(existing_history), 1)
+
+    def test_test_flag_is_forwarded_by_audit_and_crack_cli(self):
+        cases = (
+            (["audit", "-N", "ntds", "-B", "zip", "-C", "config", "-G", "run"],
+             "run_audit_workflow"),
+            (["crack", "run", "-H", "hashes", "-C", "config", "-G", "run"],
+             "run_cracking_campaign"),
+        )
+        for arguments, handler in cases:
+            for enabled in (False, True):
+                with (
+                    self.subTest(command=arguments[0], enabled=enabled),
+                    patch.object(sys, "argv", ["password-audit", *arguments] +
+                                 (["--test"] if enabled else [])),
+                    patch.object(cli_main, handler) as command,
+                ):
+                    main()
+                    parsed = command.call_args.args[0]
+                    self.assertEqual(parsed.test_run, enabled)
+                    if handler == "run_audit_workflow":
+                        with patch.object(cli_audit, "run_audit") as run:
+                            cli_audit.run_audit_workflow(parsed)
+                    else:
+                        with (
+                            patch.object(cli_crack, "load_campaign",
+                                         return_value={"ntlm": campaign()}),
+                            patch.object(cli_crack, "run_campaign") as run,
+                            patch.object(cli_crack, "print_summary"),
+                        ):
+                            cli_crack.run_cracking_campaign(parsed)
+                    self.assertEqual(run.call_args.kwargs["test_run"], enabled)
+
     def test_hashcat_recovery_uses_unique_counts_and_rejects_missing_or_inconsistent(self):
         parsed = parse_recovery_details(
             "Recovered........: 1,200/2,000 (60%), 200/2,000 (10%)\n"

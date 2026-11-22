@@ -28,6 +28,10 @@ def run_cracking_campaign(args):
     info("Password Audit Crack")
     print()
 
+    if args.test_run:
+        info("Test run: campaigns will not be included in statistics or estimates")
+        print()
+
     config = load_campaign(args.campaign)
 
     campaign_types = {"ntlm", "lm"} & set(config)
@@ -61,6 +65,7 @@ def run_cracking_campaign(args):
         hash_file=args.hashes,
         campaign_name=args.campaign_name,
         debug=args.debug,
+        test_run=args.test_run,
     )
 
     print_summary(results)
