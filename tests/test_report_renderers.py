@@ -554,13 +554,14 @@ class HtmlReportTests(unittest.TestCase):
         results["similar_account_reuse"]["similarPairs"] = 1
         results["similar_account_reuse"]["count"] = 1
         positive = (
-            "Some results suggest that existing password security controls and "
-            "user practices may be reducing exposure to credential compromise."
+            "Some findings suggest that existing password security controls and "
+            "user practices may be helping to reduce exposure to credential "
+            "compromise."
         )
 
         summary = executive_summary(results)
         self.assertNotIn(positive, summary)
-        self.assertIn("The audit demonstrated", summary.split("\n\n")[0])
+        self.assertIn("The audit demonstrated", summary.split("\n\n")[1])
 
         for finding in ("admins", "reuse", "length", "similar"):
             with self.subTest(finding=finding):
@@ -576,7 +577,7 @@ class HtmlReportTests(unittest.TestCase):
                 summary = executive_summary(positive_results)
                 self.assertIn(
                     positive + " However, the audit demonstrated",
-                    summary.split("\n\n")[0],
+                    summary.split("\n\n")[1],
                 )
                 self.assertNotIn("Several positive security outcomes", summary)
 
@@ -588,7 +589,7 @@ class HtmlReportTests(unittest.TestCase):
         results["total_passwords"] = 0
         summary = executive_summary(results)
         self.assertNotIn(positive, summary)
-        self.assertIn("No plaintext passwords were recovered", summary.split("\n\n")[0])
+        self.assertIn("No plaintext passwords were recovered", summary.split("\n\n")[1])
 
     def test_hash_reuse_summary_and_finding(self):
         results = build_results(
@@ -606,7 +607,11 @@ class HtmlReportTests(unittest.TestCase):
             ],
         )
         summary = executive_summary(results)
-        self.assertIn("Password reuse could allow a compromised credential to affect multiple accounts", summary)
+        self.assertIn(
+            "Password reuse was identified, which could allow a compromised "
+            "credential to affect multiple accounts",
+            summary,
+        )
         self.assertNotIn("LanMan (LM)", summary)
         self.assertNotIn("shared credentials involving selected privileged", summary)
         self.assertNotIn("NTLM hash comparison", summary)
@@ -633,9 +638,10 @@ class HtmlReportTests(unittest.TestCase):
             ],
         )
         hash_only_summary = executive_summary(hash_only)
-        self.assertIn("Password reuse could allow a compromised credential",
-                      hash_only_summary)
-        self.assertNotIn("Recovered passwords contained predictable patterns", hash_only_summary)
+        self.assertIn("Password reuse was identified, which could allow a "
+                      "compromised credential", hash_only_summary)
+        self.assertNotIn("dataset contained passwords with predictable patterns",
+                         hash_only_summary)
 
     def test_executive_summary_pairs_present_findings_with_impacts(self):
         results = build_results(
@@ -654,7 +660,7 @@ class HtmlReportTests(unittest.TestCase):
              "their passwords may be easier to guess"),
             ("password_length", "count", "Some recovered passwords were shorter",
              "potentially making them easier to crack"),
-            ("keyboard_walks", "count", "Recovered passwords contained predictable patterns",
+            ("keyboard_walks", "count", "dataset contained passwords with predictable patterns",
              "reducing the effort required to compromise accounts"),
         ]
         results["hibp"] = {"count": 0}
@@ -663,12 +669,12 @@ class HtmlReportTests(unittest.TestCase):
                 selected = deepcopy(results)
                 selected[key][field] = 1
                 paragraphs = executive_summary(selected).split("\n\n")
-                self.assertEqual(len(paragraphs), 3)
-                self.assertIn(finding, paragraphs[1])
-                self.assertIn(impact, paragraphs[1])
+                self.assertEqual(len(paragraphs), 4)
+                self.assertIn(finding, paragraphs[2])
+                self.assertIn(impact, paragraphs[2])
                 for other_key, _, other_finding, _ in cases:
                     if key != other_key:
-                        self.assertNotIn(other_finding, paragraphs[1])
+                        self.assertNotIn(other_finding, paragraphs[2])
 
         selected = deepcopy(results)
         selected["lm_hashes"]["count"] = 1
@@ -678,16 +684,19 @@ class HtmlReportTests(unittest.TestCase):
         selected["keyboard_walks"]["count"] = 1
         selected["ntlm_hash_reuse"]["groups"] = [{"accounts": []}]
         selected["similar_account_reuse"]["count"] = 1
-        paragraph = executive_summary(selected).split("\n\n")[1]
+        paragraph = executive_summary(selected).split("\n\n")[2]
         self.assertIn("Privileged account credentials were recovered", paragraph)
-        self.assertIn("Passwords were recovered from accounts storing LM hashes.", paragraph)
+        self.assertIn(
+            "passwords recovered from accounts storing them",
+            paragraph,
+        )
         self.assertIn("LM passwords were recovered for Domain Administrator accounts", paragraph)
         self.assertIn("Reuse between related accounts", paragraph)
-        self.assertIn("Recovered passwords contained predictable patterns", paragraph)
+        self.assertIn("dataset contained passwords with predictable patterns", paragraph)
 
         selected["lm_hashes"]["count"] = 0
-        paragraph = executive_summary(selected).split("\n\n")[1]
-        self.assertIn("Legacy LanMan (LM) password hashes were present", paragraph)
+        paragraph = executive_summary(selected).split("\n\n")[2]
+        self.assertIn("legacy LanMan (LM) password hashes were present", paragraph)
         self.assertIn("LM passwords were recovered for Domain Administrator accounts", paragraph)
 
     def test_account_tables_omit_prefixes_without_changing_results(self):

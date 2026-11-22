@@ -74,15 +74,19 @@ def executive_summary(results):
         "available to an attacker in possession of password hash material and "
         "provides insight into the strength of user credentials, the "
         "effectiveness of password controls, and the resilience of privileged "
-        "accounts. "
+        "accounts."
     )
+    summary.append(introduction)
+
+    outcome = []
     if has_positive_findings:
-        introduction += (
-            "Some results suggest that existing password security controls and "
-            "user practices may be reducing exposure to credential compromise. "
+        outcome.append(
+            "Some findings suggest that existing password security controls "
+            "and user practices may be helping to reduce exposure to credential "
+            "compromise."
         )
     if results["total_passwords"]:
-        introduction += (
+        outcome.append(
             f"{'However, the' if has_positive_findings else 'The'} audit "
             f"demonstrated that {size} of user credentials could be "
             "recovered through offline password-cracking techniques, indicating "
@@ -90,11 +94,11 @@ def executive_summary(results):
             "exposure."
         )
     else:
-        introduction += (
+        outcome.append(
             "No plaintext passwords were recovered during the campaign. "
             "This does not establish that unrecovered passwords are strong."
         )
-    summary.append(introduction)
+    summary.append(" ".join(outcome))
 
     #---------------------------------------------------------------------------
     # FINDINGS AND IMPACTS
@@ -144,12 +148,20 @@ def executive_summary(results):
         )
 
     if lm_count or lm_recovered:
-        findings.append(
-            "Legacy LanMan (LM) password hashes were present, making credentials "
-            "more susceptible to offline password cracking."
+        finding = (
+            f"{'legacy' if findings else 'Legacy'} LanMan (LM) password "
+            "hashes were present, making credentials more susceptible to "
+            "offline password cracking"
         )
         if lm_recovered:
-            findings.append("Passwords were recovered from accounts storing LM hashes.")
+            finding += (
+                ", as demonstrated by passwords recovered from accounts storing "
+                "them"
+            )
+        finding += "."
+        findings.append(
+            f"{'In addition, ' if findings else ''}{finding}"
+        )
         if lm_admin_count:
             findings.append(
                 "LM passwords were recovered for Domain Administrator accounts, "
@@ -158,8 +170,9 @@ def executive_summary(results):
 
     if general_reuse_passwords or hash_reuse:
         findings.append(
-            "Password reuse could allow a compromised credential to affect "
-            "multiple accounts or systems."
+            f"{'In addition, password reuse' if findings else 'Password reuse'} "
+            "was identified, which could allow a compromised credential to "
+            "affect multiple accounts or systems."
         )
         if similar_account_reuse_count:
             findings.append(
@@ -169,20 +182,23 @@ def executive_summary(results):
 
     if results.get("hibp", {}).get("count"):
         findings.append(
-            "Some account password hashes matched known breach data, suggesting "
-            "their passwords may be easier to guess."
+            f"{'Moreover, some' if findings else 'Some'} account password "
+            "hashes matched known breach data, suggesting their passwords may "
+            "be easier to guess."
         )
 
     if failure_count:
         findings.append(
-            "Some recovered passwords were shorter than the configured domain "
-            "minimum, potentially making them easier to crack."
+            f"{'Moreover, some' if findings else 'Some'} recovered passwords "
+            "were shorter than the configured domain minimum, potentially "
+            "making them easier to crack."
         )
 
     if weaknesses:
         findings.append(
-            "Recovered passwords contained predictable patterns, potentially "
-            "reducing the effort required to compromise accounts."
+            f"{'Finally, the dataset' if findings else 'The dataset'} contained "
+            "passwords with predictable patterns, potentially reducing the "
+            "effort required to compromise accounts."
         )
 
     if findings:
