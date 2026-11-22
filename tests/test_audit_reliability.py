@@ -1207,7 +1207,10 @@ class AuditReliabilityTests(unittest.TestCase):
             mocks["has_enabled_phases"].return_value = True
             mocks["run_campaign"].return_value = {"phases": []}
             mocks["map_lm_passwords"].return_value = {"mapped_lm_passwords": []}
-            audit.run_audit("ntds", "zip", "config", "run")
+            audit.run_audit("ntds", "zip", "config", "run", test_run=True)
+            self.assertEqual(mocks["run_campaign"].call_count, 2)
+            self.assertTrue(all(call.kwargs["test_run"]
+                                for call in mocks["run_campaign"].call_args_list))
             show_args = mocks["generate_lm_results"].call_args.kwargs
             self.assertEqual(show_args["hashcat_binary"], "custom-lm.exe")
             self.assertEqual(show_args["potfile"], os.path.join("lm-dir", "hashcat.potfile"))

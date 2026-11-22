@@ -66,6 +66,7 @@ def run_audit(
     pass_policy=None,
     csacyber=False,
     hibp=None,
+    test_run=False,
 ):
     """
     Execute an end-to-end password audit workflow.
@@ -106,6 +107,9 @@ def run_audit(
 
         hibp:
             Optional local Pwned Passwords NTLM range directory.
+
+        test_run:
+            Exclude the campaigns from historical statistics and estimates.
 
     Returns:
         dict:
@@ -278,6 +282,7 @@ def run_audit(
             hash_file=output_dir / "ntlm-hashes.txt",
             campaign_name=campaign_name,
             session_prefix=f"{campaign_name}-{output_dir.name}",
+            test_run=test_run,
         )
 
         print_summary(campaign_results)
@@ -294,6 +299,7 @@ def run_audit(
             hash_file=output_dir / "lm-hashes.txt",
             campaign_name=f"{campaign_name}-lm",
             session_prefix=f"{campaign_name}-lm-{output_dir.name}",
+            test_run=test_run,
         )
 
         print_summary(lm_campaign_results)

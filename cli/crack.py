@@ -61,6 +61,7 @@ def run_cracking_campaign(args):
         hash_file=args.hashes,
         campaign_name=args.campaign_name,
         debug=args.debug,
+        test_run=args.test_run,
     )
 
     print_summary(results)

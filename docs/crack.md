@@ -132,10 +132,14 @@ both. To run both campaign types as part of one workflow, use `audit`.
 | `-C`, `--campaign` | Campaign JSON file. |
 | `-G`, `--campaign-name` | Identifier for campaign sessions and results. |
 | `--debug` | Show verbose Hashcat output. |
+| `--test` | Exclude the campaign from historical statistics and estimates. |
 
 Results are written beside the hash dataset as `<campaign-name>-results.json`. 
 A timestamped copy is archived under `~/.password-audit/history/`. Hashcat 
 maintains its potfile in the configured Hashcat directory.
+
+With `--test`, the campaign results are still written beside the hash dataset,
+but no history copy is created. Hashcat still runs and updates its potfile.
 
 Campaigns cannot be resumed; use a new campaign name to start an interrupted 
 campaign again from its first phase.

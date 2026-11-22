@@ -166,7 +166,9 @@ configured directories and may contain recoveries from previous campaigns.
 An interrupted campaign cannot be resumed; a new audit starts in a new run
 directory from its first phase. Hashcat session names include the run ID.
 Campaign history is also archived in
-`~/.password-audit/history/` for the estimate and statistics commands.
+`~/.password-audit/history/` for the estimate and statistics commands. Add
+`--test` to exclude both NTLM and LM campaigns from history while retaining
+the normal audit outputs. This still runs Hashcat and updates its potfile.
 
 Hashcat phases display live progress, recovered counts, speed, and ETA. Status
 is refreshed every five seconds.
