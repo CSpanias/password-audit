@@ -139,6 +139,7 @@ option list.
 | `-W`, `--company-words` | Optional curated terms added to the generated list | `./company-words.txt` when present; otherwise none |
 | `-E`, `--enabled-users` | Enabled account list | `password-audit/<run-id>/enabled-users.txt` |
 | `--hibp` | Local Pwned Passwords NTLM range directory for an offline comparison | None |
+| `--test` | Exclude this audit's campaigns from statistics and estimates; normal outputs are kept and Hashcat still updates its potfile | Off |
 
 Pass `--hibp` with the path to a local NTLM range directory to include the
 optional [Passwords in Breach Data](checks/breached-passwords.md) check:
