@@ -19,6 +19,8 @@ def map_lm_passwords(
     lm_results,
     output_dir,
     username_filter=None,
+    progress_callback=None,
+    potfile_progress_callback=None,
 ):
     """
     Map recovered LM passwords back to user accounts.
@@ -40,6 +42,12 @@ def map_lm_passwords(
         username_filter:
             Comma-separated usernames to exclude.
 
+        progress_callback:
+            Optional callback receiving the current processing step.
+
+        potfile_progress_callback:
+            Optional callback receiving potfile bytes read and total bytes.
+
     Returns:
         dict:
             Generated results.
@@ -52,15 +60,28 @@ def map_lm_passwords(
         exist_ok=True,
     )
 
+    if progress_callback:
+        progress_callback("Loading NTDS data for LM mapping")
     entries = parse_ntds_file(ntds_file)
 
+    if progress_callback:
+        progress_callback("Reading potfile for LM mapping")
+    hash_lookup = load_potfile(potfile, progress_callback=potfile_progress_callback)
+    if progress_callback:
+        progress_callback("Loading LM results")
+    lm_lookup = load_lm_results(lm_results)
+
+    if progress_callback:
+        progress_callback("Mapping LM passwords")
     results = build_results(
         entries=entries,
         username_filter=username_filter,
-        hash_lookup=load_potfile(potfile),
-        lm_lookup=load_lm_results(lm_results),
+        hash_lookup=hash_lookup,
+        lm_lookup=lm_lookup,
     )
 
+    if progress_callback:
+        progress_callback("Exporting LM datasets")
     export_results(
         results,
         output_dir,

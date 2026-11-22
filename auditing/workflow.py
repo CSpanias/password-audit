@@ -12,11 +12,12 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+from rich.progress import BarColumn, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
 
 from analysis.hibp import HibpDataError
 from analysis.parsers import load_domain_policy, minimum_password_length
-from analysis.workflow import analyse_passwords
+from analysis.workflow import SpacedProgress, analyse_passwords
 from auditing.company_words import (
     prepare_company_word_sources,
     save_company_word_snapshot,
@@ -311,50 +312,79 @@ def run_audit(
     info("Stage 4/5 - Mapping Passwords")
     print()
 
-    # NTLM mapping
-    ntlm_mapping_results = organise_dataset(
-        ntds_file=ntds_file,
-        output_dir=output_dir,
-        bloodhound_file=bloodhound_file,
-        potfile=hashcat_potfile,
-        username_filter=username_filter,
-        confirmed_domain_sid=organise_results["privileged_users"].get(
-            "confirmed_domain", {}
-        ).get("sid"),
-        source_domain_sid=(
-            organise_results["privileged_users"].get("source_domain", {}).get("sid")
-            if "confirmed_domain" not in organise_results["privileged_users"] else None
-        ),
-    )
-
-    # LM mapping
     lm_results_file = None
     lm_mapping_results = None
 
-    if organise_results["lm_hashes"]:
-
-        lm_results_file = (output_dir / "lm-results.txt")
-        lm_parameters = lm_campaign["parameters"] if lm_campaign else parameters
-        lm_hashcat_dir = lm_parameters.get("hashcatDir", DEFAULT_HASHCAT_DIR)
-        lm_hashcat_binary = lm_parameters.get(
-            "hashcatBinary", os.path.join(lm_hashcat_dir, "hashcat.exe")
+    with SpacedProgress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        console=console,
+        transient=True,
+    ) as progress:
+        task_id = progress.add_task(
+            "Mapping passwords (completed steps)",
+            total=11 if organise_results["lm_hashes"] else 5,
         )
-        lm_hashcat_potfile = os.path.join(lm_hashcat_dir, "hashcat.potfile")
+        current_task = None
 
-        generate_lm_results(
-            hashcat_binary=lm_hashcat_binary,
-            hash_file=output_dir / "lm-hashes.txt",
-            potfile=lm_hashcat_potfile,
-            output_file=lm_results_file,
-        )
+        def mapping_step(description):
+            nonlocal current_task
+            if current_task is not None:
+                progress.advance(task_id)
+                progress.remove_task(current_task)
+            current_task = progress.add_task(description, total=None)
 
-        lm_mapping_results = map_lm_passwords(
+        def potfile_progress(completed, total):
+            if total:
+                progress.update(current_task, total=total, completed=completed)
+
+        ntlm_mapping_results = organise_dataset(
             ntds_file=ntds_file,
-            potfile=hashcat_potfile,
-            lm_results=lm_results_file,
             output_dir=output_dir,
+            bloodhound_file=bloodhound_file,
+            potfile=hashcat_potfile,
             username_filter=username_filter,
+            confirmed_domain_sid=organise_results["privileged_users"].get(
+                "confirmed_domain", {}
+            ).get("sid"),
+            source_domain_sid=(
+                organise_results["privileged_users"].get("source_domain", {}).get("sid")
+                if "confirmed_domain" not in organise_results["privileged_users"] else None
+            ),
+            progress_callback=mapping_step,
+            potfile_progress_callback=potfile_progress,
         )
+
+        if organise_results["lm_hashes"]:
+            lm_results_file = output_dir / "lm-results.txt"
+            lm_parameters = lm_campaign["parameters"] if lm_campaign else parameters
+            lm_hashcat_dir = lm_parameters.get("hashcatDir", DEFAULT_HASHCAT_DIR)
+            lm_hashcat_binary = lm_parameters.get(
+                "hashcatBinary", os.path.join(lm_hashcat_dir, "hashcat.exe")
+            )
+            lm_hashcat_potfile = os.path.join(lm_hashcat_dir, "hashcat.potfile")
+
+            mapping_step("Generating LM results")
+            generate_lm_results(
+                hashcat_binary=lm_hashcat_binary,
+                hash_file=output_dir / "lm-hashes.txt",
+                potfile=lm_hashcat_potfile,
+                output_file=lm_results_file,
+            )
+
+            lm_mapping_results = map_lm_passwords(
+                ntds_file=ntds_file,
+                potfile=hashcat_potfile,
+                lm_results=lm_results_file,
+                output_dir=output_dir,
+                username_filter=username_filter,
+                progress_callback=mapping_step,
+                potfile_progress_callback=potfile_progress,
+            )
+
+        progress.advance(task_id)
 
     # Create table
     if ntlm_mapping_results["mapped_ntlm_passwords"]:

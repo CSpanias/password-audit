@@ -8,7 +8,7 @@ import zipfile
 from contextlib import redirect_stdout
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import DEFAULT, patch
+from unittest.mock import DEFAULT, MagicMock, call, patch
 from types import SimpleNamespace
 from rich.console import Console
 
@@ -19,6 +19,7 @@ import cli.organise as organise_cli
 from lm.workflow import generate_lm_results, map_lm_passwords
 from ntds.constants import LM_EMPTY
 from ntds.analysis import extract_domain_admins, extract_privileged_users
+from ntds.parsers import load_potfile
 from ntds.results import build_results as build_ntds_results
 from ntds.workflow import organise_dataset
 from analysis.parsers import load_passwords, load_privileged_users, minimum_password_length
@@ -26,6 +27,107 @@ from common.console import confirm_ntds_domain, confirm_without_password_policy
 
 
 class AuditReliabilityTests(unittest.TestCase):
+    def test_potfile_progress_preserves_encodings_and_passwords(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "hashcat.potfile"
+            content = "".join(f"{i:032x}:password{i}\n" for i in range(5000))
+            content += "ABC: first \nabc: last: value \ninvalid\n"
+            for encoding in ("utf-8", "utf-16"):
+                with self.subTest(encoding=encoding):
+                    path.write_text(content, encoding=encoding)
+                    updates = []
+                    result = load_potfile(path, lambda done, total: updates.append((done, total)))
+                    total = path.stat().st_size
+                    self.assertEqual(result["abc"], " last: value ")
+                    self.assertEqual(result[f"{4999:032x}"], "password4999")
+                    self.assertEqual(updates[0], (0, total))
+                    self.assertEqual(updates[-1], (total, total))
+                    self.assertTrue(any(0 < done < total for done, _ in updates))
+                    self.assertTrue(all(size == total and 0 <= done <= total
+                                        for done, size in updates))
+
+            path.write_text("abc:password\n", encoding="utf-8")
+            def failing_callback(done, total):
+                raise UnicodeError("progress callback failed")
+            with self.assertRaisesRegex(UnicodeError, "progress callback failed"):
+                load_potfile(path, failing_callback)
+
+    def test_mapping_progress_tracks_steps_and_stops_on_lm_failure(self):
+        for lm, fail in ((False, False), (True, False), (True, True)):
+            with self.subTest(lm=lm, fail=fail), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                ntds = root / "ntds.txt"
+                ntds.write_text(
+                    f"alice:1000:{'b' * 32 if lm else LM_EMPTY}:{'a' * 32}::: "
+                    "(status=Enabled)\n", encoding="utf-8",
+                )
+                potfile = root / "hashcat.potfile"
+                potfile.write_text(f"{'a' * 32}:password\n", encoding="utf-8")
+                archive_path = root / "bloodhound.zip"
+                with zipfile.ZipFile(archive_path, "w") as archive:
+                    archive.writestr("users.json", json.dumps({"data": []}))
+                    archive.writestr("groups.json", json.dumps({"data": []}))
+                policy = root / "policy.txt"
+                policy.write_text("Minimum Password Length: 8\n", encoding="utf-8")
+                campaign = {"ntlm": {"parameters": {"hashcatDir": str(root)}, "phases": [{}]}}
+                progress = MagicMock()
+                progress.__enter__.return_value = progress
+                progress.add_task.side_effect = iter(range(100))
+
+                def generate(**kwargs):
+                    if fail:
+                        raise RuntimeError("LM show failed")
+                    kwargs["output_file"].write_text(f"{'b' * 32}:LMPASS\n", encoding="utf-8")
+
+                original_cwd = os.getcwd()
+                try:
+                    os.chdir(root)
+                    with (
+                        patch.object(audit, "SpacedProgress", return_value=progress) as progress_class,
+                        patch.object(audit, "validate_audit_inputs"),
+                        patch.object(audit, "load_campaign", return_value=campaign),
+                        patch.object(audit, "run_campaign", return_value={"phases": []}),
+                        patch.object(audit, "print_summary"),
+                        patch.object(audit, "generate_lm_results", side_effect=generate),
+                        patch.object(audit, "analyse_passwords"),
+                    ):
+                        if fail:
+                            with self.assertRaisesRegex(RuntimeError, "LM show failed"):
+                                audit.run_audit(ntds, archive_path, "campaign", "test",
+                                                pass_policy=policy)
+                        else:
+                            result = audit.run_audit(ntds, archive_path, "campaign", "test",
+                                                     pass_policy=policy)
+                finally:
+                    os.chdir(original_cwd)
+
+                self.assertTrue(progress_class.call_args.kwargs["transient"])
+                total = 11 if lm else 5
+                self.assertEqual(progress.add_task.call_args_list[0],
+                                 call("Mapping passwords (completed steps)", total=total))
+                self.assertEqual(progress.advance.call_count, 5 if fail else total)
+                labels = [entry.args[0] for entry in progress.add_task.call_args_list[1:]]
+                self.assertEqual(labels[:5], [
+                    "Loading NTDS data", "Loading BloodHound data", "Reading NTLM potfile",
+                    "Mapping NTLM passwords", "Exporting NTLM datasets",
+                ])
+                if lm:
+                    self.assertEqual(labels[5:], ["Generating LM results"] if fail else [
+                        "Generating LM results", "Loading NTDS data for LM mapping",
+                        "Reading potfile for LM mapping", "Loading LM results",
+                        "Mapping LM passwords", "Exporting LM datasets",
+                    ])
+                self.assertIn(call(3, total=potfile.stat().st_size,
+                                   completed=potfile.stat().st_size),
+                              progress.update.call_args_list)
+                if not fail:
+                    output_dir = root / result["outputDir"]
+                    self.assertEqual((output_dir / "mapped-ntlm-passwords.txt")
+                                     .read_text(encoding="utf-8"), "alice:password\n")
+                    if lm:
+                        self.assertEqual((output_dir / "mapped-lm-passwords.txt")
+                                         .read_text(encoding="utf-8"), "alice:LMPASS\n")
+
     def test_domain_minimum_accepts_zero_and_rejects_invalid_values(self):
         self.assertEqual(minimum_password_length({"Minimum Password Length": "0"}), 0)
         for value in ("-1", "invalid", None):

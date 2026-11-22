@@ -35,6 +35,8 @@ password-audit audit \
 Each audit creates a timestamped directory under `password-audit/` and prints
 its path. If that name already exists, a numeric suffix is added. Organised
 datasets, campaign results and reports for that run are kept together there.
+During password mapping, the overall progress tracks completed processing steps;
+the current step shows potfile read progress where available.
 During analysis, the overall progress advances as checks complete, while a
 separate line shows the current check. When breach-data matching is enabled,
 that line tracks progress through the required NTLM ranges.

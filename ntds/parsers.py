@@ -11,6 +11,7 @@ raw input data into structured Python objects.
 
 
 import json
+import os
 import zipfile
 
 
@@ -143,7 +144,7 @@ def load_bloodhound_zip(zip_path):
 # Potfile Parsing
 # ---------------------------------------------------------------------------
 
-def load_potfile(path):
+def load_potfile(path, progress_callback=None):
     """
     Load a Hashcat potfile.
 
@@ -154,32 +155,44 @@ def load_potfile(path):
         path (str | Path):
             Potfile path.
 
+        progress_callback:
+            Optional callback receiving bytes read and total bytes.
+
     Returns:
         dict:
             Hash-to-password mapping.
     """
 
-    mapping = {}
+    def read(encoding):
+        mapping = {}
+        with open(path, encoding=encoding) as f:
+            total = os.fstat(f.fileno()).st_size if progress_callback else 0
+            if progress_callback:
+                progress_callback(0, total)
+            lines = iter(f)
+            index = 0
+            while True:
+                try:
+                    line = next(lines)
+                except StopIteration:
+                    break
+                except UnicodeError:
+                    if encoding == "utf-16":
+                        return None
+                    raise
+                index += 1
+                line = line.rstrip("\r\n")
+                if ":" in line:
+                    hash_value, password = line.split(":", 1)
+                    mapping[hash_value.lower()] = password
+                if progress_callback and index % 1024 == 0:
+                    progress_callback(min(f.buffer.tell(), total), total)
+            if progress_callback:
+                progress_callback(total, total)
+        return mapping
 
-    try:
-        with open(path, encoding="utf-16") as f:
-            lines = f.readlines()
-
-    except UnicodeError:
-        with open(path, encoding="utf-8") as f:
-            lines = f.readlines()
-
-    for line in lines:
-
-        line = line.rstrip("\r\n")
-
-        if ":" not in line:
-            continue
-
-        hash_value, password = line.split(":", 1)
-        mapping[hash_value.lower()] = password
-
-    return mapping
+    mapping = read("utf-16")
+    return mapping if mapping is not None else read("utf-8")
 
 
 def load_lm_results(path):

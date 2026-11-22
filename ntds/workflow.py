@@ -23,6 +23,8 @@ def organise_dataset(
     confirm_domain=None,
     confirmed_domain_sid=None,
     source_domain_sid=None,
+    progress_callback=None,
+    potfile_progress_callback=None,
 ):
     """
     Process an NTDS dataset and export results.
@@ -52,16 +54,26 @@ def organise_dataset(
         source_domain_sid:
             Previously detected domain SID, revalidated against the export.
 
+        progress_callback:
+            Optional callback receiving the current processing step.
+
+        potfile_progress_callback:
+            Optional callback receiving potfile bytes read and total bytes.
+
     Returns:
         dict:
             Processed dataset results.
     """
 
+    if progress_callback:
+        progress_callback("Loading NTDS data")
     entries = parse_ntds_file(ntds_file)
 
     users_json = groups_json = domains_json = None
 
     if bloodhound_file:
+        if progress_callback:
+            progress_callback("Loading BloodHound data")
         users_json, groups_json, domains_json = (
             load_bloodhound_zip(bloodhound_file)
         )
@@ -70,9 +82,12 @@ def organise_dataset(
     hash_lookup = None
     
     if potfile:
-        
-        hash_lookup = load_potfile(potfile)
+        if progress_callback:
+            progress_callback("Reading NTLM potfile")
+        hash_lookup = load_potfile(potfile, progress_callback=potfile_progress_callback)
 
+    if progress_callback:
+        progress_callback("Mapping NTLM passwords")
     results = build_results(
         entries=entries,
         username_filter=username_filter,
@@ -135,6 +150,8 @@ def organise_dataset(
 
     results["domain_admins_available"] = bool(users_json and groups_json)
 
+    if progress_callback:
+        progress_callback("Exporting NTLM datasets")
     export_results(results, output_dir)
 
     (output_dir / "privileged-users.json").write_text(
