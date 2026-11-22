@@ -107,6 +107,9 @@ password-audit analyse \
     --mapped-lm-passwords password-audit/mapped-lm-passwords.txt
 ```
 
+The corresponding `lm-users.txt` must also be available in the default
+directory or supplied with `--lm-users`.
+
 The report includes LM hash presence and, where applicable, Domain
 Administrator LM exposure and LM recovery statistics. See
 [`analyse`](analyse.md#what-is-analysed) for the full analysis scope.

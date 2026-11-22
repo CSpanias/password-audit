@@ -31,15 +31,19 @@ def load_passwords(path):
 
     passwords = []
 
-    with open(path, encoding="utf-8", errors="ignore") as f:
+    with open(path, encoding="utf-8") as f:
 
-        for line in f:
-            line = line.strip()
+        for line_number, line in enumerate(f, 1):
+            line = line.rstrip("\r\n")
 
-            if ":" not in line:
+            if not line:
                 continue
+            if ":" not in line:
+                raise ValueError(f"Invalid recovered password record at {path}, line {line_number}.")
 
             username, password = line.split(":", 1)
+            if not username.strip():
+                raise ValueError(f"Invalid recovered password record at {path}, line {line_number}.")
 
             passwords.append({
                 "username": username,

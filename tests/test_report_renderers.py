@@ -7,6 +7,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from contextlib import redirect_stdout
 from copy import deepcopy
+from itertools import combinations
 from pathlib import Path
 from unittest.mock import DEFAULT, patch
 
@@ -20,8 +21,8 @@ import cli.main as cli_main
 from reports.html import render_html
 from reports.json import write_findings
 from reports.sureformat import write_sureformat
-from analysis.parsers import load_ntds_users
-from analysis.analysis import ntlm_hash_reuse
+from analysis.parsers import load_ntds_users, load_passwords
+from analysis.analysis import ntlm_hash_reuse, similar_account_reuse, similar_account_hash_reuse
 from analysis.executive_summary import executive_summary
 from analysis.findings import build_finding_summary, build_findings_dict
 from analysis.remediation_guidance import remediation_references
@@ -41,6 +42,7 @@ from analysis.technical_commentary import (
     commentary_username_passwords,
     technical_commentary,
 )
+from common.utils import username_base
 
 REPORT = {
     "summary": {
@@ -534,14 +536,21 @@ class HtmlReportTests(unittest.TestCase):
     def test_password_length_commentary_uses_plural_characters_for_tied_lengths(self):
         text = commentary_password_lengths({
             "password_length": {"minimum_length": 14, "count": 6, "percentage": 22.9,
-                                "failures": [{"length": length} for length in (10, 10, 10, 11, 11, 11)]},
+                                "failures": [
+                                    {"username": f"user{i}", "password": "Secret" + str(i), "length": length}
+                                    for i, length in enumerate((10, 10, 10, 11, 11, 11))
+                                ]},
             "password_lengths": {"lengths": [(15, 5), (10, 3), (11, 3)]},
         })
         self.assertIn("lengths were 10 and 11 characters", text)
-        self.assertIn("15 characters.\n\nThe following non-compliant", text)
+        self.assertIn("Fine-grained policies or earlier policy changes", text)
+        self.assertIn("| Username | Password |", text)
+        self.assertNotIn("Secret0", text)
+        self.assertIn("| user4 |", text)
+        self.assertNotIn("| user5 |", text)
         text = commentary_password_lengths({
             "password_length": {"minimum_length": 14, "count": 1, "percentage": 10,
-                                "failures": [{"length": 10}]},
+                                "failures": [{"username": "user", "password": "Secret1234", "length": 10}]},
             "password_lengths": {"lengths": [(15, 5), (10, 1)]},
         })
         self.assertIn("found one password (10% of", text)
@@ -560,6 +569,7 @@ class HtmlReportTests(unittest.TestCase):
         )
         results["admins"]["count"] = 1
         results["password_reuse_general"]["sharedPasswords"] = 1
+        results["ntlm_hash_reuse"]["status"] = "available"
         results["ntlm_hash_reuse"]["groups"] = []
         results["password_length"]["count"] = 1
         results["similar_account_reuse"]["similarPairs"] = 1
@@ -589,6 +599,21 @@ class HtmlReportTests(unittest.TestCase):
         incomplete["admins"]["count"] = 0
         incomplete["privileged_users"]["status"] = "incomplete"
         self.assertNotIn("positive observation", executive_summary(incomplete))
+
+        unavailable = deepcopy(results)
+        unavailable["password_reuse_general"]["sharedPasswords"] = 0
+        unavailable["ntlm_hash_reuse"]["status"] = "unavailable"
+        self.assertNotIn("positive observation", executive_summary(unavailable))
+        recovered_privileged = deepcopy(results)
+        recovered_privileged["admins"]["count"] = 0
+        recovered_privileged["privileged_users"]["count"] = 1
+        self.assertNotIn("positive observation", executive_summary(recovered_privileged))
+        recovered_privileged["privileged_users"]["count"] = 0
+        recovered_privileged["privileged_users"]["lm_recovered_count"] = 1
+        self.assertNotIn("positive observation", executive_summary(recovered_privileged))
+        recovered_privileged["privileged_users"]["lm_recovered_count"] = 0
+        recovered_privileged["lm_admins"]["count"] = 1
+        self.assertNotIn("positive observation", executive_summary(recovered_privileged))
 
         positive_results = deepcopy(results)
         positive_results["admins"]["count"] = 0
@@ -882,6 +907,105 @@ class HtmlReportTests(unittest.TestCase):
         )
         self.assertEqual(results["similar_account_reuse"]["count"], 1_999_000)
         self.assertEqual(len(results["similar_account_reuse"]["accounts"]), 5)
+
+    def test_similar_account_grouping_matches_pairwise_counts(self):
+        recovered = [
+            {"username": "A\\sam1", "password": "one"},
+            {"username": "A\\sam2", "password": "one"},
+            {"username": "B\\sam3", "password": "two"},
+            {"username": "A\\sam4", "password": "one"},
+            {"username": "A\\sam5", "password": "two"},
+            {"username": "A\\other", "password": "one"},
+        ]
+        pairs = [(a, b) for a, b in combinations(recovered, 2)
+                 if username_base(a["username"]) == username_base(b["username"])]
+        shared = [(a, b) for a, b in pairs if a["password"] == b["password"]]
+        examples, comparable, count = similar_account_reuse(recovered)
+        self.assertEqual(comparable, len(pairs))
+        self.assertEqual(count, len(shared))
+        self.assertEqual([(x["username"], x["shared_with"]) for x in examples],
+                         [(a["username"], b["username"]) for a, b in shared[:5]])
+
+        groups = [{"masked_hash": "masked", "accounts": [
+            {"username": name} for name in
+            ("a\\SAM1", "a\\sam2", "B\\sam3", "A\\sam6", "A\\other")
+        ]}]
+        recovered_pairs = {frozenset((a["username"].casefold(), b["username"].casefold()))
+                           for a, b in shared}
+        hash_pairs = [(a["username"], b["username"])
+                      for a, b in combinations(groups[0]["accounts"], 2)
+                      if username_base(a["username"]) == username_base(b["username"])
+                      and frozenset((a["username"].casefold(), b["username"].casefold()))
+                      not in recovered_pairs]
+        hash_examples, hash_count = similar_account_hash_reuse(groups, recovered, 5)
+        self.assertEqual(hash_count, len(hash_pairs))
+        self.assertEqual([(x["username"], x["shared_with"]) for x in hash_examples], hash_pairs[:5])
+
+    def test_large_recovered_group_counts_pairs_without_materialising_them(self):
+        records = [{"username": f"user{i}", "password": "shared"} for i in range(5000)]
+        examples, comparable, count = similar_account_reuse(records)
+        self.assertEqual(comparable, 12_497_500)
+        self.assertEqual(count, comparable)
+        self.assertEqual(len(examples), 5)
+        groups = [{"masked_hash": "masked", "accounts": records}]
+        hash_examples, hash_count = similar_account_hash_reuse(groups, records, 5)
+        self.assertEqual((hash_examples, hash_count), ([], 0))
+
+    def test_recovered_account_validation_and_full_identity_deduplication(self):
+        kwargs = dict(domain_admins=[], company_words=[], minimum_length=8,
+                      enabled_users=["A\\sam", "B\\sam", "a\\SAM"],
+                      domain_name="example.test", lm_users=[], lm_mapped_passwords=[])
+        records = [{"username": "A\\sam", "password": "same"},
+                   {"username": "a\\SAM", "password": "same"},
+                   {"username": "B\\sam", "password": "other"}]
+        results = build_results(ntlm_mapped_passwords=records, **kwargs)
+        self.assertEqual((results["total_passwords"], results["enabled_users"], results["crack_rate"]),
+                         (2, 2, 100.0))
+        self.assertEqual(results["password_reuse_general"]["sharedPasswords"], 0)
+        with self.assertRaisesRegex(ValueError, "Conflicting recovered passwords"):
+            build_results(ntlm_mapped_passwords=records + [
+                {"username": "a\\sam", "password": "different"}], **kwargs)
+        with self.assertRaisesRegex(ValueError, "not in the enabled-user dataset"):
+            build_results(ntlm_mapped_passwords=[{"username": "unknown", "password": "x"}], **kwargs)
+
+        lm_account = {"username": "A\\sam", "rid": "1000", "lm_hash": "a" * 32, "nt_hash": "b" * 32}
+        kwargs["lm_users"] = [lm_account, {**lm_account, "username": "a\\SAM", "lm_hash": "A" * 32}]
+        kwargs["lm_mapped_passwords"] = [records[0], records[1]]
+        results = build_results(ntlm_mapped_passwords=[], **kwargs)
+        self.assertEqual((results["lm_hashes"]["count"], results["lm_passwords"]["count"],
+                          results["lm_passwords"]["recoveryRate"]), (1, 1, 100.0))
+        kwargs["privileged_users"] = {
+            "status": "available", "warnings": [],
+            "accounts": [{"username": "a\\SAM", "groups": ["Backup Operators"]}],
+        }
+        results = build_results(ntlm_mapped_passwords=[], **kwargs)
+        self.assertEqual(results["privileged_users"]["lm_recovered_count"], 1)
+        kwargs["lm_users"].append({**lm_account, "rid": "1001"})
+        with self.assertRaisesRegex(ValueError, "Conflicting LM user records"):
+            build_results(ntlm_mapped_passwords=[], **kwargs)
+        kwargs["lm_users"] = []
+        with self.assertRaisesRegex(ValueError, "not in the LM-user dataset"):
+            build_results(ntlm_mapped_passwords=[], **kwargs)
+
+    def test_recovered_file_validation_and_explicit_missing_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "mapped.txt"
+            path.write_text("user: leading:trailing \t\n", encoding="utf-8")
+            self.assertEqual(load_passwords(path)[0]["password"], " leading:trailing \t")
+            for content in (b"no separator\n", b":password\n", b"user:\xff\n"):
+                path.write_bytes(content)
+                with self.assertRaises((ValueError, UnicodeDecodeError)):
+                    load_passwords(path)
+            (root / "enabled.txt").write_text("", encoding="utf-8")
+            (root / "policy.txt").write_text("Domain: example.test\nMinimum Password Length: 8\n", encoding="utf-8")
+            args = dict(mapped_ntlm_passwords=None, domain_admins=None, company_words=None,
+                        pass_policy=root / "policy.txt", enabled_users=root / "enabled.txt",
+                        lm_users=None, mapped_lm_passwords=None, privileged_users=None, ntds_users=None)
+            self.assertEqual(analysis_workflow._build_analysis_results(**args)["total_passwords"], 0)
+            for field in ("mapped_ntlm_passwords", "mapped_lm_passwords", "lm_users", "domain_admins"):
+                with self.subTest(field=field), self.assertRaises(FileNotFoundError):
+                    analysis_workflow._build_analysis_results(**{**args, field: root / "missing.txt"})
 
     def test_domain_and_enterprise_admins_are_not_repeated_in_privileged_table(self):
         admins = [{"username": "EXAMPLE\\Cotton.Adm", "password": "Password123!"}]

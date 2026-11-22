@@ -437,64 +437,67 @@ def similar_account_reuse(passwords):
     to support reporting where no related accounts exist.
 
     Returns:
-        tuple:
-            - list: Related account pairs sharing the same password.
-            - int: Total number of similarly named account pairs
-            identified during analysis.
+        tuple: Up to five matching pair examples, the total number of
+        similarly named pairs, and the number sharing a recovered password.
     """
 
-    findings = []
-    similar_pairs = 0
+    bases = Counter()
+    groups = {}
+    positions = []
+    for account in passwords:
+        base = username_base(account["username"])
+        bases[base] += 1
+        group = groups.setdefault((base, account["password"]), [])
+        positions.append(len(group))
+        group.append(account)
 
-    for i in range(len(passwords)):
-        for j in range(i + 1, len(passwords)):
-
-            left = passwords[i]
-            right = passwords[j]
-
-            if username_base(left["username"]) == username_base(right["username"]):
-
-                similar_pairs += 1
-
-                if left["password"] == right["password"]:
-
-                    findings.append({
-                        "password": left["password"],
-                        "username": left["username"],
-                        "shared_with": right["username"]
-                    })
-
-    return findings, similar_pairs
+    similar_pairs = sum(count * (count - 1) // 2 for count in bases.values())
+    shared_pairs = sum(len(group) * (len(group) - 1) // 2 for group in groups.values())
+    examples = []
+    for index, left in enumerate(passwords):
+        group = groups[(username_base(left["username"]), left["password"])]
+        for right_index in range(positions[index] + 1, len(group)):
+            examples.append({
+                "password": left["password"],
+                "username": left["username"],
+                "shared_with": group[right_index]["username"],
+            })
+            if len(examples) == 5:
+                return examples, similar_pairs, shared_pairs
+    return examples, similar_pairs, shared_pairs
 
 
-def similar_account_hash_reuse(groups, recovered_pairs, limit):
+def similar_account_hash_reuse(groups, recovered_passwords, limit):
     """Count hash-based pairs not already found and collect bounded examples."""
     examples = []
-    account_groups = {}
     grouped_names = []
     count = 0
-    for group_index, group in enumerate(groups):
+    recovered = {account["username"].casefold(): account["password"] for account in recovered_passwords}
+    for group in groups:
         names = {}
         for account in group["accounts"]:
             username = account["username"]
             base = username_base(username)
             names.setdefault(base, []).append(username)
-            account_groups[username.casefold()] = (group_index, base)
-        for base, usernames in names.items():
-            count += len(usernames) * (len(usernames) - 1) // 2
-            grouped_names.append((usernames, group["masked_hash"]))
+        for usernames in names.values():
+            overlap = Counter(
+                recovered[username.casefold()]
+                for username in usernames if username.casefold() in recovered
+            )
+            extra = len(usernames) * (len(usernames) - 1) // 2 - sum(
+                frequency * (frequency - 1) // 2 for frequency in overlap.values()
+            )
+            count += extra
+            grouped_names.append((usernames, group["masked_hash"], extra))
 
-    for pair in recovered_pairs:
-        if len(pair) == 2:
-            left, right = pair
-            if left in account_groups and account_groups[left] == account_groups.get(right):
-                count -= 1
-
-    for usernames, masked_hash in grouped_names:
+    for usernames, masked_hash, extra in grouped_names:
         if len(examples) >= limit:
             break
+        if not extra:
+            continue
         for left, right in combinations(usernames, 2):
-            if frozenset((left.casefold(), right.casefold())) in recovered_pairs:
+            left_key, right_key = left.casefold(), right.casefold()
+            if left_key in recovered and right_key in recovered and recovered[left_key] == recovered[right_key]:
                 continue
             examples.append({"username": left, "shared_with": right, "masked_hash": masked_hash})
             if len(examples) >= limit:

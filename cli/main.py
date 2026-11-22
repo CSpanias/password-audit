@@ -466,7 +466,6 @@ def main():
     optional_analyse_parser.add_argument(
         "-D",
         "--domain-admins",
-        default="./password-audit/domain-admins.txt",
         help="Domain Admin account list"
     )
 
@@ -514,7 +513,6 @@ def main():
     optional_analyse_parser.add_argument(
         "-U",
         "--lm-users",
-        default="./password-audit/lm-users.txt",
         help="Accounts storing LM password hashes"
     )
 

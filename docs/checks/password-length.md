@@ -12,7 +12,8 @@ equal to or longer than the configured minimum pass this specific check.
 
 Analysis reads `Minimum Password Length` from the policy input and compares
 it with the length of each recovered plaintext password. In the audit workflow,
-the organiser obtains the domain policy from BloodHound data.
+the organiser obtains the domain policy from BloodHound data. The report
+includes up to five example accounts and their masked passwords.
 
 ## Why it matters
 
@@ -36,7 +37,7 @@ stops rather than treating the check as passed.
 
 | Finding ID | Title |
 | --- | --- |
-| PWD-POLICY-001 | Non-Compliant Passwords |
+| PWD-POLICY-001 | Passwords Below Domain Minimum |
 
 ## References
 

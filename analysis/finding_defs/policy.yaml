@@ -4,15 +4,15 @@
 
 non-compliant-passwords:
   id: PWD-POLICY-001
-  title: Non-Compliant Passwords
+  title: Passwords Below Domain Minimum
   severity: medium
   category: password_policy
-  summary_label: Non-Compliant
+  summary_label: Below Minimum
   summary_unit: recovered passwords
   remediation: |
-    Enforce the configured minimum password length policy. Review accounts with
-    non-compliant passwords and require password changes where passwords fall
-    below the minimum length requirement.
+    Review affected accounts and their effective password policies, including
+    fine-grained policies and policy changes. Require password changes where
+    appropriate and enforce the intended minimum length.
   references:
     - https://pages.nist.gov/800-63-4/sp800-63b.html#length
-  description_template: "A total of {count} password{s} did not comply with the configured minimum password length requirement."
+  description_template: "A total of {count} recovered password{s} {were_was} shorter than the configured domain minimum. Fine-grained policies or earlier policy changes may explain these results; verify each account's effective policy before treating them as violations."

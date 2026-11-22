@@ -368,24 +368,24 @@ def commentary_password_lengths(results):
             top_length = int(common_lengths[0])
 
             lines.append(
-                "The domain enforced a minimum password length requirement of "
+                "The configured domain minimum password length was "
                 f"{num_to_word(minimum_length)} character{'s' if minimum_length != 1 else ''}. "
                 "Analysis of the recovered credentials "
                 f"found {num_to_word(failure_count)} password{'s' if failure_count != 1 else ''} ({failure_percentage}% of "
-                "recovered passwords) that did not comply with this requirement. The most "
-                f"frequently observed non-compliant password length was {num_to_word(top_length)} "
+                "recovered passwords) shorter than this minimum. The most "
+                f"frequently observed length below the minimum was {num_to_word(top_length)} "
                 f"character{'s' if top_length != 1 else ''}, which was also the most "
                 "commonly observed password length overall."
             )
 
         else:
 
-            lines.append("The domain enforced a minimum password length requirement of "
+            lines.append("The configured domain minimum password length was "
                 f"{num_to_word(minimum_length)} character{'s' if minimum_length != 1 else ''}. "
                 "Analysis of the recovered credentials "
                 f"found {num_to_word(failure_count)} password{'s' if failure_count != 1 else ''} ({failure_percentage}% of "
-                "recovered passwords) that did not comply with this requirement. The most "
-                "frequently observed non-compliant password "
+                "recovered passwords) shorter than this minimum. The most "
+                "frequently observed password "
                 f"length{'s were' if len(common_lengths) > 1 else ' was'} {top_lengths} "
                 f"character{'s' if len(common_lengths) != 1 or int(common_lengths[0]) != 1 else ''}, "
                 "while the most commonly "
@@ -395,9 +395,14 @@ def commentary_password_lengths(results):
 
         lines.append("")
         lines.append(
-            f"The following non-compliant password "
+            "Fine-grained policies or earlier policy changes may explain these results; "
+            "verify each account's effective policy before treating them as violations."
+        )
+        lines.append("")
+        lines.append(
+            f"The following password "
             f"length{'s were' if len(common_lengths) > 1 else ' was'} observed "
-            "most frequently:"
+            "most frequently below the domain minimum:"
         )
 
         lines.append("")
@@ -407,7 +412,15 @@ def commentary_password_lengths(results):
         for length, count in distribution.most_common(5):
             percentage = round(count / failure_count * 100, 1)
             lines.append(f"| {length} | {count:,} | {percentage}% |")
-        
+
+        lines.append("")
+        lines.append("The following table shows example accounts with passwords below the domain minimum:")
+        lines.append("")
+        lines.append("| Username | Password |")
+        lines.append("| ---------- | ---------- |")
+        for account in failures[:5]:
+            password = mask_password(account["password"]).replace("|", "\\|")
+            lines.append(f"| {_display_username(account['username'])} | {password} |")
         lines.append("")
 
     else:
@@ -1047,7 +1060,7 @@ def technical_commentary(results, findings_data=None):
         introduction += (
             "This demonstrates that a measurable proportion of user credentials remain susceptible to "
             "password-cracking attacks following credential exposure. The recovered passwords were subsequently analysed for "
-            "common password selection patterns, policy non-compliance, and other indicators of weak password hygiene."
+            "common password selection patterns, password length, and other indicators of weak password hygiene."
         )
     else:
         introduction += "Password composition could not be assessed without recovered passwords."

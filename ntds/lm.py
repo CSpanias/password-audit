@@ -36,7 +36,7 @@ def lm_variants(password):
 
     chars = [
         (c.lower(), c.upper()) if c.isalpha() else (c,)
-        for c in password.strip()
+        for c in password
     ]
 
     for candidate in product(*chars):

@@ -166,12 +166,12 @@ def load_potfile(path):
             lines = f.readlines()
 
     except UnicodeError:
-        with open(path, encoding="utf-8", errors="ignore") as f:
+        with open(path, encoding="utf-8") as f:
             lines = f.readlines()
 
     for line in lines:
 
-        line = line.rstrip()
+        line = line.rstrip("\r\n")
 
         if ":" not in line:
             continue
@@ -201,7 +201,7 @@ def load_lm_results(path):
 
         for line in f:
 
-            line = line.rstrip()
+            line = line.rstrip("\r\n")
 
             if ":" not in line:
                 continue

@@ -30,12 +30,19 @@ def executive_summary(results, findings_data=None):
         bool(
             results["total_passwords"]
             and not results["admins"]["count"]
+            and not results["privileged_users"]["count"]
+            and not results["privileged_users"]["lm_recovered_count"]
+            and not results["lm_admins"]["count"]
             and results["privileged_users"]["status"] == "available"
         ),
-        bool(results["total_passwords"] and not has_reuse),
+        bool(
+            results["total_passwords"] and not has_reuse
+            and results["ntlm_hash_reuse"]["status"] == "available"
+        ),
         bool(results["total_passwords"] and not results["password_length"]["count"]),
         bool(
             results["total_passwords"] and has_reuse
+            and results["ntlm_hash_reuse"]["status"] == "available"
             and results["similar_account_reuse"]["similarPairs"]
             and not results["similar_account_reuse"]["count"]
         ),

@@ -351,15 +351,11 @@ def run_audit(
     #---------------------------------------------------------------------------
     print()
 
-    mapped_ntlm_passwords = (
-        mapped_ntlm_passwords
-        or output_dir / "mapped-ntlm-passwords.txt"
-    )
+    if mapped_ntlm_passwords is None and ntlm_mapping_results["mapped_ntlm_passwords"]:
+        mapped_ntlm_passwords = output_dir / "mapped-ntlm-passwords.txt"
 
-    domain_admins = (
-        domain_admins
-        or output_dir / "domain-admins.txt"
-    )
+    if domain_admins is None and organise_results["domain_admins"]:
+        domain_admins = output_dir / "domain-admins.txt"
 
     company_word_sources, company_word_snapshot = prepare_company_word_sources(
         generated_path=output_dir / "company-words.txt",
@@ -378,15 +374,11 @@ def run_audit(
         or output_dir / "enabled-users.txt"
     )
 
-    lm_users = (
-        lm_users
-        or output_dir / "lm-users.txt"
-    )
+    if lm_users is None and organise_results["lm_hashes"]:
+        lm_users = output_dir / "lm-users.txt"
 
-    mapped_lm_passwords = (
-        mapped_lm_passwords
-        or output_dir / "mapped-lm-passwords.txt"
-    )
+    if mapped_lm_passwords is None and lm_mapping_results and lm_mapping_results["mapped_lm_passwords"]:
+        mapped_lm_passwords = output_dir / "mapped-lm-passwords.txt"
 
     analyse_passwords(
         mapped_ntlm_passwords=mapped_ntlm_passwords,

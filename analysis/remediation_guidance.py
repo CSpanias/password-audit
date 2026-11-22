@@ -107,9 +107,9 @@ def remediation_guidance(results):
 
     if results["password_length"]["count"]:
         lines.append(
-            "- Password policy settings should be reviewed to ensure that all accounts meet "
-            "the organisation's baseline security requirements and that legacy or "
-            "non-compliant credentials are remediated. Longer passwords and passphrases "
+            "- Review the effective policies for accounts with passwords below the domain "
+            "minimum, including fine-grained policies and earlier policy changes, and "
+            "require password changes where appropriate. Longer passwords and passphrases "
             "generally provide greater resistance to offline password-cracking attacks "
             "and should be encouraged wherever possible."
         )

@@ -49,12 +49,11 @@ def generate_loopback_wordlist(hashcat_potfile, hash_file):
     with open(
         hashcat_potfile,
         encoding="utf-8",
-        errors="ignore",
     ) as potfile:
 
         for line in potfile:
 
-            line = line.rstrip()
+            line = line.rstrip("\r\n")
 
             if ":" not in line:
                 continue

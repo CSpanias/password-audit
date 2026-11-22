@@ -57,16 +57,26 @@ def run_password_analysis(args):
     ):
         ntds_users = default_ntds_users
 
+    domain_admins = args.domain_admins
+    default_domain_admins = Path("password-audit/domain-admins.txt")
+    if domain_admins is None and default_domain_admins.is_file():
+        domain_admins = default_domain_admins
+
+    lm_users = args.lm_users
+    default_lm_users = Path("password-audit/lm-users.txt")
+    if lm_users is None and default_lm_users.is_file():
+        lm_users = default_lm_users
+
     analyse_passwords(
         mapped_ntlm_passwords=args.mapped_ntlm_passwords,
-        domain_admins=args.domain_admins,
+        domain_admins=domain_admins,
         privileged_users=privileged_users,
         ntds_users=ntds_users,
         hibp=args.hibp,
         company_words=company_words,
         pass_policy=args.pass_policy,
         enabled_users=args.enabled_users,
-        lm_users=args.lm_users,
+        lm_users=lm_users,
         mapped_lm_passwords=args.mapped_lm_passwords,
         output_file=args.output,
         csacyber=args.csacyber,

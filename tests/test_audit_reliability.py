@@ -20,11 +20,25 @@ from ntds.constants import LM_EMPTY
 from ntds.analysis import extract_domain_admins, extract_privileged_users
 from ntds.results import build_results as build_ntds_results
 from ntds.workflow import organise_dataset
-from analysis.parsers import load_privileged_users
+from analysis.parsers import load_passwords, load_privileged_users
 from common.console import confirm_ntds_domain
 
 
 class AuditReliabilityTests(unittest.TestCase):
+    def test_potfile_password_whitespace_survives_organisation_and_analysis(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ntds = root / "ntds.txt"
+            ntds.write_text(
+                f"EXAMPLE\\alice:1000:{LM_EMPTY}:{'a' * 32}::: (status=Enabled)\n",
+                encoding="utf-8",
+            )
+            potfile = root / "potfile"
+            potfile.write_text(f"{'a' * 32}: Secret \t\n", encoding="utf-8")
+            organise_dataset(ntds, root, potfile=potfile)
+            mapped = load_passwords(root / "mapped-ntlm-passwords.txt")
+            self.assertEqual(mapped, [{"username": "EXAMPLE\\alice", "password": " Secret \t"}])
+
     def test_run_directory_uses_timestamp_and_numbers_only_for_collisions(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "password-audit"

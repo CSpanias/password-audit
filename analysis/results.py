@@ -35,6 +35,18 @@ from ntds.analysis import privileged_group_name
 # dataclasses once the wider framework refactor is complete.
 
 
+def _unique_password_accounts(accounts):
+    unique = {}
+    for account in accounts:
+        key = account["username"].casefold()
+        previous = unique.get(key)
+        if previous is not None and previous["password"] != account["password"]:
+            raise ValueError(f"Conflicting recovered passwords for account: {account['username']}")
+        if previous is None:
+            unique[key] = account
+    return list(unique.values())
+
+
 def build_results(
     ntlm_mapped_passwords,
     domain_admins,
@@ -94,6 +106,33 @@ def build_results(
             exposure, and supporting reporting data.
     """
 
+    ntlm_mapped_passwords = _unique_password_accounts(ntlm_mapped_passwords)
+    lm_mapped_passwords = _unique_password_accounts(lm_mapped_passwords or [])
+    enabled_users = list({username.casefold(): username for username in enabled_users}.values())
+    enabled_names = {username.casefold() for username in enabled_users}
+    for account in ntlm_mapped_passwords:
+        if account["username"].casefold() not in enabled_names:
+            raise ValueError(
+                f"Recovered NTLM account is not in the enabled-user dataset: {account['username']}"
+            )
+
+    lm_accounts = {}
+    for account in lm_users or []:
+        key = account["username"].casefold()
+        previous = lm_accounts.get(key)
+        if previous and (
+            previous["lm_hash"].casefold() != account["lm_hash"].casefold()
+            or previous.get("rid") != account.get("rid")
+            or previous.get("nt_hash", "").casefold() != account.get("nt_hash", "").casefold()
+        ):
+            raise ValueError(f"Conflicting LM user records for account: {account['username']}")
+        if previous is None:
+            lm_accounts[key] = account
+    lm_users = list(lm_accounts.values())
+    for account in lm_mapped_passwords:
+        if account["username"].casefold() not in lm_accounts:
+            raise ValueError(f"Recovered LM account is not in the LM-user dataset: {account['username']}")
+
     # Privileged accounts
     admins = compromised_admins(
         ntlm_mapped_passwords, 
@@ -119,7 +158,7 @@ def build_results(
     for account in ntlm_mapped_passwords:
         if account["password"] in reuse_example_accounts:
             reuse_example_accounts[account["password"]].append(account["username"])
-    reuse_accounts, similar_pairs = similar_account_reuse(ntlm_mapped_passwords)
+    reuse_accounts, similar_pairs, recovered_pair_count = similar_account_reuse(ntlm_mapped_passwords)
     
     # Predictable patterns
     company_findings = company_name_passwords(
@@ -139,7 +178,7 @@ def build_results(
 
     # Duplicate LM hashes
     unique_hashes = len({
-        account["lm_hash"]
+        account["lm_hash"].casefold()
         for account in lm_findings["accounts"]
     })
 
@@ -192,20 +231,20 @@ def build_results(
     results["privileged_users"] = {
         "accounts": list(recovered_privileged.values()),
         "count": len(recovered_privileged),
+        "lm_recovered_count": sum(
+            account["username"].casefold() in memberships
+            for account in lm_mapped_passwords
+        ),
         "status": privileged_users["status"],
         "warnings": privileged_users["warnings"],
     }
     if "confirmed_domain" in privileged_users:
         results["privileged_users"]["confirmed_domain"] = privileged_users["confirmed_domain"]
     results["ntlm_hash_reuse"] = ntlm_hash_reuse(ntds_users, privileged_users)
-    recovered_pairs = {
-        frozenset((account["username"].casefold(), account["shared_with"].casefold()))
-        for account in reuse_accounts
-    }
     # Only the report's first five pairs need examples; count the rest without
     # materialising every combination in a large shared-hash group.
     hash_examples, hash_pair_count = similar_account_hash_reuse(
-        results["ntlm_hash_reuse"]["groups"], recovered_pairs,
+        results["ntlm_hash_reuse"]["groups"], ntlm_mapped_passwords,
         max(0, 5 - len(reuse_accounts)),
     )
     reuse_accounts.extend(hash_examples)
@@ -256,7 +295,7 @@ def build_results(
 
     results["similar_account_reuse"] = {
         "accounts": reuse_accounts,
-        "count": len(reuse_accounts) - len(hash_examples) + hash_pair_count,
+        "count": recovered_pair_count + hash_pair_count,
         "similarPairs": similar_pairs,
     }
 

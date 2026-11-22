@@ -191,14 +191,9 @@ def _build_analysis_results(
             privileged_users["warnings"]
         ))
 
-    ntlm_passwords = []
-    if mapped_ntlm_passwords and Path(mapped_ntlm_passwords).exists():
-        ntlm_passwords = load_passwords(mapped_ntlm_passwords)
+    ntlm_passwords = load_passwords(mapped_ntlm_passwords) if mapped_ntlm_passwords else []
 
-    if lm_users and Path(lm_users).exists():
-        lm_users = load_lm_users(lm_users)
-    else:
-        lm_users = []
+    lm_users = load_lm_users(lm_users) if lm_users else []
 
     try:
         minimum_length = int(policy["Minimum Password Length"])
@@ -212,9 +207,7 @@ def _build_analysis_results(
         )
         sys.exit(1)
 
-    lm_passwords = []
-    if mapped_lm_passwords and Path(mapped_lm_passwords).exists():
-        lm_passwords = load_passwords(mapped_lm_passwords)
+    lm_passwords = load_passwords(mapped_lm_passwords) if mapped_lm_passwords else []
 
     if ntds_users is not None:
         ntds_users = load_ntds_users(ntds_users)
