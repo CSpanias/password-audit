@@ -186,6 +186,7 @@ def commentary_lm_hashes(results):
     The presence of LM password hashes is summarised together with associated 
     security risks. Where LM passwords have been recovered, recovery rates,
     partial recoveries, and any affected privileged accounts are also reported.
+    Example accounts and masked LM hashes are included.
 
     Args:
         results (dict):
@@ -248,7 +249,7 @@ def commentary_lm_hashes(results):
         if partial_lm_password_count:
 
             recovery_text += (
-                f"A further {num_to_word(partial_lm_password_count)} account"
+                f" A further {num_to_word(partial_lm_password_count)} account"
                 f"{'s' if partial_lm_password_count != 1 else ''} yielded a partial password "
                 "recovery."
             )
@@ -308,6 +309,16 @@ def commentary_lm_hashes(results):
     if da_count:
         lines.append(f"| LM Domain Administrator Accounts | {da_count} |")
 
+    lines.append("")
+    lines.append("The following table shows example accounts and their masked LM hashes:")
+    lines.append("")
+    lines.append("| Username | LM Hash |")
+    lines.append("| ---------- | ---------- |")
+    for account in results["lm_hashes"]["accounts"][:5]:
+        lines.append(
+            f"| {_display_username(account['username'])} | "
+            f"{mask_password(account['lm_hash'].lower())} |"
+        )
     lines.append("")
 
     return "\n".join(lines)

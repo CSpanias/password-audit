@@ -20,6 +20,7 @@ easier than attacking the original password as a single case-sensitive value.
 LM hash presence does not require successful cracking. When LM recovery
 results are supplied, Hashcat's `--show` output is used to reconstruct and
 map recovered halves to accounts. See [LM workflows](../lm.md) for details.
+The report includes up to five example accounts with masked LM hashes.
 
 ## Why it matters
 

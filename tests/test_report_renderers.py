@@ -890,25 +890,57 @@ class HtmlReportTests(unittest.TestCase):
         self.assertLess(text.index("Passwords were reused"),
                         text.index("A total of one shared NTLM hash"))
         results["privileged_users"]["status"] = "incomplete"
-        results["lm_hashes"].update({"count": 1, "uniqueHashes": 1, "duplicateHashes": 0})
+        results["lm_hashes"].update({
+            "count": 1, "uniqueHashes": 1, "duplicateHashes": 0,
+            "accounts": [{"username": "EXAMPLE\\alice", "lm_hash": "A" * 32}],
+        })
         text = technical_commentary(results)
         self.assertIn("### Privileged Accounts\n\n", text)
         self.assertIn("### LM Hashes\n\n", text)
 
     def test_lm_recovery_and_impact_are_separate_paragraphs(self):
-        text = commentary_lm_hashes({
-            "lm_hashes": {"count": 1, "uniqueHashes": 1, "duplicateHashes": 0},
+        results = {
+            "lm_hashes": {
+                "count": 1, "uniqueHashes": 1, "duplicateHashes": 0,
+                "accounts": [{"username": "EXAMPLE\\alice", "lm_hash": "A" * 32}],
+            },
             "lm_passwords": {
                 "count": 1, "partialCount": 0, "recoveryRate": 100.0,
             },
             "lm_admins": {"count": 0},
-        })
+        }
+        text = commentary_lm_hashes(results)
 
         self.assertIn(
             "100.0% of affected accounts.\n\nThis demonstrates the practical "
             "weakness of LM password storage. The extremely high recovery rate",
             text,
         )
+        results["lm_passwords"]["partialCount"] = 1
+        self.assertIn("100.0% of affected accounts. A further one account",
+                      commentary_lm_hashes(results))
+
+    def test_lm_commentary_shows_masked_account_examples_without_recovery(self):
+        hashes = [f"ABCDEF{i:026X}" for i in range(6)]
+        results = build_results(
+            ntlm_mapped_passwords=[], domain_admins=[], company_words=[],
+            minimum_length=12, enabled_users=[], domain_name="example.test",
+            lm_users=[
+                {"username": f"EXAMPLE\\user|{i}", "lm_hash": value}
+                for i, value in enumerate(hashes)
+            ],
+            lm_mapped_passwords=[], ntds_users=[],
+        )
+        text = commentary_lm_hashes(results)
+        self.assertLess(text.index("| Accounts with LM Hashes | 6 |"),
+                        text.index("| Username | LM Hash |"))
+        for i, value in enumerate(hashes[:5]):
+            self.assertIn(f"| user\\|{i} | {value[:2].lower()}{'*' * 28}{value[-2:].lower()} |", text)
+            self.assertNotIn(value, text)
+        self.assertNotIn("user\\|5", text)
+
+        results["lm_hashes"]["count"] = 0
+        self.assertEqual(commentary_lm_hashes(results), "")
 
     def test_analysis_csacyber_writes_xml_instead_of_json(self):
         with tempfile.TemporaryDirectory() as directory:
