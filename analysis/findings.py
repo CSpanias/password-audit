@@ -17,6 +17,18 @@ from analysis.finding import Finding
 from common.utils import num_to_word
 
 
+_SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+
+
+def finding_priority(findings, finding_ids):
+    """Return the highest priority of the specified findings, or informational."""
+    return min(
+        (_SEVERITY_ORDER[finding["severity"]] for finding in findings
+         if finding["id"] in finding_ids),
+        default=_SEVERITY_ORDER["info"],
+    )
+
+
 def _load_yaml_definitions():
     """
     Load all YAML finding definitions from the analysis/findings/ directory.

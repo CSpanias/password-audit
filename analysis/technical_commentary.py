@@ -9,6 +9,7 @@ security guidance.
 
 from collections import Counter
 
+from analysis.findings import build_findings_dict, finding_priority
 from common.utils import format_count_warnings, mask_password, natural_join, num_to_word
 from ntds.analysis import privileged_group_name
 
@@ -210,6 +211,15 @@ def commentary_lm_hashes(results):
     if not lm_hash_count:
         return ""
 
+    if da_count:
+        lines.append(
+            f"LM recovery results included {num_to_word(da_count)} Domain Administrator "
+            f"account{'s' if da_count != 1 else ''}. Exposure of privileged credential "
+            "material increases the potential impact of compromise and may facilitate "
+            "privilege escalation."
+        )
+        lines.append("")
+
     if duplicate_hashes:
 
         lines.append(
@@ -275,17 +285,6 @@ def commentary_lm_hashes(results):
             lines.append(
                 "Whilst recovery was not universal, the results demonstrate that LM password "
                 "storage remains susceptible to efficient offline attack."
-            )
-
-        # Domain Admins with LM hashes
-        if da_count:
-
-            lines.append("")
-            lines.append(
-                f"Recovered LM passwords included {num_to_word(da_count)} Domain Administrator "
-                f"account{'s' if da_count != 1 else ''}. The recovery of privileged credentials "
-                "significantly increases the potential impact of credential compromise and may "
-                "facilitate rapid privilege escalation."
             )
 
     lines.append("")
@@ -1014,7 +1013,7 @@ def commentary_character_classes(results):
 # Technical Commentary Assembly
 # ---------------------------------------------------------------------------
 
-def technical_commentary(results):
+def technical_commentary(results, findings_data=None):
     """
     Generate the complete technical commentary section.
 
@@ -1032,6 +1031,8 @@ def technical_commentary(results):
     """
 
     lines = []
+    if findings_data is None:
+        findings_data = build_findings_dict(results)
 
     total = results["total_passwords"]
     enabled_users = results["enabled_users"]
@@ -1057,22 +1058,26 @@ def technical_commentary(results):
             "the assessment.")
 
     sections = (
-        ("Privileged Accounts", (commentary_admins, commentary_privileged_users)),
-        ("LM Hashes", (commentary_lm_hashes,)),
-        ("Password Compliance", (commentary_password_lengths,)),
+        ("Privileged Accounts", (commentary_admins, commentary_privileged_users),
+         ("DOMAIN-ADMIN-001", "PRIV-ACCOUNT-001")),
+        ("LM Hashes", (commentary_lm_hashes,), ("LM-AUTH-001", "DOMAIN-ADMIN-002")),
         ("Password Reuse", (
             commentary_password_reuse, commentary_ntlm_hash_reuse,
             commentary_similar_account_reuse,
-        )),
-        ("Passwords in Breach Data", (commentary_hibp,)),
+        ), ("PWD-REUSE-001", "PWD-REUSE-002", "PWD-REUSE-003")),
+        ("Passwords in Breach Data", (commentary_hibp,), ("PWD-BREACH-001",)),
+        ("Password Compliance", (commentary_password_lengths,), ("PWD-POLICY-001",)),
         ("Common Patterns", (
             commentary_username_passwords, commentary_company_words,
             commentary_common_passwords, commentary_date_passwords,
             commentary_keyboard_walks,
-        )),
-        ("Password Complexity", (commentary_character_classes,)),
+        ), ("PWD-PATTERN-001", "PWD-PATTERN-002", "PWD-PATTERN-003",
+            "PWD-PATTERN-004", "PWD-PATTERN-005")),
+        ("Password Complexity", (commentary_character_classes,), ()),
     )
-    for heading, functions in sections:
+    for heading, functions, _ in sorted(
+        sections, key=lambda section: finding_priority(findings_data, section[2])
+    ):
         content = [
             text.strip() for function in functions if (text := function(results)).strip()
         ]

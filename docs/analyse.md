@@ -75,7 +75,10 @@ rate, and LM exposure. Findings cover:
 
 Finding IDs, severity, category, descriptions, and remediation guidance are
 defined in the packaged YAML files. Severity is attached to individual
-findings; the report does not calculate an overall risk score.
+findings; the report does not calculate an overall risk score. Executive
+summary observations and technical commentary sections are ordered by the
+highest severity of the findings they cover. A grouped observation or section
+may also include lower-severity findings.
 
 See [Checks](checks/index.md) for what each analysis looks for, how it works,
 and how to interpret the results.
