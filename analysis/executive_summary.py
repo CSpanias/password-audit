@@ -81,9 +81,8 @@ def executive_summary(results):
     outcome = []
     if has_positive_findings:
         outcome.append(
-            "Some findings suggest that existing password security controls "
-            "and user practices may be helping to reduce exposure to credential "
-            "compromise."
+            "The results suggest that existing password security controls and "
+            "user practices may help reduce exposure to credential compromise."
         )
     if results["total_passwords"]:
         outcome.append(
@@ -149,9 +148,8 @@ def executive_summary(results):
 
     if lm_count or lm_recovered:
         finding = (
-            f"{'legacy' if findings else 'Legacy'} LanMan (LM) password "
-            "hashes were present, making credentials more susceptible to "
-            "offline password cracking"
+            "Legacy LanMan (LM) password hashes were present, making credentials "
+            "more susceptible to offline password cracking"
         )
         if lm_recovered:
             finding += (
@@ -159,9 +157,7 @@ def executive_summary(results):
                 "them"
             )
         finding += "."
-        findings.append(
-            f"{'In addition, ' if findings else ''}{finding}"
-        )
+        findings.append(finding)
         if lm_admin_count:
             findings.append(
                 "LM passwords were recovered for Domain Administrator accounts, "
@@ -170,9 +166,8 @@ def executive_summary(results):
 
     if general_reuse_passwords or hash_reuse:
         findings.append(
-            f"{'In addition, password reuse' if findings else 'Password reuse'} "
-            "was identified, which could allow a compromised credential to "
-            "affect multiple accounts or systems."
+            "Password reuse was observed, which could allow a compromised "
+            "credential to affect multiple accounts or systems."
         )
         if similar_account_reuse_count:
             findings.append(
@@ -182,27 +177,30 @@ def executive_summary(results):
 
     if results.get("hibp", {}).get("count"):
         findings.append(
-            f"{'Moreover, some' if findings else 'Some'} account password "
+            f"{'In addition, some' if findings else 'Some'} account password "
             "hashes matched known breach data, suggesting their passwords may "
             "be easier to guess."
         )
 
     if failure_count:
         findings.append(
-            f"{'Moreover, some' if findings else 'Some'} recovered passwords "
+            "Some recovered passwords "
             "were shorter than the configured domain minimum, potentially "
             "making them easier to crack."
         )
 
     if weaknesses:
         findings.append(
-            f"{'Finally, the dataset' if findings else 'The dataset'} contained "
+            f"{'The dataset also' if findings else 'The dataset'} contained "
             "passwords with predictable patterns, potentially reducing the "
             "effort required to compromise accounts."
         )
 
     if findings:
-        summary.append(" ".join(findings))
+        summary.append(
+            "The assessment also highlighted weaknesses that could increase "
+            "the risk of credential compromise. " + " ".join(findings)
+        )
 
     #---------------------------------------------------------------------------
     # CONCLUSION

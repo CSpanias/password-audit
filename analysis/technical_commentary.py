@@ -589,14 +589,19 @@ def commentary_password_reuse(results):
     )
 
     lines.append("")
-    lines.append("| Password | Times Seen | Percentage |")
-    lines.append("| ---------- | ---------- | ---------- |")
+    lines.append("| Password | Times Seen | Percentage | Accounts |")
+    lines.append("| ---------- | ---------- | ---------- | ---------- |")
 
     total_passwords = results["total_passwords"]
 
     for entry in reused_passwords[:5]:
         percentage = round(entry["count"] / total_passwords * 100, 1)
-        lines.append(f"| {mask_password(entry['password'])} | {entry['count']:,} | {percentage}% |")
+        password = mask_password(entry["password"]).replace("|", "\\|")
+        accounts = ", ".join(
+            _display_username(username)
+            for username in results["password_reuse_general"]["example_accounts"][entry["password"]]
+        )
+        lines.append(f"| {password} | {entry['count']:,} | {percentage}% | {accounts} |")
     
     lines.append("")
 

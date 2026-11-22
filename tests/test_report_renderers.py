@@ -35,6 +35,7 @@ from analysis.technical_commentary import (
     commentary_lm_hashes,
     commentary_ntlm_hash_reuse,
     commentary_password_lengths,
+    commentary_password_reuse,
     commentary_privileged_users,
     commentary_similar_account_reuse,
     commentary_username_passwords,
@@ -555,8 +556,8 @@ class HtmlReportTests(unittest.TestCase):
         results["similar_account_reuse"]["similarPairs"] = 1
         results["similar_account_reuse"]["count"] = 1
         positive = (
-            "Some findings suggest that existing password security controls and "
-            "user practices may be helping to reduce exposure to credential "
+            "The results suggest that existing password security controls and "
+            "user practices may help reduce exposure to credential "
             "compromise."
         )
 
@@ -609,7 +610,7 @@ class HtmlReportTests(unittest.TestCase):
         )
         summary = executive_summary(results)
         self.assertIn(
-            "Password reuse was identified, which could allow a compromised "
+            "Password reuse was observed, which could allow a compromised "
             "credential to affect multiple accounts",
             summary,
         )
@@ -639,7 +640,7 @@ class HtmlReportTests(unittest.TestCase):
             ],
         )
         hash_only_summary = executive_summary(hash_only)
-        self.assertIn("Password reuse was identified, which could allow a "
+        self.assertIn("Password reuse was observed, which could allow a "
                       "compromised credential", hash_only_summary)
         self.assertNotIn("dataset contained passwords with predictable patterns",
                          hash_only_summary)
@@ -671,6 +672,10 @@ class HtmlReportTests(unittest.TestCase):
                 selected[key][field] = 1
                 paragraphs = executive_summary(selected).split("\n\n")
                 self.assertEqual(len(paragraphs), 4)
+                self.assertTrue(paragraphs[2].startswith(
+                    "The assessment also highlighted weaknesses that could increase "
+                    "the risk of credential compromise. "
+                ))
                 self.assertIn(finding, paragraphs[2])
                 self.assertIn(impact, paragraphs[2])
                 for other_key, _, other_finding, _ in cases:
@@ -683,6 +688,8 @@ class HtmlReportTests(unittest.TestCase):
         selected["lm_admins"]["count"] = 1
         selected["admins"]["count"] = 1
         selected["keyboard_walks"]["count"] = 1
+        selected["hibp"]["count"] = 1
+        selected["password_length"]["count"] = 1
         selected["ntlm_hash_reuse"]["groups"] = [{"accounts": []}]
         selected["similar_account_reuse"]["count"] = 1
         paragraph = executive_summary(selected).split("\n\n")[2]
@@ -693,11 +700,14 @@ class HtmlReportTests(unittest.TestCase):
         )
         self.assertIn("LM passwords were recovered for Domain Administrator accounts", paragraph)
         self.assertIn("Reuse between related accounts", paragraph)
-        self.assertIn("dataset contained passwords with predictable patterns", paragraph)
+        self.assertIn("In addition, some account password hashes matched", paragraph)
+        self.assertIn("Some recovered passwords were shorter", paragraph)
+        self.assertNotIn("Moreover", paragraph)
+        self.assertIn("dataset also contained passwords with predictable patterns", paragraph)
 
         selected["lm_hashes"]["count"] = 0
         paragraph = executive_summary(selected).split("\n\n")[2]
-        self.assertIn("legacy LanMan (LM) password hashes were present", paragraph)
+        self.assertIn("Legacy LanMan (LM) password hashes were present", paragraph)
         self.assertIn("LM passwords were recovered for Domain Administrator accounts", paragraph)
 
     def test_account_tables_omit_prefixes_without_changing_results(self):
@@ -735,6 +745,38 @@ class HtmlReportTests(unittest.TestCase):
                     self.assertNotIn("OTHER\\", text)
         self.assertEqual(account["username"], "EXAMPLE\\Ali|ce")
         self.assertEqual(account["shared_with"], "OTHER\\Bob")
+
+    def test_password_reuse_examples_list_all_matching_accounts(self):
+        accounts = [
+            {"username": f"EXAMPLE\\user|{i}", "password": "P|ssword1"}
+            for i in range(7)
+        ]
+        accounts.extend(
+            {"username": f"EXAMPLE\\group{group}user{index}",
+             "password": f"Shared{group}!"}
+            for group in range(5) for index in range(2)
+        )
+        accounts.append({"username": "EXAMPLE\\different", "password": "p|ssword1"})
+        results = build_results(
+            ntlm_mapped_passwords=accounts, domain_admins=[], company_words=[],
+            minimum_length=12, enabled_users=[a["username"] for a in accounts],
+            domain_name="example.test", lm_users=[], lm_mapped_passwords=[], ntds_users=[],
+        )
+        text = commentary_password_reuse(results)
+        expected_accounts = ", ".join(f"user\\|{i}" for i in range(7))
+        self.assertIn("| Password | Times Seen | Percentage | Accounts |", text)
+        self.assertIn(f"| P\\|*****d1 | 7 | 38.9% | {expected_accounts} |", text)
+        self.assertNotIn("different", text)
+        self.assertNotIn("group4user0", text)
+        self.assertNotIn("EXAMPLE\\", text)
+        self.assertEqual(len(results["password_reuse_general"]["example_accounts"]), 5)
+
+        no_reuse = build_results(
+            ntlm_mapped_passwords=accounts[-1:], domain_admins=[], company_words=[],
+            minimum_length=12, enabled_users=["EXAMPLE\\different"],
+            domain_name="example.test", lm_users=[], lm_mapped_passwords=[], ntds_users=[],
+        )
+        self.assertEqual(commentary_password_reuse(no_reuse), "")
 
     def test_pattern_commentary_uses_correct_singular_and_plural(self):
         account = {"username": "alice", "password": "Password1", "shared_with": "alice_adm"}

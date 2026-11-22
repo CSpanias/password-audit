@@ -10,8 +10,8 @@ once and summarises the affected accounts and most frequently seen values.
 ## How it works
 
 The check compares recovered password strings exactly and groups repeated
-values. Passwords are case-sensitive for this comparison. The report masks
-example passwords.
+values. Passwords are case-sensitive for this comparison. The report masks up
+to five example passwords and lists all associated accounts for each example.
 
 ## Why it matters
 

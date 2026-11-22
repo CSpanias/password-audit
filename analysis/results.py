@@ -114,6 +114,10 @@ def build_results(
             for password, count in password_frequencies
             if count > 1
         ]
+    reuse_example_accounts = {password: [] for password, _ in reused_passwords[:5]}
+    for account in ntlm_mapped_passwords:
+        if account["password"] in reuse_example_accounts:
+            reuse_example_accounts[account["password"]].append(account["username"])
     reuse_accounts, similar_pairs = similar_account_reuse(ntlm_mapped_passwords)
     
     # Predictable patterns
@@ -230,6 +234,7 @@ def build_results(
             else 0
         ),
         "passwords": reused_passwords,
+        "example_accounts": reuse_example_accounts,
     }
 
     results["top_passwords"] = {
