@@ -28,7 +28,10 @@ def test_hibp_commentary_includes_up_to_five_account_examples():
     ) in text
     assert "against a locally downloaded copy of the dataset." in text
     assert "A total of six accounts had matching password hashes." in text
-    assert "However, a matching hash does not mean the account itself appeared in a breach." in text
+    assert (
+        "However, it should be noted that a matching hash does not mean "
+        "the account itself appeared in a breach."
+    ) in text
     assert "Matching passwords may not have been recovered" not in text
     assert "A non-match does not establish" not in text
     assert f"| Username | NTLM Hash |\n| ---------- | ---------- |\n| ali\\|ce | {masked_hash} |" in text
@@ -178,7 +181,10 @@ def test_analyse_reports_matches_without_recovered_passwords(monkeypatch, tmp_pa
     assert "A total of two enabled user accounts were checked" in report
     assert "A total of one account had matching password hashes" in report
     assert "| alice | ab" + "*" * 28 + "11 |" in report
-    assert "However, a matching hash does not mean the account itself appeared in a breach." in report
+    assert (
+        "However, it should be noted that a matching hash does not mean "
+        "the account itself appeared in a breach."
+    ) in report
     assert "did not identify any significant" not in report
     assert "ABCDE" + "1" * 27 not in report
     assert ("ABCDE" + "1" * 27).lower() not in report

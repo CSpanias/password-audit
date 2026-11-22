@@ -32,6 +32,7 @@ from analysis.technical_commentary import (
     commentary_common_passwords,
     commentary_date_passwords,
     commentary_keyboard_walks,
+    commentary_lm_hashes,
     commentary_ntlm_hash_reuse,
     commentary_password_lengths,
     commentary_privileged_users,
@@ -893,6 +894,21 @@ class HtmlReportTests(unittest.TestCase):
         text = technical_commentary(results)
         self.assertIn("### Privileged Accounts\n\n", text)
         self.assertIn("### LM Hashes\n\n", text)
+
+    def test_lm_recovery_and_impact_are_separate_paragraphs(self):
+        text = commentary_lm_hashes({
+            "lm_hashes": {"count": 1, "uniqueHashes": 1, "duplicateHashes": 0},
+            "lm_passwords": {
+                "count": 1, "partialCount": 0, "recoveryRate": 100.0,
+            },
+            "lm_admins": {"count": 0},
+        })
+
+        self.assertIn(
+            "100.0% of affected accounts.\n\nThis demonstrates the practical "
+            "weakness of LM password storage. The extremely high recovery rate",
+            text,
+        )
 
     def test_analysis_csacyber_writes_xml_instead_of_json(self):
         with tempfile.TemporaryDirectory() as directory:

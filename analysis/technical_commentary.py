@@ -242,7 +242,7 @@ def commentary_lm_hashes(results):
             "password recovery using commonly available password dictionaries and rule sets. "
             f"Passwords were successfully recovered from {num_to_word(lm_password_count)} "
             f"account{'s' if lm_password_count != 1 else ''} that stored LM hashes, representing "
-            f"{lm_crack_rate}% of affected accounts. "
+            f"{lm_crack_rate}% of affected accounts."
         )
 
         if partial_lm_password_count:
@@ -250,30 +250,31 @@ def commentary_lm_hashes(results):
             recovery_text += (
                 f"A further {num_to_word(partial_lm_password_count)} account"
                 f"{'s' if partial_lm_password_count != 1 else ''} yielded a partial password "
-                "recovery. "
+                "recovery."
             )
 
+        lines.append(recovery_text)
+        lines.append("")
+
         if lm_crack_rate >= 90:
-            recovery_text += (
+            lines.append(
                 "This demonstrates the practical weakness of LM password storage. The "
                 "extremely high recovery rate observed during the assessment highlights the "
                 "elevated risk associated with retaining legacy password hashing technologies."
             )
 
         elif lm_crack_rate >= 50:
-            recovery_text += (
+            lines.append(
                 "This demonstrates the practical weakness of LM password storage and illustrates "
                 "the increased exposure associated with retaining legacy password hashing "
                 "technologies."
             )
 
         else:
-            recovery_text += (
+            lines.append(
                 "Whilst recovery was not universal, the results demonstrate that LM password "
                 "storage remains susceptible to efficient offline attack."
             )
-
-        lines.append(recovery_text)
 
         # Domain Admins with LM hashes
         if da_count:
@@ -433,7 +434,8 @@ def commentary_hibp(results):
         f"A total of {num_to_word(count)} account{'s' if count != 1 else ''} "
         "had matching password hashes. "
         + (
-            "However, a matching hash does not mean the account itself appeared in a breach."
+            "However, it should be noted that a matching hash does not mean "
+            "the account itself appeared in a breach."
             if count else
             "A matching hash would not mean the account itself appeared in a breach."
         )
