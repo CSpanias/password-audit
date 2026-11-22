@@ -127,7 +127,8 @@ dataset; the completion date is not a guaranteed snapshot date.
 
 For `analyse`, the organiser's enabled NTDS records must be auto-detected or 
 supplied using `--ntds-users`. The check opens only ranges needed for the 
-supplied accounts; missing, empty, or malformed required ranges stop report 
+supplied accounts and processes up to four ranges concurrently. Each required
+range is still fully validated; missing, empty, or malformed ranges stop report
 generation with an error.
 
 ```bash

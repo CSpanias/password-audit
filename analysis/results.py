@@ -59,6 +59,7 @@ def build_results(
     privileged_users=None,
     ntds_users=None,
     progress_callback=None,
+    check_callback=None,
 ):
     """
     Build the complete password analysis results dataset.
@@ -110,6 +111,11 @@ def build_results(
         if progress_callback is not None:
             progress_callback()
 
+    def checking(description):
+        if check_callback is not None:
+            check_callback(description)
+
+    checking("Validating account data")
     ntlm_mapped_passwords = _unique_password_accounts(ntlm_mapped_passwords)
     lm_mapped_passwords = _unique_password_accounts(lm_mapped_passwords or [])
     enabled_users = list({username.casefold(): username for username in enabled_users}.values())
@@ -139,12 +145,17 @@ def build_results(
     advance()
 
     # Privileged accounts
+    checking("Checking privileged accounts")
     admins = compromised_admins(
         ntlm_mapped_passwords, 
         domain_admins
     )
 
     # Password compliance
+    checking(
+        "Checking password length compliance" if minimum_length is not None
+        else "Calculating password lengths"
+    )
     length_distribution = password_length_distribution(ntlm_mapped_passwords)
     length_failures = (
         password_length_failures(ntlm_mapped_passwords, minimum_length)
@@ -153,6 +164,7 @@ def build_results(
     advance()
 
     # Password reuse
+    checking("Checking recovered password reuse")
     password_frequencies = password_frequency(ntlm_mapped_passwords)
     top_passes = top_passwords(ntlm_mapped_passwords)
     reused_passwords = [
@@ -168,24 +180,31 @@ def build_results(
     advance()
     
     # Predictable patterns
+    checking("Checking company-specific terms")
     company_findings = company_name_passwords(
         ntlm_mapped_passwords, 
         company_words
     )
     advance()
+    checking("Checking keyboard walks")
     keyboard_findings = keyboard_walk_passwords(ntlm_mapped_passwords)
     advance()
+    checking("Checking username-based passwords")
     username_findings = username_passwords(ntlm_mapped_passwords)
     advance()
+    checking("Checking common passwords")
     common_password_findings = common_passwords(ntlm_mapped_passwords)
     advance()
+    checking("Checking date patterns")
     date_findings = date_passwords(ntlm_mapped_passwords)
     advance()
     
     # Password complexity
+    checking("Checking password complexity")
     char_classes = character_class_adoption(ntlm_mapped_passwords)
 
     # Presence of LM hashes
+    checking("Checking LM hashes")
     lm_findings = lm_hashes(lm_users)
 
     # Duplicate LM hashes
@@ -195,6 +214,7 @@ def build_results(
     })
 
     # Domain Admins with LM
+    checking("Checking privileged accounts")
     lm_admins = compromised_lm_admins(lm_mapped_passwords, domain_admins)
 
     results = {}
@@ -252,6 +272,7 @@ def build_results(
     }
     if "confirmed_domain" in privileged_users:
         results["privileged_users"]["confirmed_domain"] = privileged_users["confirmed_domain"]
+    checking("Checking NTLM hash reuse")
     results["ntlm_hash_reuse"] = ntlm_hash_reuse(ntds_users, privileged_users)
     # Only the report's first five pairs need examples; count the rest without
     # materialising every combination in a large shared-hash group.
@@ -261,6 +282,7 @@ def build_results(
     )
     reuse_accounts.extend(hash_examples)
 
+    checking("Preparing analysis results")
     # Domain Admins with LM
     results["lm_admins"] = {
         "count": len(lm_admins),

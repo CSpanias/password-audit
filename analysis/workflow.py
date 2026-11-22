@@ -9,7 +9,7 @@ from pathlib import Path
 
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
-from rich.table import Table
+from rich.table import Column, Table
 from rich.text import Text
 
 from analysis.executive_summary import executive_summary
@@ -33,6 +33,30 @@ from common.utils import format_count_warnings
 from reports.html import render_html
 from reports.json import write_findings
 from reports.sureformat import write_sureformat
+
+
+class SpacedProgress(Progress):
+    """Render a blank line between concurrent progress rows."""
+
+    def make_tasks_table(self, tasks):
+        columns = (
+            Column(no_wrap=True) if isinstance(column, str)
+            else column.get_table_column().copy()
+            for column in self.columns
+        )
+        table = Table.grid(*columns, padding=(0, 1), expand=self.expand)
+        first = True
+        for task in tasks:
+            if not task.visible:
+                continue
+            if not first:
+                table.add_row()
+            table.add_row(*(
+                column.format(task=task) if isinstance(column, str) else column(task)
+                for column in self.columns
+            ))
+            first = False
+        return table
 
 
 def analyse_passwords(
@@ -102,7 +126,7 @@ def analyse_passwords(
             Password analysis results.
     """
 
-    with Progress(
+    with SpacedProgress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
@@ -111,20 +135,25 @@ def analyse_passwords(
         transient=True,
     ) as progress:
         task_id = progress.add_task("Loading datasets", total=None)
-        hibp_task_id = None
+        check_task_id = None
 
         def loaded():
+            nonlocal check_task_id
             progress.update(
                 task_id, description="Analysing password data", total=12, completed=1
             )
+            check_task_id = progress.add_task("Validating account data", total=None)
+
+        def checking(description):
+            progress.update(check_task_id, description=description, refresh=True)
 
         def hibp_progress(completed, total):
-            nonlocal hibp_task_id
             if not total:
                 return
-            if hibp_task_id is None:
-                hibp_task_id = progress.add_task("Checking breach data", total=total)
-            progress.update(hibp_task_id, completed=completed)
+            progress.update(
+                check_task_id, description="Checking breach data",
+                total=total, completed=completed,
+            )
 
         results = _build_analysis_results(
             mapped_ntlm_passwords=mapped_ntlm_passwords,
@@ -140,10 +169,10 @@ def analyse_passwords(
             allow_missing_policy=allow_missing_policy,
             loaded_callback=loaded,
             progress_callback=lambda: progress.advance(task_id),
+            check_callback=checking,
             hibp_progress_callback=hibp_progress,
         )
-        if hibp_task_id is not None:
-            progress.update(hibp_task_id, visible=False)
+        progress.update(check_task_id, visible=False)
 
         if csacyber:
             domain_name = results.get("domain_name")
@@ -204,6 +233,7 @@ def _build_analysis_results(
     hibp=None,
     loaded_callback=None,
     progress_callback=None,
+    check_callback=None,
     hibp_progress_callback=None,
     allow_missing_policy=False,
 ):
@@ -253,6 +283,7 @@ def _build_analysis_results(
         privileged_users=privileged_users,
         ntds_users=ntds_users,
         progress_callback=progress_callback,
+        check_callback=check_callback,
     )
     if hibp is not None:
         results["hibp"] = check_hibp(ntds_users, hibp, progress_callback=hibp_progress_callback)

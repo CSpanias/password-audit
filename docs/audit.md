@@ -35,8 +35,9 @@ password-audit audit \
 Each audit creates a timestamped directory under `password-audit/` and prints
 its path. If that name already exists, a numeric suffix is added. Organised
 datasets, campaign results and reports for that run are kept together there.
-During analysis, progress advances as checks complete. When breach-data
-matching is enabled, a separate bar tracks the required NTLM ranges.
+During analysis, the overall progress advances as checks complete, while a
+separate line shows the current check. When breach-data matching is enabled,
+that line tracks progress through the required NTLM ranges.
 
 Before password recovery, the audit checks whether a usable domain minimum
 password length is available. If not, it asks whether to continue without

@@ -26,7 +26,7 @@ def prepare_company_word_sources(
 
     sources = [generated_path]
     if custom_path is None:
-        info(
+        warn(
             "No curated company wordlist supplied; using generated terms only. "
             "Optionally add 10-20 terms to ./company-words.txt or pass "
             "--company-words PATH."
