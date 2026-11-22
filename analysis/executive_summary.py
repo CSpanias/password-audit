@@ -188,8 +188,8 @@ def executive_summary(results, findings_data=None):
     if breached and weaknesses:
         findings.append((("PWD-BREACH-001", "PWD-PATTERN-001", "PWD-PATTERN-002",
                           "PWD-PATTERN-003", "PWD-PATTERN-004", "PWD-PATTERN-005"),
-            "The assessment found passwords matching known breach data and "
-            "passwords with predictable patterns, potentially making affected "
+            "Passwords matching known breach data and passwords with "
+            "predictable patterns were identified, potentially making affected "
             "accounts easier to compromise."
         ))
     elif breached:
@@ -212,10 +212,17 @@ def executive_summary(results, findings_data=None):
 
     if findings:
         findings.sort(key=lambda item: finding_priority(findings_data, item[0]))
+        sentences = []
+        for index, (_, text) in enumerate(findings):
+            if index == 1:
+                text = "In addition, " + text[0].lower() + text[1:]
+            elif index > 1 and index == len(findings) - 1:
+                text = "Finally, " + text[0].lower() + text[1:]
+            sentences.append(text)
         summary.append(
             "The assessment also highlighted weaknesses that could increase "
             "the risk of credential compromise. "
-            + " ".join(text for _, text in findings)
+            + " ".join(sentences)
         )
 
     #---------------------------------------------------------------------------
