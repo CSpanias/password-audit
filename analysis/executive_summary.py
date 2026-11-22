@@ -134,7 +134,7 @@ def executive_summary(results):
     )
     hash_reuse = results["ntlm_hash_reuse"]["groups"]
 
-    # count counts pairs that actually share a password.
+    # Count unique pairs with matching recovered passwords or NTLM hashes.
     similar_account_reuse_count = (
         results["similar_account_reuse"]["count"]
     )
@@ -171,8 +171,8 @@ def executive_summary(results):
         )
         if similar_account_reuse_count:
             findings.append(
-                "Reuse between related accounts may also undermine account "
-                "separation and increase the risk of privilege escalation."
+                "Reuse between similarly named accounts may also undermine "
+                "account separation when the accounts serve different roles."
             )
 
     if results.get("hibp", {}).get("count"):

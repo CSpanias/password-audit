@@ -11,6 +11,7 @@ should be handled elsewhere.
 """
 
 from collections import Counter
+from itertools import combinations
 
 from analysis.constants import (
     COMMON_PASSWORDS,
@@ -464,6 +465,41 @@ def similar_account_reuse(passwords):
                     })
 
     return findings, similar_pairs
+
+
+def similar_account_hash_reuse(groups, recovered_pairs, limit):
+    """Count hash-based pairs not already found and collect bounded examples."""
+    examples = []
+    account_groups = {}
+    grouped_names = []
+    count = 0
+    for group_index, group in enumerate(groups):
+        names = {}
+        for account in group["accounts"]:
+            username = account["username"]
+            base = username_base(username)
+            names.setdefault(base, []).append(username)
+            account_groups[username.casefold()] = (group_index, base)
+        for base, usernames in names.items():
+            count += len(usernames) * (len(usernames) - 1) // 2
+            grouped_names.append((usernames, group["masked_hash"]))
+
+    for pair in recovered_pairs:
+        if len(pair) == 2:
+            left, right = pair
+            if left in account_groups and account_groups[left] == account_groups.get(right):
+                count -= 1
+
+    for usernames, masked_hash in grouped_names:
+        if len(examples) >= limit:
+            break
+        for left, right in combinations(usernames, 2):
+            if frozenset((left.casefold(), right.casefold())) in recovered_pairs:
+                continue
+            examples.append({"username": left, "shared_with": right, "masked_hash": masked_hash})
+            if len(examples) >= limit:
+                break
+    return examples, count
 
 
 def ntlm_hash_reuse(accounts, privileged_users):

@@ -17,6 +17,7 @@ from analysis.analysis import (
     keyboard_walk_stats,
     username_passwords,
     similar_account_reuse,
+    similar_account_hash_reuse,
     ntlm_hash_reuse,
     common_passwords,
     common_password_stats,
@@ -197,6 +198,17 @@ def build_results(
     if "confirmed_domain" in privileged_users:
         results["privileged_users"]["confirmed_domain"] = privileged_users["confirmed_domain"]
     results["ntlm_hash_reuse"] = ntlm_hash_reuse(ntds_users, privileged_users)
+    recovered_pairs = {
+        frozenset((account["username"].casefold(), account["shared_with"].casefold()))
+        for account in reuse_accounts
+    }
+    # Only the report's first five pairs need examples; count the rest without
+    # materialising every combination in a large shared-hash group.
+    hash_examples, hash_pair_count = similar_account_hash_reuse(
+        results["ntlm_hash_reuse"]["groups"], recovered_pairs,
+        max(0, 5 - len(reuse_accounts)),
+    )
+    reuse_accounts.extend(hash_examples)
 
     # Domain Admins with LM
     results["lm_admins"] = {
@@ -244,7 +256,7 @@ def build_results(
 
     results["similar_account_reuse"] = {
         "accounts": reuse_accounts,
-        "count": len(reuse_accounts),
+        "count": len(reuse_accounts) - len(hash_examples) + hash_pair_count,
         "similarPairs": similar_pairs,
     }
 

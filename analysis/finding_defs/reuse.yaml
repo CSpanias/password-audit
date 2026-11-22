@@ -26,7 +26,7 @@ shared-account-passwords:
     Investigate accounts sharing passwords with similarly named accounts. Require
     password changes and review for evidence of credential compromise or shared
     account usage.
-  description_template: "A total of {count} password{s} {were_was} shared across similarly named accounts."
+  description_template: "A total of {count} similarly named account pair{s} {were_was} found to share credentials based on recovered passwords or matching NTLM hashes."
 
 ntlm-hash-reuse:
   id: PWD-REUSE-003

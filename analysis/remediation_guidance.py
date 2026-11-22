@@ -137,10 +137,9 @@ def remediation_guidance(results):
     if results["similar_account_reuse"]["count"]:
 
         lines.append(
-            "- Administrative and standard user accounts should maintain "
-            "separate credentials to preserve account separation and "
-            "reduce the likelihood of privilege escalation following "
-            "credential compromise."
+            "- Review similarly named accounts sharing credentials and require "
+            "unique passwords. Prioritise accounts with different privilege "
+            "levels to preserve account separation."
         )
 
     if any(

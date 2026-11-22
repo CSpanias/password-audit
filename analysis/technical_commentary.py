@@ -613,10 +613,9 @@ def commentary_password_reuse(results):
 
 def commentary_similar_account_reuse(results):
     """
-    Generate commentary for password reuse between related accounts.
+    Generate commentary for password reuse between similarly named accounts.
 
-    Similar account names are evaluated to identify possible reuse
-    between standard and privileged identities.
+    Examples may be based on recovered passwords or matching NTLM hashes.
 
     Args:
         results (dict):
@@ -629,46 +628,39 @@ def commentary_similar_account_reuse(results):
 
     reuse_accounts = results["similar_account_reuse"]["accounts"]
     count = results["similar_account_reuse"]["count"]
-    similar_pairs = results["similar_account_reuse"]["similarPairs"]
-
-    if similar_pairs == 0:
-        return ""
-
     if count == 0:
         return ""
-
-        # return (
-        #     "No password reuse was identified between similarly named accounts. "
-        #     "This suggests that standard and privileged accounts are generally "
-        #     "configured with separate credentials, reducing the potential impact "
-        #     "of credential compromise."
-        # )
 
     lines = []
 
     lines.append(
         f"A total of {num_to_word(count)} account "
-        f"pair{'s' if count != 1 else ''} shared passwords between similarly named accounts. This "
-        "behaviour is commonly observed where users maintain separate "
-        "standard and privileged identities but reuse credentials "
-        "across both accounts. Such reuse may undermine administrative "
-        "account separation, increase the impact of credential "
-        "compromise, and facilitate privilege escalation or lateral "
-        "movement within the environment."
+        f"pair{'s' if count != 1 else ''} with similar names shared credentials, "
+        "based on recovered passwords or matching NTLM hashes. Similar names do not "
+        "establish that accounts belong to the same person or have privileged roles. "
+        "Where accounts serve different roles, shared credentials may undermine "
+        "account separation and increase the impact of compromise."
     )
 
-    lines.append("")
-    lines.append("| Username | Password | Shared With |")
-    lines.append("| ---------- | ---------- | ---------- |")
-
-    for account in reuse_accounts[:5]:
-        lines.append(
-            f"| {_display_username(account['username'])} | "
-            f"{mask_password(account['password'])} | "
-            f"{_display_username(account['shared_with'])} |"
-        )
-
-    lines.append("")
+    examples = reuse_accounts[:5]
+    for field, heading, label in (
+        ("password", "Recovered password examples:", "Password"),
+        ("masked_hash", "Matching NTLM hash examples:", "NTLM Hash"),
+    ):
+        matching = [account for account in examples if field in account]
+        if not matching:
+            continue
+        lines.extend(["", heading, "", f"| Username | {label} | Shared With |",
+                      "| ---------- | ---------- | ---------- |"])
+        for account in matching:
+            value = (
+                mask_password(account[field]).replace("|", "\\|")
+                if field == "password" else account[field]
+            )
+            lines.append(
+                f"| {_display_username(account['username'])} | "
+                f"{value} | {_display_username(account['shared_with'])} |"
+            )
 
     return "\n".join(lines)
 

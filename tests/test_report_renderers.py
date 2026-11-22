@@ -699,7 +699,7 @@ class HtmlReportTests(unittest.TestCase):
             paragraph,
         )
         self.assertIn("LM passwords were recovered for Domain Administrator accounts", paragraph)
-        self.assertIn("Reuse between related accounts", paragraph)
+        self.assertIn("Reuse between similarly named accounts", paragraph)
         self.assertIn("In addition, some account password hashes matched", paragraph)
         self.assertIn("Some recovered passwords were shorter", paragraph)
         self.assertNotIn("Moreover", paragraph)
@@ -795,8 +795,72 @@ class HtmlReportTests(unittest.TestCase):
             reuse = commentary_similar_account_reuse({"similar_account_reuse": {
                 "accounts": [account], "count": count, "similarPairs": count,
             }})
-            self.assertIn("one account pair shared" if count == 1
-                          else "two account pairs shared", reuse)
+            self.assertIn("one account pair with similar names" if count == 1
+                          else "two account pairs with similar names", reuse)
+
+    def test_similar_account_reuse_includes_unrecovered_hashes_without_duplicates(self):
+        names = ["training05", "training1", "training2", "training3", "training4"]
+        hash_value = "ABCDEF0123456789ABCDEF0123456789"
+        ntds_users = [
+            {"username": f"EXAMPLE\\{name}", "ntlm": hash_value}
+            for name in names
+        ] + [
+            {"username": "EXAMPLE\\other", "ntlm": hash_value},
+            {"username": "EXAMPLE\\training6", "ntlm": "0" * 32},
+        ]
+        kwargs = dict(
+            domain_admins=[], company_words=[], minimum_length=12,
+            enabled_users=[account["username"] for account in ntds_users],
+            domain_name="example.test", lm_users=[], lm_mapped_passwords=[],
+        )
+        hash_only = build_results(ntlm_mapped_passwords=[], ntds_users=ntds_users, **kwargs)
+        finding = hash_only["similar_account_reuse"]
+        self.assertEqual(finding["count"], 10)
+        self.assertTrue(all("masked_hash" in account for account in finding["accounts"]))
+        text = commentary_similar_account_reuse(hash_only)
+        self.assertIn("Matching NTLM hash examples:", text)
+        self.assertIn("ab****************************89", text)
+        self.assertIn("Similar names do not establish", text)
+        self.assertNotIn(hash_value, text)
+        self.assertNotIn("| other |", text)
+        self.assertNotIn("training6", text)
+        exported = next(f for f in build_findings_dict(hash_only) if f["id"] == "PWD-REUSE-002")
+        self.assertIn("10 similarly named account pairs", exported["description"])
+        self.assertIn("matching NTLM hashes", exported["description"])
+        self.assertNotIn(hash_value, json.dumps(exported))
+        cards = {card["id"]: card for card in build_finding_summary(
+            hash_only, build_findings_dict(hash_only)
+        )}
+        self.assertEqual(cards["PWD-REUSE-002"]["count"], 10)
+
+        recovered = [
+            {"username": "example\\TRAINING1", "password": "Secret123"},
+            {"username": "example\\training05", "password": "Secret123"},
+        ]
+        combined = build_results(ntlm_mapped_passwords=recovered, ntds_users=ntds_users, **kwargs)
+        self.assertEqual(combined["similar_account_reuse"]["count"], 10)
+        text = commentary_similar_account_reuse(combined)
+        self.assertIn("Recovered password examples:", text)
+        self.assertIn("Matching NTLM hash examples:", text)
+        self.assertNotIn("Secret123", text)
+        without_hashes = build_results(ntlm_mapped_passwords=recovered, ntds_users=None, **kwargs)
+        self.assertEqual(without_hashes["similar_account_reuse"]["count"], 1)
+        self.assertNotIn("Matching NTLM hash examples:",
+                         commentary_similar_account_reuse(without_hashes))
+
+    def test_large_similar_hash_group_counts_all_pairs_with_bounded_examples(self):
+        users = [
+            {"username": f"training{i}", "ntlm": "a" * 32}
+            for i in range(2000)
+        ]
+        results = build_results(
+            ntlm_mapped_passwords=[], domain_admins=[], company_words=[],
+            minimum_length=12, enabled_users=[user["username"] for user in users],
+            domain_name="example.test", lm_users=[], lm_mapped_passwords=[],
+            ntds_users=users,
+        )
+        self.assertEqual(results["similar_account_reuse"]["count"], 1_999_000)
+        self.assertEqual(len(results["similar_account_reuse"]["accounts"]), 5)
 
     def test_domain_and_enterprise_admins_are_not_repeated_in_privileged_table(self):
         admins = [{"username": "EXAMPLE\\Cotton.Adm", "password": "Password123!"}]
@@ -1211,6 +1275,23 @@ class HtmlReportTests(unittest.TestCase):
                 self.assertIn("No plaintext passwords were recovered", report)
                 self.assertNotIn("did not identify any significant", report)
                 self.assertNotIn("full compliance with the configured", report)
+
+                names = ["training05", "training1", "training2", "training3", "training4"]
+                (root / "users.txt").write_text("\n".join(names) + "\n", encoding="utf-8")
+                (root / "ntds.txt").write_text("".join(
+                    f"{name}:{1000 + index}:unused:{'a' * 32}:::\n"
+                    for index, name in enumerate(names)
+                ), encoding="utf-8")
+                with patch.object(sys, "argv", args):
+                    cli_main.main()
+                findings = json.loads((root / "password-audit-findings.json").read_text())
+                related = next(item for item in findings["findings"]
+                               if item["id"] == "PWD-REUSE-002")
+                self.assertIn("10 similarly named account pairs", related["description"])
+                report = (root / "password-audit-report.html").read_text(encoding="utf-8")
+                self.assertIn("Matching NTLM hash examples:", report)
+                self.assertIn("training05", report)
+                self.assertNotIn("a" * 32, report.lower())
 
                 (root / "ntds.txt").write_text(
                     "admin:1000:unused:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:::\n"
