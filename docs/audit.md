@@ -35,6 +35,18 @@ password-audit audit \
 Each audit creates a timestamped directory under `password-audit/` and prints
 its path. If that name already exists, a numeric suffix is added. Organised
 datasets, campaign results and reports for that run are kept together there.
+During analysis, progress advances as checks complete. When breach-data
+matching is enabled, a separate bar tracks the required NTLM ranges.
+
+Before password recovery, the audit checks whether a usable domain minimum
+password length is available. If not, it asks whether to continue without
+the password length compliance check. The report identifies the check as
+unavailable. Non-interactive runs stop instead of assuming consent; supply
+a policy with `--pass-policy` to run the check without a prompt.
+
+SureFormat export also requires a domain name in the policy. If it is
+unavailable, the audit stops before recovery and asks for a policy containing
+the domain name.
 
 The organising summary shows counts of enabled, unfiltered NTDS accounts matched
 to each selected privileged group, including Domain Admins. Accounts in multiple
@@ -83,8 +95,9 @@ password-audit audit \
 Curated terms supplement the generated list and are deduplicated
 case-insensitively. The audit does not modify or regenerate your curated file.
 
-It prints a reminder when no curated list is found and warns when the file's
-name, size, and modification time appear unchanged since the previous audit.
+During organisation, it prints a reminder when no curated list is found and
+warns when the file's name, size, and modification time appear unchanged since
+the previous audit.
 Only its filename and file metadata are stored in 
 `password-audit/.company-words-state.json` for this reminder; the curated terms 
 are not copied into that state file. The curated list is optional.

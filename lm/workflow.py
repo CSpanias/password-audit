@@ -2,11 +2,12 @@
 LM password workflows.
 """
 
+import os
 import subprocess
 
 from pathlib import Path
 
-from cracking.hashcat import windows_path
+from cracking.hashcat import hashcat_path
 from ntds.parsers import parse_ntds_file, load_potfile, load_lm_results
 from ntds.results import build_results
 from ntds.exports import export_results
@@ -95,14 +96,15 @@ def generate_lm_results(
             Generated results file.
     """
 
+    hashcat_binary = os.path.abspath(hashcat_binary)
     command = [
         hashcat_binary,
         "-m",
         "3000",
         "--show",
-        windows_path(str(hash_file)),
+        hashcat_path(hash_file, hashcat_binary),
         "--potfile-path",
-        windows_path(str(potfile)),
+        hashcat_path(potfile, hashcat_binary),
     ]
 
     result = subprocess.run(

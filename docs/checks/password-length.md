@@ -30,8 +30,10 @@ policies may apply different requirements to individual accounts, and an
 existing password may predate a policy change. Review those factors before
 classifying an account as actually violating its effective policy.
 
-If the minimum length cannot be determined from the policy input, analysis
-stops rather than treating the check as passed.
+If the minimum length cannot be determined, the audit workflow asks before
+continuing without this check and identifies it as unavailable in the report.
+Non-interactive audits stop instead. Standalone `analyse` requires a usable
+policy and stops when the minimum length is unavailable.
 
 ## Findings
 

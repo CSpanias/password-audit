@@ -5,11 +5,10 @@ This module provides reusable password analysis workflows
 for report generation and audit orchestration.
 """
 
-import sys
 from pathlib import Path
 
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
 from rich.text import Text
 
@@ -24,6 +23,7 @@ from analysis.parsers import (
     load_ntds_users,
     load_passwords,
     load_privileged_users,
+    minimum_password_length,
 )
 from analysis.remediation_guidance import remediation_guidance, remediation_references
 from analysis.results import build_results
@@ -49,6 +49,7 @@ def analyse_passwords(
     privileged_users=None,
     ntds_users=None,
     hibp=None,
+    allow_missing_policy=False,
 ):
     """
     Analyse recovered passwords and generate a report.
@@ -93,6 +94,9 @@ def analyse_passwords(
         hibp:
             Optional local Pwned Passwords NTLM range directory.
 
+        allow_missing_policy:
+            Permit analysis without password length compliance.
+
     Returns:
         dict:
             Password analysis results.
@@ -102,11 +106,26 @@ def analyse_passwords(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
-        TextColumn("{task.percentage:>3.0f}%"),
+        TaskProgressColumn(),
         console=console,
         transient=True,
     ) as progress:
-        task_id = progress.add_task("Loading and analyzing datasets", total=3)
+        task_id = progress.add_task("Loading datasets", total=None)
+        hibp_task_id = None
+
+        def loaded():
+            progress.update(
+                task_id, description="Analysing password data", total=12, completed=1
+            )
+
+        def hibp_progress(completed, total):
+            nonlocal hibp_task_id
+            if not total:
+                return
+            if hibp_task_id is None:
+                hibp_task_id = progress.add_task("Checking breach data", total=total)
+            progress.update(hibp_task_id, completed=completed)
+
         results = _build_analysis_results(
             mapped_ntlm_passwords=mapped_ntlm_passwords,
             domain_admins=domain_admins,
@@ -118,8 +137,13 @@ def analyse_passwords(
             privileged_users=privileged_users,
             ntds_users=ntds_users,
             hibp=hibp,
+            allow_missing_policy=allow_missing_policy,
+            loaded_callback=loaded,
+            progress_callback=lambda: progress.advance(task_id),
+            hibp_progress_callback=hibp_progress,
         )
-        progress.advance(task_id)
+        if hibp_task_id is not None:
+            progress.update(hibp_task_id, visible=False)
 
         if csacyber:
             domain_name = results.get("domain_name")
@@ -178,41 +202,44 @@ def _build_analysis_results(
     privileged_users,
     ntds_users,
     hibp=None,
+    loaded_callback=None,
+    progress_callback=None,
+    hibp_progress_callback=None,
+    allow_missing_policy=False,
 ):
     """Load analysis inputs and build the structured results."""
     enabled_users = load_list(enabled_users)
     domain_admins = load_list(domain_admins)
-    policy = load_domain_policy(pass_policy)
+    policy = load_domain_policy(pass_policy) if pass_policy is not None else {}
     domain_name = policy.get("Domain")
+    if not domain_name or domain_name.strip().lower() in {"", "none"}:
+        domain_name = None
     company_words = load_company_words(company_words)
     privileged_users = load_privileged_users(privileged_users)
     if privileged_users["status"] != "available":
         warn("Privileged group analysis is incomplete: " + format_count_warnings(
             privileged_users["warnings"]
-        ))
+        ), end="\n\n")
 
     ntlm_passwords = load_passwords(mapped_ntlm_passwords) if mapped_ntlm_passwords else []
 
     lm_users = load_lm_users(lm_users) if lm_users else []
 
-    try:
-        minimum_length = int(policy["Minimum Password Length"])
-    except (KeyError, TypeError, ValueError):
-        warn(
-            "Unable to determine Minimum Password Length from domain-policy.txt"
-        )
-        warn(
-            "Password policy data appears to be unavailable within the "
-            "supplied dataset."
-        )
-        sys.exit(1)
+    minimum_length = minimum_password_length(policy)
+    if minimum_length is None and not allow_missing_policy:
+        warn("Unable to determine a valid Minimum Password Length from the domain password policy.")
+        raise SystemExit(1)
 
     lm_passwords = load_passwords(mapped_lm_passwords) if mapped_lm_passwords else []
 
     if ntds_users is not None:
         ntds_users = load_ntds_users(ntds_users)
     else:
-        warn("NTLM hash reuse analysis is unavailable: no organised NTDS user records supplied.")
+        warn("NTLM hash reuse analysis is unavailable: no organised NTDS user records supplied.",
+             end="\n\n")
+
+    if loaded_callback is not None:
+        loaded_callback()
 
     results = build_results(
         ntlm_mapped_passwords=ntlm_passwords,
@@ -225,9 +252,10 @@ def _build_analysis_results(
         domain_name=domain_name,
         privileged_users=privileged_users,
         ntds_users=ntds_users,
+        progress_callback=progress_callback,
     )
     if hibp is not None:
-        results["hibp"] = check_hibp(ntds_users, hibp)
+        results["hibp"] = check_hibp(ntds_users, hibp, progress_callback=hibp_progress_callback)
     return results
 
 

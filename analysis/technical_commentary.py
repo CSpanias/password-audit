@@ -10,7 +10,9 @@ security guidance.
 from collections import Counter
 
 from analysis.findings import build_findings_dict, finding_priority
-from common.utils import format_count_warnings, mask_password, natural_join, num_to_word
+from common.utils import (
+    format_count_warnings, mask_password, natural_join, num_to_word, proportion_wording,
+)
 from ntds.analysis import privileged_group_name
 
 
@@ -345,6 +347,11 @@ def commentary_password_lengths(results):
     """
 
     minimum_length = results["password_length"]["minimum_length"]
+    if minimum_length is None:
+        return (
+            "Password length compliance could not be assessed because the domain "
+            "minimum password length was unavailable."
+        )
     failures = results["password_length"]["failures"]
     failure_count = results["password_length"]["count"]
     failure_percentage = results["password_length"]["percentage"]
@@ -1054,12 +1061,28 @@ def technical_commentary(results, findings_data=None):
     introduction = ("A password audit was performed against extracted Active Directory password hashes to assess the "
         "effectiveness of password selection practices and highlight weaknesses that could increase the likelihood "
         f"of credential compromise.\n\nThrough password-cracking techniques, it was possible to recover {num_to_word(total)} "
-        f"plaintext passwords from {num_to_word(enabled_users)} enabled user accounts, representing approximately {crack_rate}% "
-        "of the assessed population. ")
-    if total:
+        "plaintext passwords")
+    if enabled_users:
         introduction += (
-            "This demonstrates that a measurable proportion of user credentials remain susceptible to "
-            "password-cracking attacks following credential exposure. The recovered passwords were subsequently analysed for "
+            f" from {num_to_word(enabled_users)} enabled user accounts, representing approximately {crack_rate}% "
+            "of the assessed population. "
+        )
+    else:
+        introduction += ". No enabled user accounts were available to calculate a recovery rate. "
+    if total:
+        if enabled_users:
+            _, impact = proportion_wording(crack_rate)
+            introduction += (
+                f"This demonstrates that {impact} user credentials remain susceptible to "
+                "password-cracking attacks following credential exposure. "
+            )
+        else:
+            introduction += (
+                "The recovered credentials demonstrate susceptibility to password-cracking attacks "
+                "following credential exposure. "
+            )
+        introduction += (
+            "The recovered passwords were subsequently analysed for "
             "common password selection patterns, password length, and other indicators of weak password hygiene."
         )
     else:

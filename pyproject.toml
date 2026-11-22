@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "password-audit"
 version = "0.1.0"
 description = "Active Directory password audit framework"
+license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.10"
 

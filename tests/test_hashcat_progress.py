@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -74,6 +75,39 @@ class HashcatProgressTests(unittest.TestCase):
         printed = print_mock.call_args_list
         rule_line = printed.index(call("    Rule     : rules.rule"))
         self.assertEqual(printed[rule_line + 1], call())
+
+    def test_run_phase_uses_paths_for_the_selected_hashcat_binary(self):
+        cases = [
+            ("linux", "tools/hashcat", False),
+            ("linux", "tools/HASHCAT.EXE", True),
+            ("win32", "tools/hashcat.exe", False),
+        ]
+        for platform, binary, convert in cases:
+            with self.subTest(platform=platform, binary=binary):
+                process = Mock(stdout=[], returncode=0)
+                progress = MagicMock()
+                progress.__enter__.return_value = progress
+                with (
+                    patch("cracking.hashcat.sys.platform", platform),
+                    patch("cracking.hashcat.windows_path", side_effect=lambda path: f"WIN:{path}") as convert_path,
+                    patch("cracking.hashcat.Progress", return_value=progress),
+                    patch("cracking.hashcat.subprocess.Popen", return_value=process) as popen,
+                ):
+                    run_phase(
+                        phase_id=1, total_phases=1, hashcat_binary=binary,
+                        hash_file="data/hashes", hash_mode=1000,
+                        hashcat_potfile="data/potfile", wordlist="data/words",
+                        rule="data/rules", session_name="test", flags=[],
+                    )
+                command = popen.call_args.args[0]
+                expected_paths = [
+                    f"WIN:{path}" if convert else os.path.abspath(path)
+                    for path in ("data/hashes", "data/words", "data/potfile", "data/rules")
+                ]
+                self.assertEqual(command[0], os.path.abspath(binary))
+                self.assertEqual([command[3], command[4], command[6], command[8]], expected_paths)
+                self.assertEqual(convert_path.call_count, 4 if convert else 0)
+                self.assertEqual(str(popen.call_args.kwargs["cwd"]), os.path.dirname(os.path.abspath(binary)))
 
 
 if __name__ == "__main__":

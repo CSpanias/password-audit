@@ -27,10 +27,9 @@ def prepare_company_word_sources(
     sources = [generated_path]
     if custom_path is None:
         info(
-            "No curated company wordlist supplied. Using generated "
-            "domain/account terms only. For stronger company-specific "
-            "analysis, add roughly 10-20 terms to ./company-words.txt or "
-            "pass --company-words PATH. This list is optional."
+            "No curated company wordlist supplied; using generated terms only. "
+            "Optionally add 10-20 terms to ./company-words.txt or pass "
+            "--company-words PATH."
         )
         return sources, None
 
@@ -91,6 +90,7 @@ def _read_snapshot(state_path):
         snapshot = json.loads(state_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         warn(f"Unable to read company wordlist reminder state: {exc}")
+        print()
         return None
 
     return snapshot

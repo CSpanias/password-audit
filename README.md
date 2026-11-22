@@ -136,3 +136,7 @@ Analyse the results & generate the report (password-audit analyse)
 For detailed examples and module-specific documentation, see:
 
 📖 https://cspanias.github.io/password-audit/
+
+## Licence
+
+Password Audit is licensed under the [MIT License](LICENSE).

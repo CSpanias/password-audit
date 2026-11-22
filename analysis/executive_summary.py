@@ -6,6 +6,7 @@ positive observations, and a concluding assessment.
 """
 
 from analysis.findings import build_findings_dict, finding_priority
+from common.utils import proportion_wording
 
 
 def executive_summary(results, findings_data=None):
@@ -39,7 +40,11 @@ def executive_summary(results, findings_data=None):
             results["total_passwords"] and not has_reuse
             and results["ntlm_hash_reuse"]["status"] == "available"
         ),
-        bool(results["total_passwords"] and not results["password_length"]["count"]),
+        bool(
+            results["total_passwords"]
+            and results["password_length"]["minimum_length"] is not None
+            and not results["password_length"]["count"]
+        ),
         bool(
             results["total_passwords"] and has_reuse
             and results["ntlm_hash_reuse"]["status"] == "available"
@@ -53,26 +58,7 @@ def executive_summary(results, findings_data=None):
     #---------------------------------------------------------------------------
     
     # Extract domain name from the domain password policy file
-    domain_name = results["domain_name"].lower() or "assessed"
-
-    # Crack rate calculation
-    crack_rate = results["crack_rate"]
-        
-    if crack_rate < 5:
-        size = "a small subset"
-        impact = "a limited number of passwords"
-
-    elif crack_rate < 15:
-        size = "a subset"
-        impact = "some passwords"
-
-    elif crack_rate < 30:
-        size = "a substantial subset"
-        impact = "a notable proportion of passwords"
-
-    else:
-        size = "a significant subset"
-        impact = "a significant proportion of passwords"
+    domain_name = (results["domain_name"] or "assessed").lower()
 
     introduction = (
         f"A password audit was performed against the {domain_name} domain to "
@@ -82,9 +68,10 @@ def executive_summary(results, findings_data=None):
     )
     if results["total_passwords"]:
         if results["enabled_users"]:
+            size, impact = proportion_wording(results["crack_rate"])
             recovery = (
                 f"{size} of user credentials could be recovered through offline "
-                f"password cracking, indicating that {impact} remain susceptible "
+                f"password cracking, indicating that {impact} passwords remain susceptible "
                 "to compromise if credential data is exposed"
             )
         else:
@@ -108,6 +95,11 @@ def executive_summary(results, findings_data=None):
         introduction += (
             " No plaintext passwords were recovered during the campaign. "
             "This does not establish that unrecovered passwords are strong."
+        )
+    if results["password_length"]["minimum_length"] is None:
+        introduction += (
+            " Password length compliance could not be assessed because the "
+            "domain minimum password length was unavailable."
         )
     summary.append(introduction)
 
@@ -154,8 +146,8 @@ def executive_summary(results, findings_data=None):
     findings = []
     if has_privileged:
         findings.append((("DOMAIN-ADMIN-001", "PRIV-ACCOUNT-001"),
-            "Privileged account credentials were recovered, potentially "
-            "providing access to critical systems and sensitive information."
+            "Privileged account credentials were recovered, which could expose "
+            "critical systems and sensitive information to unauthorised access."
         ))
 
     if lm_count or lm_recovered:
@@ -179,7 +171,7 @@ def executive_summary(results, findings_data=None):
         )
         if similar_account_reuse_count:
             finding += (
-                ", potentially undermining separation between accounts "
+                " and may undermine separation between accounts "
                 "with different roles"
             )
         findings.append((("PWD-REUSE-001", "PWD-REUSE-002", "PWD-REUSE-003"), finding + "."))
@@ -189,25 +181,25 @@ def executive_summary(results, findings_data=None):
         findings.append((("PWD-BREACH-001", "PWD-PATTERN-001", "PWD-PATTERN-002",
                           "PWD-PATTERN-003", "PWD-PATTERN-004", "PWD-PATTERN-005"),
             "Passwords matching known breach data and passwords with "
-            "predictable patterns were identified, potentially making affected "
-            "accounts easier to compromise."
+            "predictable patterns were identified, placing affected accounts at "
+            "greater risk of compromise."
         ))
     elif breached:
         findings.append((("PWD-BREACH-001",),
-            "Some passwords matched known breach data, potentially making "
-            "affected accounts easier to compromise."
+            "Some passwords matched known breach data, placing affected accounts "
+            "at greater risk of compromise."
         ))
     elif weaknesses:
         findings.append((("PWD-PATTERN-001", "PWD-PATTERN-002", "PWD-PATTERN-003",
                           "PWD-PATTERN-004", "PWD-PATTERN-005"),
-            "Some recovered passwords followed predictable patterns, potentially "
-            "making affected accounts easier to compromise."
+            "Some recovered passwords followed predictable patterns, placing "
+            "affected accounts at greater risk of compromise."
         ))
 
     if failure_count:
         findings.append((("PWD-POLICY-001",),
             "Some recovered passwords fell below the domain's configured "
-            "minimum length, potentially making them easier to guess or crack."
+            "minimum length and may be easier to guess or crack."
         ))
 
     if findings:

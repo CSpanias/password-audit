@@ -20,11 +20,121 @@ from ntds.constants import LM_EMPTY
 from ntds.analysis import extract_domain_admins, extract_privileged_users
 from ntds.results import build_results as build_ntds_results
 from ntds.workflow import organise_dataset
-from analysis.parsers import load_passwords, load_privileged_users
-from common.console import confirm_ntds_domain
+from analysis.parsers import load_passwords, load_privileged_users, minimum_password_length
+from common.console import confirm_ntds_domain, confirm_without_password_policy
 
 
 class AuditReliabilityTests(unittest.TestCase):
+    def test_domain_minimum_accepts_zero_and_rejects_invalid_values(self):
+        self.assertEqual(minimum_password_length({"Minimum Password Length": "0"}), 0)
+        for value in ("-1", "invalid", None):
+            with self.subTest(value=value):
+                self.assertIsNone(minimum_password_length({"Minimum Password Length": value}))
+        self.assertIsNone(minimum_password_length({}))
+
+    def test_audit_checks_policy_before_recovery_and_can_continue_without_it(self):
+        cases = (
+            ("missing domain data", None, None, True, False, True),
+            ("empty domain data", {"data": []}, None, True, False, True),
+            ("missing minimum", {"data": [{"Properties": {"domain": "example.test"}}]},
+             None, True, False, True),
+            ("invalid override", None, "Domain: example.test\nMinimum Password Length: bad\n",
+             True, False, True),
+            ("valid override", None, "Domain: example.test\nMinimum Password Length: 12\n",
+             False, False, True),
+            ("sureformat with domain", None,
+             "Domain: example.test\nMinimum Password Length: bad\n", True, True, True),
+            ("declined", None, None, False, False, False),
+            ("sureformat needs domain", None, None, True, True, False),
+            ("sureformat needs nonblank domain", None,
+             "Domain:    \nMinimum Password Length: 12\n", True, True, False),
+        )
+        for label, domains, override, accepted, csacyber, completes in cases:
+            with self.subTest(case=label), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "ntds.txt").write_text(
+                    f"example.test\\alice:1000:{LM_EMPTY}:{'a' * 32}::: (status=Enabled)\n",
+                    encoding="utf-8",
+                )
+                (root / "hashcat.potfile").write_text(
+                    f"{'a' * 32}:short\n", encoding="utf-16",
+                )
+                with zipfile.ZipFile(root / "bloodhound.zip", "w") as archive:
+                    archive.writestr("users.json", json.dumps({"data": []}))
+                    archive.writestr("groups.json", json.dumps({"data": []}))
+                    if domains is not None:
+                        archive.writestr("domains.json", json.dumps(domains))
+                (root / "campaign.json").write_text(json.dumps({
+                    "ntlm": {
+                        "parameters": {"hashcatDir": str(root)},
+                        "phases": [{"id": "test", "type": "wordlist", "wordlist": "words.txt"}],
+                    },
+                }), encoding="utf-8")
+                policy_path = None
+                if override is not None:
+                    policy_path = root / "policy.txt"
+                    policy_path.write_text(override, encoding="utf-8")
+                events = []
+                original_cwd = os.getcwd()
+                try:
+                    os.chdir(root)
+                    with (
+                        patch.object(audit, "confirm_without_password_policy",
+                                     side_effect=lambda: events.append("prompt") or accepted),
+                        patch.object(audit, "run_campaign",
+                                     side_effect=lambda **kwargs: events.append("recovery") or {"phases": []}),
+                    ):
+                        if completes:
+                            result = audit.run_audit(
+                                "ntds.txt", "bloodhound.zip", "campaign.json", "test",
+                                pass_policy=policy_path, csacyber=csacyber,
+                            )
+                        else:
+                            with self.assertRaises(SystemExit):
+                                audit.run_audit(
+                                    "ntds.txt", "bloodhound.zip", "campaign.json", "test",
+                                    pass_policy=policy_path, csacyber=csacyber,
+                                )
+                finally:
+                    os.chdir(original_cwd)
+                if not completes:
+                    self.assertNotIn("recovery", events)
+                    continue
+                report = (root / result["report"]).read_text(encoding="utf-8")
+                if csacyber:
+                    findings = (root / result["outputDir"] / "password-audit-findings.xml").read_text(
+                        encoding="utf-8"
+                    )
+                    self.assertIn('hostname="example.test"', findings)
+                    self.assertNotIn('id="SC-3307"', findings)
+                else:
+                    findings = json.loads(
+                        (root / result["outputDir"] / "password-audit-findings.json").read_text(encoding="utf-8")
+                    )
+                if label == "valid override":
+                    self.assertEqual(events, ["recovery"])
+                    self.assertIn("PWD-POLICY-001", [item["id"] for item in findings["findings"]])
+                    self.assertNotIn("Password length compliance could not be assessed", report)
+                else:
+                    self.assertEqual(events, ["prompt", "recovery"])
+                    if not csacyber:
+                        self.assertNotIn("PWD-POLICY-001", [item["id"] for item in findings["findings"]])
+                    self.assertIn("Password length compliance could not be assessed", report)
+                    self.assertIn("privileged", report.lower())
+
+    def test_missing_policy_confirmation_requires_interactive_consent(self):
+        with patch("common.console.sys.stdin") as stdin, patch("builtins.input") as prompt:
+            stdin.isatty.return_value = False
+            self.assertFalse(confirm_without_password_policy())
+            prompt.assert_not_called()
+        with patch("common.console.sys.stdin") as stdin, patch(
+            "builtins.input", side_effect=["", "yes", EOFError]
+        ):
+            stdin.isatty.return_value = True
+            self.assertFalse(confirm_without_password_policy())
+            self.assertTrue(confirm_without_password_policy())
+            self.assertFalse(confirm_without_password_policy())
+
     def test_potfile_password_whitespace_survives_organisation_and_analysis(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -58,20 +168,55 @@ class AuditReliabilityTests(unittest.TestCase):
             output = Path(directory) / "lm-results.txt"
             output.write_text("previous\n", encoding="utf-8")
             for code, stderr in ((1, "invalid hashes"), (-1, "")):
-                with self.subTest(code=code), patch(
-                    "lm.workflow.subprocess.run",
-                    return_value=SimpleNamespace(
-                        returncode=code, stderr=stderr, stdout="partial"
+                with (
+                    self.subTest(code=code),
+                    patch("cracking.hashcat.windows_path", side_effect=str),
+                    patch(
+                        "lm.workflow.subprocess.run",
+                        return_value=SimpleNamespace(
+                            returncode=code, stderr=stderr, stdout="partial"
+                        ),
                     ),
                 ):
                     with self.assertRaisesRegex(RuntimeError, "LM --show failed"):
                         generate_lm_results("hashcat.exe", "hashes", "potfile", output)
                     self.assertEqual(output.read_text(encoding="utf-8"), "previous\n")
-            with patch("lm.workflow.subprocess.run", return_value=SimpleNamespace(
-                returncode=0, stderr="", stdout=""
-            )):
+            with (
+                patch("cracking.hashcat.windows_path", side_effect=str),
+                patch("lm.workflow.subprocess.run", return_value=SimpleNamespace(
+                    returncode=0, stderr="", stdout=""
+                )),
+            ):
                 generate_lm_results("hashcat.exe", "hashes", "potfile", output)
             self.assertEqual(output.read_text(encoding="utf-8"), "")
+
+    def test_lm_show_uses_paths_for_the_selected_hashcat_binary(self):
+        cases = [
+            ("linux", "tools/hashcat", False),
+            ("linux", "tools/hashcat.exe", True),
+            ("win32", "tools/hashcat.exe", False),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "lm-results.txt"
+            for platform, binary, convert in cases:
+                with (
+                    self.subTest(platform=platform, binary=binary),
+                    patch("cracking.hashcat.sys.platform", platform),
+                    patch("cracking.hashcat.windows_path", side_effect=lambda path: f"WIN:{path}") as convert_path,
+                    patch("lm.workflow.subprocess.run", return_value=SimpleNamespace(
+                        returncode=0, stderr="", stdout=""
+                    )) as run,
+                ):
+                    generate_lm_results(binary, "data/hashes", "data/potfile", output)
+                expected = [
+                    f"WIN:{path}" if convert else os.path.abspath(path)
+                    for path in ("data/hashes", "data/potfile")
+                ]
+                command = run.call_args.args[0]
+                self.assertEqual(command[0], os.path.abspath(binary))
+                self.assertEqual([command[4], command[6]], expected)
+                self.assertEqual(convert_path.call_count, 2 if convert else 0)
+                self.assertEqual(run.call_args.kwargs["cwd"], Path(os.path.abspath(binary)).parent)
 
     def test_missing_bloodhound_account_data_is_not_treated_as_empty(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -694,6 +839,9 @@ class AuditReliabilityTests(unittest.TestCase):
                     patch.object(audit, "validate_audit_inputs"),
                     patch.object(audit, "create_audit_directory", return_value=Path(directory)),
                     patch.object(audit, "organise_dataset", return_value=organised),
+                    patch.object(audit, "load_domain_policy", return_value={
+                        "Domain": "example.test", "Minimum Password Length": "12",
+                    }),
                     patch.object(audit, "load_campaign", return_value={
                         "ntlm": {"parameters": {}, "phases": []},
                     }),
@@ -710,6 +858,7 @@ class AuditReliabilityTests(unittest.TestCase):
                 self.assertEqual(sum("Domain Admins" in line and "│" in line
                                      for line in summary.splitlines()), 1)
                 self.assertIn("Privileged group counts: matched enabled NTDS accounts", summary)
+                self.assertTrue(summary.split("Privileged group counts:", 1)[0].endswith("\n\n"))
                 if members:
                     self.assertRegex(summary, r"Domain Admins\s+│\s+1")
                     self.assertRegex(summary, r"Administrators\s+│\s+2")
@@ -902,7 +1051,9 @@ class AuditReliabilityTests(unittest.TestCase):
             load_campaign=DEFAULT, has_enabled_phases=DEFAULT,
             analyse_passwords=DEFAULT, run_campaign=DEFAULT, print_summary=DEFAULT,
             generate_lm_results=DEFAULT, map_lm_passwords=DEFAULT,
+            load_domain_policy=DEFAULT,
         ) as mocks, patch.object(audit, "Path", side_effect=lambda p: Path(directory) / p):
+            mocks["load_domain_policy"].return_value = {"Minimum Password Length": "12"}
             mocks["organise_dataset"].side_effect = [
                 {"filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
                  "lm_hashes": ["hash"], "domain_admins": [],
@@ -927,7 +1078,9 @@ class AuditReliabilityTests(unittest.TestCase):
             load_campaign=DEFAULT, has_enabled_phases=DEFAULT,
             analyse_passwords=DEFAULT, run_campaign=DEFAULT, print_summary=DEFAULT,
             generate_lm_results=DEFAULT, map_lm_passwords=DEFAULT,
+            load_domain_policy=DEFAULT,
         ) as mocks, patch.object(audit, "Path", side_effect=lambda p: Path(directory) / p):
+            mocks["load_domain_policy"].return_value = {"Minimum Password Length": "12"}
             mocks["organise_dataset"].side_effect = [
                 {"filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
                  "lm_hashes": ["hash"], "domain_admins": [],
@@ -959,7 +1112,9 @@ class AuditReliabilityTests(unittest.TestCase):
             load_campaign=DEFAULT, has_enabled_phases=DEFAULT,
             analyse_passwords=DEFAULT, run_campaign=DEFAULT, print_summary=DEFAULT,
             generate_lm_results=DEFAULT, map_lm_passwords=DEFAULT,
+            load_domain_policy=DEFAULT,
         ) as mocks, patch.object(audit, "Path", side_effect=lambda p: Path(directory) / p):
+            mocks["load_domain_policy"].return_value = {"Minimum Password Length": "12"}
             mocks["organise_dataset"].side_effect = [
                 {"filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
                  "lm_hashes": ["hash"], "domain_admins": [],

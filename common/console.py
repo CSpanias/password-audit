@@ -44,6 +44,20 @@ def confirm_ntds_domain(domain):
         return None
     return answer.strip().casefold() in {"y", "yes"}
 
+
+def confirm_without_password_policy():
+    """Ask before skipping policy compliance, without blocking unattended runs."""
+    if not sys.stdin.isatty():
+        warn("Cannot continue without password policy confirmation in a non-interactive terminal.")
+        return False
+    try:
+        answer = input("Continue without password length compliance analysis? [y/N] ")
+    except EOFError:
+        warn("Password policy confirmation was not provided.")
+        return False
+    return answer.strip().casefold() in {"y", "yes"}
+
+
 def info(message):
     """
     Display an informational message.
@@ -58,7 +72,7 @@ def info(message):
     print(f"{COLOR_CYAN}[*]{COLOR_RESET} {message}")
 
 
-def warn(message):
+def warn(message, end="\n"):
     """
     Display a warning message.
 
@@ -66,11 +80,14 @@ def warn(message):
         message (str):
             Message to display.
 
+        end (str):
+            Text appended after the message.
+
     Returns:
         None
     """
 
-    print(f"{COLOR_YELLOW}[!]{COLOR_RESET} {message}")
+    print(f"{COLOR_YELLOW}[!]{COLOR_RESET} {message}", end=end)
 
 
 # ---------------

@@ -40,6 +40,17 @@ def natural_join(items):
     return ", ".join(items[:-1]) + f", and {items[-1]}"
 
 
+def proportion_wording(percentage):
+    """Describe a percentage as a subset and as a proportion."""
+    if percentage < 5:
+        return "a small subset", "a limited number of"
+    if percentage < 15:
+        return "a subset", "some"
+    if percentage < 30:
+        return "a substantial subset", "a notable proportion of"
+    return "a significant subset", "a significant proportion of"
+
+
 def num_to_word(value):
     """
     Convert small integers to their written representation.

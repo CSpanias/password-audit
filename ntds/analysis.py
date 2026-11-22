@@ -493,7 +493,7 @@ def extract_domain_policy(domains_data):
             Domain password policy information.
     """
 
-    if not domains_data:
+    if not domains_data or not domains_data["data"]:
         return {}
 
     domain = domains_data["data"][0]

@@ -200,6 +200,15 @@ def load_domain_policy(path):
     return policy
 
 
+def minimum_password_length(policy):
+    """Return the usable domain minimum, or None when it is unavailable."""
+    try:
+        minimum = int(policy["Minimum Password Length"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return minimum if minimum >= 0 else None
+
+
 # ---------------------------------------------------------------------------
 # Organisation Terms
 # ---------------------------------------------------------------------------

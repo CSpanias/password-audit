@@ -1,13 +1,17 @@
 import json
+import re
 import sys
 import xml.etree.ElementTree as ET
-from unittest.mock import DEFAULT, patch
+from unittest.mock import DEFAULT, MagicMock, call, patch
 
 import pytest
+from rich.console import Console
 
 from analysis.hibp import HibpDataError, check_hibp
 from analysis.technical_commentary import commentary_hibp
 import auditing.workflow as audit_workflow
+import analysis.results as analysis_results
+import analysis.workflow as analysis_workflow
 from cli import audit, main
 
 
@@ -44,29 +48,46 @@ def test_hibp_commentary_includes_up_to_five_account_examples():
     assert commentary_hibp({}) == ""
 
 
-def test_audit_separates_company_word_notice_from_analysis_progress(monkeypatch, tmp_path, capsys):
+def test_audit_shows_company_word_notice_during_organisation(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
     with patch.multiple(
         audit_workflow,
         validate_audit_inputs=DEFAULT, organise_dataset=DEFAULT,
         load_campaign=DEFAULT, has_enabled_phases=DEFAULT,
-        analyse_passwords=DEFAULT,
+        analyse_passwords=DEFAULT, load_domain_policy=DEFAULT,
     ) as mocks:
         mocks["organise_dataset"].side_effect = [
             {"filtered_users": [], "enabled_users": [], "ntlm_hashes": [],
              "lm_hashes": [], "domain_admins": [],
-             "privileged_users": {"status": "available", "accounts": []}},
+             "privileged_users": {
+                 "status": "incomplete", "accounts": [],
+                 "warnings": ["Some group members were not resolved."],
+             }},
             {"mapped_ntlm_passwords": []},
         ]
         mocks["load_campaign"].return_value = {"ntlm": {"parameters": {}, "phases": []}}
+        mocks["load_domain_policy"].return_value = {"Minimum Password Length": "12"}
         mocks["has_enabled_phases"].return_value = False
+        monkeypatch.setattr(audit_workflow, "console", Console(
+            file=sys.stdout, force_terminal=False, width=120
+        ))
         mocks["analyse_passwords"].side_effect = lambda **kwargs: print(
             "Loading and analyzing datasets"
         )
         audit_workflow.run_audit("ntds", "zip", "config", "run")
 
-    output = capsys.readouterr().out
-    assert "This list is optional.\n\nLoading and analyzing datasets" in output
+    output = re.sub(r"\x1b\[[0-9;]*m", "", capsys.readouterr().out)
+    notice = "No curated company wordlist supplied; using generated terms only."
+    group_counts = "Privileged group counts: matched enabled NTDS accounts."
+    assert output.split(group_counts, 1)[0].endswith("\n\n")
+    assert group_counts + "\n\n[!] Privileged group coverage is incomplete:" in output
+    assert "Some group members were not resolved.\n\n[*] " + notice in output
+    assert output.index("Stage 1/5 - Organising Data") < output.index(notice)
+    assert output.index(notice) < output.index("Stage 2/5 - Recovering NTLM Passwords")
+    assert output.split("--company-words PATH.", 1)[1].startswith("\n\n")
+    assert output.index("Stage 5/5 - Analysing Passwords") < output.index(
+        "Loading and analyzing datasets"
+    )
 
 
 def test_range_matching_deduplicates_hashes_and_supports_both_filenames(tmp_path):
@@ -90,6 +111,66 @@ def test_range_matching_deduplicates_hashes_and_supports_both_filenames(tmp_path
             {"username": "dave", "masked_hash": "12" + "*" * 28 + "33"},
         ],
     }
+
+
+def test_analysis_progress_advances_during_checks_and_each_breach_range(tmp_path):
+    mapped = tmp_path / "mapped.txt"
+    mapped.write_text("alice:Secret123!\nbob:Another123!\n", encoding="utf-8")
+    enabled = tmp_path / "enabled.txt"
+    enabled.write_text("alice\nbob\n", encoding="utf-8")
+    policy = tmp_path / "policy.txt"
+    policy.write_text("Domain: example.test\nMinimum Password Length: 8\n", encoding="utf-8")
+    users = tmp_path / "ntds-users.txt"
+    users.write_text(
+        "alice:1000:" + "a" * 32 + ":ABCDE" + "1" * 27 + ":::\n"
+        "bob:1001:" + "a" * 32 + ":12345" + "2" * 27 + ":::\n",
+        encoding="utf-8",
+    )
+    ranges = tmp_path / "ranges"
+    ranges.mkdir()
+    (ranges / "ABCDE").write_text("1" * 27 + ":1\n", encoding="ascii")
+    (ranges / "12345").write_text("2" * 27 + ":1\n", encoding="ascii")
+
+    progress = MagicMock()
+    progress.__enter__.return_value = progress
+    progress.add_task.side_effect = [1, 2]
+    original_company_check = analysis_results.company_name_passwords
+
+    def company_check(*args):
+        assert progress.advance.call_count >= 3
+        return original_company_check(*args)
+
+    with (
+        patch.object(analysis_workflow, "Progress", return_value=progress),
+        patch.object(analysis_workflow, "_print_console_summary"),
+        patch.object(analysis_results, "company_name_passwords", side_effect=company_check),
+    ):
+        results = analysis_workflow.analyse_passwords(
+            mapped_ntlm_passwords=mapped, domain_admins=None, company_words=None,
+            pass_policy=policy, enabled_users=enabled, ntds_users=users, hibp=ranges,
+            output_file=tmp_path / "report.html", findings_file=tmp_path / "findings.json",
+        )
+
+    assert results["hibp"]["count"] == 2
+    assert progress.add_task.call_args_list == [
+        call("Loading datasets", total=None),
+        call("Checking breach data", total=2),
+    ]
+    assert call(1, description="Analysing password data", total=12, completed=1) in progress.update.call_args_list
+    assert progress.advance.call_args_list == [call(1)] * 11
+    assert call(2, completed=0) in progress.update.call_args_list
+    assert call(2, completed=1) in progress.update.call_args_list
+    assert call(2, completed=2) in progress.update.call_args_list
+    assert call(2, visible=False) in progress.update.call_args_list
+
+
+def test_breach_progress_only_advances_for_validated_ranges(tmp_path):
+    accounts = [{"username": "alice", "ntlm": "ABCDE" + "1" * 27}]
+    (tmp_path / "ABCDE").write_text("invalid\n", encoding="ascii")
+    progress = MagicMock()
+    with pytest.raises(HibpDataError):
+        check_hibp(accounts, tmp_path, progress_callback=progress)
+    assert progress.call_args_list == [call(0, 1)]
 
 
 def test_range_matching_limits_examples_without_limiting_affected_accounts(tmp_path):

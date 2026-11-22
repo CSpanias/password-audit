@@ -15,13 +15,16 @@ from pathlib import Path
 from rich.table import Table
 
 from analysis.hibp import HibpDataError
+from analysis.parsers import load_domain_policy, minimum_password_length
 from analysis.workflow import analyse_passwords
 from auditing.company_words import (
     prepare_company_word_sources,
     save_company_word_snapshot,
 )
 from auditing.validation import has_enabled_phases, validate_audit_inputs
-from common.console import confirm_ntds_domain, console, info, ok, warn
+from common.console import (
+    confirm_ntds_domain, confirm_without_password_policy, console, info, ok, warn,
+)
 from common.utils import format_count_warnings
 from cracking.constants import DEFAULT_HASHCAT_DIR
 from cracking.parsers import load_campaign
@@ -214,10 +217,40 @@ def run_audit(
         table.add_row(group, str(count))
 
     console.print(table)
+    console.print()
     console.print("Privileged group counts: matched enabled NTDS accounts.")
     if privileged["status"] != "available":
+        print()
         warn(f"Privileged group coverage is {privileged['status']}: "
              + format_count_warnings(privileged["warnings"]))
+    print()
+
+    policy_path = pass_policy or output_dir / "domain-policy.txt"
+    try:
+        policy = load_domain_policy(policy_path)
+    except FileNotFoundError:
+        policy = {}
+        pass_policy = None
+    else:
+        pass_policy = policy_path
+    allow_missing_policy = minimum_password_length(policy) is None
+    if csacyber and (not policy.get("Domain") or policy["Domain"].strip().lower() in {"", "none"}):
+        warn("SureFormat export requires a domain name in the password policy. "
+             "Supply a policy with --pass-policy before running the audit.")
+        raise SystemExit(1)
+    if allow_missing_policy:
+        warn(f"Password length compliance is unavailable: no valid minimum length "
+             f"was found in {policy_path}. Supply a policy with --pass-policy to include it.")
+        if not confirm_without_password_policy():
+            warn("Audit cancelled before password recovery.")
+            raise SystemExit(1)
+        print()
+
+    company_word_sources, company_word_snapshot = prepare_company_word_sources(
+        generated_path=output_dir / "company-words.txt",
+        custom_path=company_words,
+        state_path=output_root / ".company-words-state.json",
+    )
     print()
 
     #---------------------------------------------------------------------------
@@ -232,6 +265,7 @@ def run_audit(
 
     if not has_enabled_phases(ntlm_campaign):
 
+        print()
         warn("No enabled NTLM phases - skipping")
         print()
 
@@ -266,6 +300,7 @@ def run_audit(
     elif organise_results["lm_hashes"]:
 
         info("Stage 3/5 - Recovering LM Passwords")
+        print()
         warn("No LM campaign configured - skipping")
         print()
 
@@ -357,18 +392,6 @@ def run_audit(
     if domain_admins is None and organise_results["domain_admins"]:
         domain_admins = output_dir / "domain-admins.txt"
 
-    company_word_sources, company_word_snapshot = prepare_company_word_sources(
-        generated_path=output_dir / "company-words.txt",
-        custom_path=company_words,
-        state_path=output_root / ".company-words-state.json",
-    )
-    print()
-
-    pass_policy = (
-        pass_policy
-        or output_dir / "domain-policy.txt"
-    )
-
     enabled_users = (
         enabled_users
         or output_dir / "enabled-users.txt"
@@ -396,6 +419,7 @@ def run_audit(
             "password-audit-findings.xml" if csacyber else "password-audit-findings.json"
         ),
         csacyber=csacyber,
+        allow_missing_policy=allow_missing_policy,
     )
 
     if company_word_snapshot:

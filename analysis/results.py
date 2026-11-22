@@ -58,6 +58,7 @@ def build_results(
     domain_name=None,
     privileged_users=None,
     ntds_users=None,
+    progress_callback=None,
 ):
     """
     Build the complete password analysis results dataset.
@@ -79,9 +80,8 @@ def build_results(
             Organisation-specific terms used during
             password pattern analysis.
 
-        minimum_length (int):
-            Configured minimum password length obtained
-            from the domain password policy.
+        minimum_length (int | None):
+            Configured domain minimum, or None when compliance is unavailable.
 
         enabled_users (list):
             Enabled user accounts within the assessed
@@ -105,6 +105,10 @@ def build_results(
             privileged account exposure, LM hash
             exposure, and supporting reporting data.
     """
+
+    def advance():
+        if progress_callback is not None:
+            progress_callback()
 
     ntlm_mapped_passwords = _unique_password_accounts(ntlm_mapped_passwords)
     lm_mapped_passwords = _unique_password_accounts(lm_mapped_passwords or [])
@@ -132,6 +136,7 @@ def build_results(
     for account in lm_mapped_passwords:
         if account["username"].casefold() not in lm_accounts:
             raise ValueError(f"Recovered LM account is not in the LM-user dataset: {account['username']}")
+    advance()
 
     # Privileged accounts
     admins = compromised_admins(
@@ -141,10 +146,11 @@ def build_results(
 
     # Password compliance
     length_distribution = password_length_distribution(ntlm_mapped_passwords)
-    length_failures = password_length_failures(
-        ntlm_mapped_passwords, 
-        minimum_length
+    length_failures = (
+        password_length_failures(ntlm_mapped_passwords, minimum_length)
+        if minimum_length is not None else []
     )
+    advance()
 
     # Password reuse
     password_frequencies = password_frequency(ntlm_mapped_passwords)
@@ -159,16 +165,22 @@ def build_results(
         if account["password"] in reuse_example_accounts:
             reuse_example_accounts[account["password"]].append(account["username"])
     reuse_accounts, similar_pairs, recovered_pair_count = similar_account_reuse(ntlm_mapped_passwords)
+    advance()
     
     # Predictable patterns
     company_findings = company_name_passwords(
         ntlm_mapped_passwords, 
         company_words
     )
+    advance()
     keyboard_findings = keyboard_walk_passwords(ntlm_mapped_passwords)
+    advance()
     username_findings = username_passwords(ntlm_mapped_passwords)
+    advance()
     common_password_findings = common_passwords(ntlm_mapped_passwords)
+    advance()
     date_findings = date_passwords(ntlm_mapped_passwords)
+    advance()
     
     # Password complexity
     char_classes = character_class_adoption(ntlm_mapped_passwords)
@@ -257,12 +269,15 @@ def build_results(
 
     # Password compliance
     results["password_length"] = {
+        "status": "available" if minimum_length is not None else "unavailable",
         "minimum_length": minimum_length,
         "failures": length_failures,
-        "count": len(length_failures),
+        "count": len(length_failures) if minimum_length is not None else None,
         "percentage": (
-            round(len(length_failures) / len(ntlm_mapped_passwords) * 100, 1)
-            if ntlm_mapped_passwords else 0
+            None if minimum_length is None else (
+                round(len(length_failures) / len(ntlm_mapped_passwords) * 100, 1)
+                if ntlm_mapped_passwords else 0
+            )
         )
     }
 
@@ -396,4 +411,5 @@ def build_results(
     # Fully qualified domain name
     results["domain_name"] = domain_name
 
+    advance()
     return results

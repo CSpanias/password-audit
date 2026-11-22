@@ -76,6 +76,13 @@ def windows_path(path):
     return subprocess.check_output(["wslpath", "-w", path], text=True).strip()
 
 
+def hashcat_path(path, hashcat_binary):
+    """Resolve a file path for the configured Hashcat executable."""
+    if sys.platform != "win32" and str(hashcat_binary).lower().endswith(".exe"):
+        return windows_path(path)
+    return os.path.abspath(path)
+
+
 def update_status(status, line):
     """
     Update Hashcat status information from a status line.
@@ -251,18 +258,19 @@ def run_phase(
             Phase execution statistics and recovery metrics.
     """
 
+    hashcat_binary = os.path.abspath(hashcat_binary)
     command = [
         hashcat_binary,
         "-m",
         str(hash_mode),
-        windows_path(hash_file),
-        windows_path(wordlist),
+        hashcat_path(hash_file, hashcat_binary),
+        hashcat_path(wordlist, hashcat_binary),
         "--potfile-path",
-        windows_path(hashcat_potfile)
+        hashcat_path(hashcat_potfile, hashcat_binary)
     ]
 
     if rule:
-        command.extend(["-r", windows_path(rule)])
+        command.extend(["-r", hashcat_path(rule, hashcat_binary)])
 
     command.extend(live_status_flags(flags))
     command.extend(["--session", session_name])

@@ -60,6 +60,11 @@ Set `hashcatDir` and `hashcatBinary` to match the local Hashcat installation.
 The built-in defaults are specific to the developer's environment, so set
 both values explicitly for your system.
 
+On Linux or WSL, select a native Linux executable to use Linux paths. To run
+Windows Hashcat from WSL, select its `.exe` executable; Password Audit converts
+the input paths to Windows paths automatically. This also applies to LM recovery.
+On Windows, paths are passed to Hashcat as Windows paths.
+
 Wordlists and rules are resolved relative to `hashcatDir/wordlists/` and 
 `hashcatDir/rules/`, respectively.
 

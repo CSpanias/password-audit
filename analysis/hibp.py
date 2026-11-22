@@ -12,7 +12,7 @@ class HibpDataError(ValueError):
     """Raised when the supplied local Pwned Passwords data cannot be checked."""
 
 
-def check_hibp(accounts, directory):
+def check_hibp(accounts, directory, progress_callback=None):
     """Match organised users against the ranges needed for their NT hashes."""
     directory = Path(directory)
     if not directory.is_dir():
@@ -29,8 +29,11 @@ def check_hibp(accounts, directory):
             account["username"]
         )
 
+    if progress_callback is not None:
+        progress_callback(0, len(prefixes))
+
     matches = []
-    for prefix, suffixes in prefixes.items():
+    for completed, (prefix, suffixes) in enumerate(prefixes.items(), 1):
         path = directory / prefix
         official_path = directory / f"{prefix}.txt"
         if path.is_file() and official_path.is_file():
@@ -71,6 +74,8 @@ def check_hibp(accounts, directory):
                     )
         if not entries:
             raise HibpDataError(f"Empty HIBP NTLM range: {path}")
+        if progress_callback is not None:
+            progress_callback(completed, len(prefixes))
 
     matches.sort(key=lambda account: account["username"].casefold())
     return {

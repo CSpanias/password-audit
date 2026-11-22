@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -556,6 +557,27 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("found one password (10% of", text)
         self.assertIn("password length was 10 characters", text)
 
+    def test_unavailable_password_policy_is_not_reported_as_compliant(self):
+        results = build_results(
+            ntlm_mapped_passwords=[{"username": "alice", "password": "short"}],
+            domain_admins=[], company_words=[], minimum_length=None,
+            enabled_users=["alice"], domain_name=None,
+            lm_users=[], lm_mapped_passwords=[], ntds_users=None,
+        )
+        self.assertEqual(results["password_length"]["status"], "unavailable")
+        self.assertIsNone(results["password_length"]["count"])
+        self.assertIsNone(results["password_length"]["percentage"])
+        self.assertEqual(results["password_lengths"]["lengths"], [(5, 1)])
+        self.assertNotIn("PWD-POLICY-001", {
+            finding["id"] for finding in build_findings_dict(results)
+        })
+        summary = executive_summary(results)
+        self.assertIn("against the assessed domain", summary)
+        self.assertIn("Password length compliance could not be assessed", summary)
+        self.assertNotIn("positive observation", summary)
+        self.assertIn("Password length compliance could not be assessed",
+                      technical_commentary(results))
+
     def test_executive_summary_combines_introduction_and_scales_positive_observations(self):
         results = build_results(
             ntlm_mapped_passwords=[
@@ -634,6 +656,53 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("No plaintext passwords were recovered", summary.split("\n\n")[0])
         self.assertEqual(summary.count("No plaintext passwords were recovered"), 1)
 
+    def test_recovery_rate_wording_matches_in_summary_and_commentary(self):
+        results = build_results(
+            ntlm_mapped_passwords=[{"username": "alice", "password": "weak"}],
+            domain_admins=[], company_words=[], minimum_length=14,
+            enabled_users=["alice"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[],
+        )
+        cases = (
+            (0.1, "a small subset", "a limited number of"),
+            (4.9, "a small subset", "a limited number of"),
+            (5.0, "a subset", "some"),
+            (14.9, "a subset", "some"),
+            (15.0, "a substantial subset", "a notable proportion of"),
+            (29.9, "a substantial subset", "a notable proportion of"),
+            (30.0, "a significant subset", "a significant proportion of"),
+            (100.0, "a significant subset", "a significant proportion of"),
+        )
+        for rate, subset, impact in cases:
+            with self.subTest(rate=rate):
+                results["total_passwords"] = round(rate * 10)
+                results["enabled_users"] = 1000
+                results["crack_rate"] = rate
+                summary = executive_summary(results, []).split("\n\n")[0]
+                commentary = technical_commentary(results, []).split("\n\n")[1]
+                self.assertIn(f"{subset} of user credentials", summary)
+                self.assertIn(f"{impact} passwords remain susceptible", summary)
+                self.assertIn(f"{impact} user credentials remain susceptible", commentary)
+
+        results["total_passwords"] = 0
+        results["crack_rate"] = 0
+        summary = executive_summary(results, []).split("\n\n")[0]
+        commentary = technical_commentary(results, []).split("\n\n")[1]
+        self.assertIn("No plaintext passwords were recovered", summary)
+        self.assertIn("Password composition could not be assessed", commentary)
+        self.assertNotIn("remain susceptible", commentary)
+
+        results["enabled_users"] = 0
+        for total in (0, 1):
+            with self.subTest(enabled_users=0, total_passwords=total):
+                results["total_passwords"] = total
+                summary = executive_summary(results, []).split("\n\n")[0]
+                commentary = technical_commentary(results, []).split("\n\n")[1]
+                self.assertNotIn("subset of user credentials", summary)
+                self.assertIn("No enabled user accounts were available to calculate a recovery rate", commentary)
+                self.assertNotIn("% of the assessed population", commentary)
+                self.assertNotIn("user credentials remain susceptible", commentary)
+
     def test_hash_reuse_summary_and_finding(self):
         results = build_results(
             ntlm_mapped_passwords=[{"username": "user", "password": "weak"}],
@@ -656,7 +725,7 @@ class HtmlReportTests(unittest.TestCase):
             summary,
         )
         self.assertIn("multiple accounts or systems.", summary)
-        self.assertNotIn("potentially undermining separation", summary)
+        self.assertNotIn("undermine separation", summary)
         self.assertNotIn("LanMan (LM)", summary)
         self.assertNotIn("shared credentials involving selected privileged", summary)
         self.assertNotIn("NTLM hash comparison", summary)
@@ -698,15 +767,15 @@ class HtmlReportTests(unittest.TestCase):
         )
         cases = [
             ("admins", "count", "Privileged account credentials were recovered",
-             "providing access to critical systems"),
+             "expose critical systems"),
             ("lm_hashes", "count", "Legacy LanMan (LM) password hashes were present",
              "susceptible to offline password cracking"),
             ("hibp", "count", "Some passwords matched known breach data",
-             "affected accounts easier to compromise"),
+             "affected accounts at greater risk of compromise"),
             ("password_length", "count", "Some recovered passwords fell below",
              "easier to guess or crack"),
             ("keyboard_walks", "count", "Some recovered passwords followed predictable patterns",
-             "affected accounts easier to compromise"),
+             "affected accounts at greater risk of compromise"),
         ]
         results["hibp"] = {"count": 0, "accounts": []}
         for key, field, finding, impact in cases:
@@ -742,7 +811,7 @@ class HtmlReportTests(unittest.TestCase):
             paragraph,
         )
         self.assertIn("including for Domain Administrator accounts", paragraph)
-        self.assertIn("multiple accounts or systems, potentially undermining "
+        self.assertIn("multiple accounts or systems and may undermine "
                       "separation between accounts with different roles", paragraph)
         self.assertIn("passwords matching known breach data and passwords with "
                       "predictable patterns", paragraph.lower())
@@ -787,6 +856,7 @@ class HtmlReportTests(unittest.TestCase):
                         selected[key][field] = 1
                     paragraph = executive_summary(selected, findings_data).split("\n\n")[1]
                     self.assertEqual(paragraph.count("The assessment"), 1)
+                    self.assertLessEqual(paragraph.lower().count("potentially"), 1)
                     self.assertEqual(paragraph.count("In addition,"), int(size > 1))
                     self.assertEqual(paragraph.count("Finally,"), int(size > 2))
                     positions = [paragraph.lower().index(marker) for _, _, marker in chosen]
@@ -816,11 +886,11 @@ class HtmlReportTests(unittest.TestCase):
             "making credentials more susceptible to offline password cracking, as "
             "demonstrated by passwords recovered from accounts storing them. In addition, "
             "password reuse could allow a compromised credential to affect multiple accounts "
-            "or systems, potentially undermining separation between accounts with different "
+            "or systems and may undermine separation between accounts with different "
             "roles. Passwords matching known breach data and passwords with predictable "
-            "patterns were identified, potentially making affected accounts easier to "
+            "patterns were identified, placing affected accounts at greater risk of "
             "compromise. Finally, some recovered passwords fell below the domain's configured "
-            "minimum length, potentially making them easier to guess or crack.",
+            "minimum length and may be easier to guess or crack.",
         )
 
     def test_account_tables_omit_prefixes_without_changing_results(self):
@@ -1073,6 +1143,57 @@ class HtmlReportTests(unittest.TestCase):
             for field in ("mapped_ntlm_passwords", "mapped_lm_passwords", "lm_users", "domain_admins"):
                 with self.subTest(field=field), self.assertRaises(FileNotFoundError):
                     analysis_workflow._build_analysis_results(**{**args, field: root / "missing.txt"})
+
+    def test_analysis_warnings_are_separated_from_following_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "enabled.txt").write_text("", encoding="utf-8")
+            (root / "policy.txt").write_text(
+                "Domain: example.test\nMinimum Password Length: 8\n", encoding="utf-8"
+            )
+            (root / "privileged.json").write_text(json.dumps({
+                "status": "incomplete", "accounts": [],
+                "warnings": ["Some group members were not resolved."],
+            }), encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                analysis_workflow._build_analysis_results(
+                    mapped_ntlm_passwords=None, domain_admins=None, company_words=None,
+                    pass_policy=root / "policy.txt", enabled_users=root / "enabled.txt",
+                    lm_users=None, mapped_lm_passwords=None,
+                    privileged_users=root / "privileged.json", ntds_users=None,
+                )
+                print("Loading and analyzing datasets")
+            text = output.getvalue()
+            self.assertIn("Some group members were not resolved.\n\n", text)
+            self.assertIn(
+                "no organised NTDS user records supplied.\n\nLoading and analyzing datasets",
+                text,
+            )
+
+    def test_analysis_warning_is_separated_from_live_progress(self):
+        self._patch_analysis_workflow()
+        output = io.StringIO()
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            redirect_stdout(output),
+            patch.object(analysis_workflow, "console", Console(
+                file=output, force_terminal=True, color_system=None, width=120
+            )),
+            patch.object(analysis_workflow, "load_privileged_users", return_value={
+                "status": "incomplete", "accounts": [],
+                "warnings": ["Some group members were not resolved."],
+            }),
+            patch.object(analysis_workflow, "render_html", return_value="report"),
+        ):
+            analysis_workflow.analyse_passwords(
+                mapped_ntlm_passwords=None, domain_admins=None, company_words=None,
+                pass_policy="policy", enabled_users="enabled", ntds_users=None,
+                output_file=Path(directory) / "report.html",
+            )
+        text = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", output.getvalue()).replace("\r", "")
+        self.assertIn("Some group members were not resolved.\n\n", text)
+        self.assertIn("no organised NTDS user records supplied.\n\n", text)
 
     def test_domain_and_enterprise_admins_are_not_repeated_in_privileged_table(self):
         admins = [{"username": "EXAMPLE\\Cotton.Adm", "password": "Password123!"}]
@@ -1674,6 +1795,7 @@ class HtmlReportTests(unittest.TestCase):
                 analyse_passwords=DEFAULT,
                 run_campaign=DEFAULT,
                 print_summary=DEFAULT,
+                load_domain_policy=DEFAULT,
             )
             values = mocks.start()
             self.addCleanup(mocks.stop)
@@ -1698,6 +1820,9 @@ class HtmlReportTests(unittest.TestCase):
             ]
             values["load_campaign"].return_value = {
                 "ntlm": {"parameters": {}, "phases": []},
+            }
+            values["load_domain_policy"].return_value = {
+                "Domain": "example.test", "Minimum Password Length": "12",
             }
             values["has_enabled_phases"].return_value = True
             values["run_campaign"].return_value = {"phases": []}
