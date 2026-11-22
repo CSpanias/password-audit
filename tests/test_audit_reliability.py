@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from contextlib import redirect_stdout
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import DEFAULT, patch
@@ -75,12 +76,20 @@ class AuditReliabilityTests(unittest.TestCase):
                     policy_path = root / "policy.txt"
                     policy_path.write_text(override, encoding="utf-8")
                 events = []
+                output = io.StringIO()
+
+                def confirm_policy():
+                    self.assertTrue(output.getvalue().endswith("include it.\n\n"))
+                    events.append("prompt")
+                    return accepted
+
                 original_cwd = os.getcwd()
                 try:
                     os.chdir(root)
                     with (
+                        redirect_stdout(output),
                         patch.object(audit, "confirm_without_password_policy",
-                                     side_effect=lambda: events.append("prompt") or accepted),
+                                     side_effect=confirm_policy),
                         patch.object(audit, "run_campaign",
                                      side_effect=lambda **kwargs: events.append("recovery") or {"phases": []}),
                     ):

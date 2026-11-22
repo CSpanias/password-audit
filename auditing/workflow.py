@@ -240,7 +240,8 @@ def run_audit(
         raise SystemExit(1)
     if allow_missing_policy:
         warn(f"Password length compliance is unavailable: no valid minimum length "
-             f"was found in {policy_path}. Supply a policy with --pass-policy to include it.")
+             f"was found in {policy_path}. Supply a policy with --pass-policy to include it.",
+             end="\n\n")
         if not confirm_without_password_policy():
             warn("Audit cancelled before password recovery.")
             raise SystemExit(1)
