@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 from uuid import uuid4
 
-from common.console import info, summary, warn
+from common.console import summary, warn
 from common.utils import human_time
 from cracking.constants import DEFAULT_HASHCAT_DIR
 from cracking.hashcat import run_phase, validate_file
@@ -232,9 +232,7 @@ def run_campaign(
     results["state"] = "completed"
 
     write_results(results)
-    if test_run:
-        info("Test campaign excluded from statistics and estimates")
-    else:
+    if not test_run:
         archive_results(results)
 
     return results

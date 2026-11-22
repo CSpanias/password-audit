@@ -119,6 +119,10 @@ def run_audit(
     #---------------------------------------------------------------------------
     # Pre-flight checks
     #---------------------------------------------------------------------------
+    if test_run:
+        print()
+        info("Test run: campaigns will not be included in statistics or estimates")
+
     if hibp is not None and not Path(hibp).is_dir():
         raise HibpDataError(f"HIBP range directory does not exist: {hibp}")
     print()

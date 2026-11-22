@@ -64,6 +64,32 @@ def fake_phase(**kwargs):
 
 
 class CampaignStatisticsTests(unittest.TestCase):
+    def test_test_run_notice_precedes_crack_campaign_loading(self):
+        for enabled in (False, True):
+            output = io.StringIO()
+            notice = "Test run: campaigns will not be included in statistics or estimates"
+
+            def load_config(path):
+                self.assertEqual(notice in output.getvalue(), enabled)
+                return {"ntlm": campaign()}
+
+            arguments = ["password-audit", "crack", "run", "-H", "hashes",
+                         "-C", "config", "-G", "run"]
+            if enabled:
+                arguments.append("--test")
+            with (
+                self.subTest(test_run=enabled),
+                redirect_stdout(output),
+                patch.object(sys, "argv", arguments),
+                patch.object(cli_crack, "load_campaign", side_effect=load_config),
+                patch.object(cli_crack, "run_campaign"),
+                patch.object(cli_crack, "print_summary"),
+            ):
+                main()
+            self.assertEqual(notice in output.getvalue(), enabled)
+            if enabled:
+                self.assertIn(f"{notice}\n\n", output.getvalue())
+
     def test_test_campaign_keeps_results_but_does_not_change_statistics_or_estimates(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
