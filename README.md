@@ -63,7 +63,14 @@ uv pip install -e .
 
 # Verify installation
 password-audit -h
+
+# Install test dependencies and run the test suite
+uv pip install "pytest>=9,<10"
+python -m pytest tests
 ```
+
+GitHub Actions also runs the test suite on Windows and Linux with Python 3.10,
+3.13 and 3.14 for pushes and pull requests.
 
 ## Quick Start
 
