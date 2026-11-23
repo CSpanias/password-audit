@@ -750,6 +750,35 @@ class HtmlReportTests(unittest.TestCase):
                 self.assertNotIn("% of the assessed population", commentary)
                 self.assertNotIn("user credentials remain susceptible", commentary)
 
+    def test_commentary_groups_recovered_password_analysis_with_readability(self):
+        results = build_results(
+            ntlm_mapped_passwords=[{"username": "alice", "password": "weak"}],
+            domain_admins=[], company_words=[], minimum_length=14,
+            enabled_users=["alice"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[],
+        )
+        results.update(total_passwords=49, enabled_users=320, crack_rate=15.3)
+        paragraphs = technical_commentary(results, []).split("\n\n")
+        self.assertEqual(
+            paragraphs[1],
+            "Through password-cracking techniques, it was possible to recover 49 plaintext "
+            "passwords from 320 enabled user accounts, representing approximately 15.3% of the "
+            "assessed population. This demonstrates that a notable proportion of user credentials "
+            "remain susceptible to password-cracking attacks following credential exposure.",
+        )
+        self.assertEqual(
+            paragraphs[2],
+            "The recovered passwords were subsequently analysed for common password selection "
+            "patterns, password length, and other indicators of weak password hygiene. To maintain "
+            "report readability, example findings have been included throughout this section. "
+            "Unless otherwise stated, tables are intended to provide representative samples and may "
+            "not contain all affected accounts found during the assessment.",
+        )
+        results["total_passwords"] = 0
+        commentary = technical_commentary(results, [])
+        self.assertNotIn("The recovered passwords were subsequently analysed", commentary)
+        self.assertIn("\n\nTo maintain report readability", commentary)
+
     def test_hash_reuse_summary_and_finding(self):
         results = build_results(
             ntlm_mapped_passwords=[{"username": "user", "password": "weak"}],
@@ -1472,7 +1501,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertNotIn("high-severity", conclusion)
         self.assertNotIn("low-severity", conclusion)
 
-    def test_lm_recovery_and_impact_are_separate_paragraphs(self):
+    def test_lm_recovery_and_impact_share_a_paragraph(self):
         results = {
             "lm_hashes": {
                 "count": 1, "uniqueHashes": 1, "duplicateHashes": 0,
@@ -1486,13 +1515,24 @@ class HtmlReportTests(unittest.TestCase):
         text = commentary_lm_hashes(results)
 
         self.assertIn(
-            "100.0% of affected accounts.\n\nThis demonstrates the practical "
-            "weakness of LM password storage. The extremely high recovery rate",
+            "password recovery using commonly available password dictionaries and rule sets.\n\n"
+            "Passwords were successfully recovered from one account that stored LM hashes, "
+            "representing 100.0% of affected accounts, which demonstrates the practical "
+            "weakness of LM password storage.",
             text,
         )
+        self.assertNotIn("The extremely high recovery rate", text)
         results["lm_passwords"]["partialCount"] = 1
-        self.assertIn("100.0% of affected accounts. A further one account",
+        self.assertIn("weakness of LM password storage. A further one account",
                       commentary_lm_hashes(results))
+        for rate in (50.0, 10.0):
+            with self.subTest(rate=rate):
+                results["lm_passwords"]["recoveryRate"] = rate
+                text = commentary_lm_hashes(results)
+                recovery = text.split("\n\n")[2]
+                self.assertIn("Passwords were successfully recovered", recovery)
+                self.assertIn("LM password storage", recovery)
+                self.assertIn("A further one account", recovery)
 
     def test_partial_lm_admin_recovery_does_not_claim_a_complete_password(self):
         results = build_results(

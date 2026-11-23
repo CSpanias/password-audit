@@ -260,11 +260,24 @@ def commentary_lm_hashes(results):
             "Unlike NTLM password recovery, LM password recovery is facilitated by the design of "
             "the LM hashing algorithm, which processes passwords in two independent seven-character "
             "halves. This significantly reduces the effective search space and enables rapid "
-            "password recovery using commonly available password dictionaries and rule sets. "
+            "password recovery using commonly available password dictionaries and rule sets.\n\n"
             f"Passwords were successfully recovered from {num_to_word(lm_password_count)} "
             f"account{'s' if lm_password_count != 1 else ''} that stored LM hashes, representing "
-            f"{lm_crack_rate}% of affected accounts."
+            f"{lm_crack_rate}% of affected accounts"
         )
+
+        if lm_crack_rate >= 90:
+            recovery_text += ", which demonstrates the practical weakness of LM password storage."
+        elif lm_crack_rate >= 50:
+            recovery_text += (
+                ", which demonstrates the practical weakness of LM password storage and illustrates "
+                "the increased exposure associated with retaining legacy password hashing technologies."
+            )
+        else:
+            recovery_text += (
+                ". Whilst recovery was not universal, the results demonstrate that LM password "
+                "storage remains susceptible to efficient offline attack."
+            )
 
         if partial_lm_password_count:
 
@@ -275,27 +288,6 @@ def commentary_lm_hashes(results):
             )
 
         lines.append(recovery_text)
-        lines.append("")
-
-        if lm_crack_rate >= 90:
-            lines.append(
-                "This demonstrates the practical weakness of LM password storage. The "
-                "extremely high recovery rate observed during the assessment highlights the "
-                "elevated risk associated with retaining legacy password hashing technologies."
-            )
-
-        elif lm_crack_rate >= 50:
-            lines.append(
-                "This demonstrates the practical weakness of LM password storage and illustrates "
-                "the increased exposure associated with retaining legacy password hashing "
-                "technologies."
-            )
-
-        else:
-            lines.append(
-                "Whilst recovery was not universal, the results demonstrate that LM password "
-                "storage remains susceptible to efficient offline attack."
-            )
 
     lines.append("")
     lines.append("| Metric | Value |")
@@ -1089,17 +1081,21 @@ def technical_commentary(results, findings_data=None):
                 "The recovered credentials demonstrate susceptibility to password-cracking attacks "
                 "following credential exposure. "
             )
-        introduction += (
-            "The recovered passwords were subsequently analysed for "
+        introduction = introduction.rstrip() + (
+            "\n\nThe recovered passwords were subsequently analysed for "
             "common password selection patterns, password length, and other indicators of weak password hygiene."
         )
     else:
         introduction += "Password composition could not be assessed without recovered passwords."
     lines.append(introduction)
 
-    lines.append("To maintain report readability, example findings have been included throughout this section. Unless otherwise "
-            "stated, tables are intended to provide representative samples and may not contain all affected accounts found during "
-            "the assessment.")
+    readability = ("To maintain report readability, example findings have been included throughout this section. Unless otherwise "
+                   "stated, tables are intended to provide representative samples and may not contain all affected accounts found during "
+                   "the assessment.")
+    if total:
+        lines[-1] += " " + readability
+    else:
+        lines.append(readability)
 
     sections = (
         ("Privileged Accounts", (commentary_admins, commentary_privileged_users),
