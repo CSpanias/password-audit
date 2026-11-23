@@ -336,7 +336,7 @@ class HtmlReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "findings.xml"
             with patch("reports.sureformat.warn") as warning:
-                write_sureformat(path, "example.test", findings)
+                write_sureformat(path, "EXAMPLE.TEST", findings)
             warning.assert_called_once_with(
                 "No SureFormat mapping found for finding: UNMAPPED-TEST"
             )

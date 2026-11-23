@@ -28,7 +28,7 @@ FINDING_MAP = {
 def write_sureformat(path, domain, findings):
     """Write mapped findings in the SureFormat XML structure."""
     root = ET.Element("items", source="SureFormat", version="1.0.0")
-    item = ET.SubElement(root, "item", ipaddress="", hostname=domain)
+    item = ET.SubElement(root, "item", ipaddress="", hostname=domain.lower())
     services = ET.SubElement(item, "services")
     service = ET.SubElement(services, "service", name="", port="", protocol="tcp")
     vulnerabilities = ET.SubElement(service, "vulnerabilities")
