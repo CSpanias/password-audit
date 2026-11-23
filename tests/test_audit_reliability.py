@@ -622,12 +622,12 @@ class AuditReliabilityTests(unittest.TestCase):
         self.assertEqual(result["accounts"], [
             {"username": "external.example\\alice", "groups": ["Domain Admins"]},
         ])
-        self.assertIn("1 NTDS account ", result["warnings"][0])
+        self.assertIn("1 organised directory account ", result["warnings"][0])
 
         entries[0]["username"] = "local\\alice"
         result = extract_privileged_users(users, groups, entries)
         self.assertEqual(result["accounts"], [])
-        self.assertIn("2 NTDS accounts ", result["warnings"][0])
+        self.assertIn("2 organised directory accounts ", result["warnings"][0])
 
     def test_source_domain_detection_respects_filtering_and_ambiguous_exports(self):
         sid = "S-1-5-21-1-2-3"
@@ -948,7 +948,7 @@ class AuditReliabilityTests(unittest.TestCase):
         self.assertEqual(result["status"], "incomplete")
         self.assertEqual(result["accounts"], [])
         self.assertEqual(len(result["warnings"]), 1)
-        self.assertIn("1 NTDS account ", result["warnings"][0])
+        self.assertIn("1 organised directory account ", result["warnings"][0])
         self.assertIn("selected privileged users", result["warnings"][0])
         confirmed = extract_privileged_users(users, groups, entries, sid)
         self.assertEqual(confirmed["status"], "available")
@@ -1047,7 +1047,7 @@ class AuditReliabilityTests(unittest.TestCase):
                 organise_cli.run_ntds_organiser(args)
             warning.assert_called_once_with(
                 "Privileged group coverage is incomplete: nine groups lacked membership data. "
-                "10 groups had conflicting names or domains."
+                "A total of 10 groups had conflicting names or domains."
             )
 
     def test_missing_and_invalid_privileged_data_are_not_clean_results(self):

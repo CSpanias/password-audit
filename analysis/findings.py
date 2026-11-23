@@ -167,7 +167,7 @@ def build_findings(results):
             groups = results["ntlm_hash_reuse"]["groups"]
             description += (
                 f" A total of {num_to_word(results['ntlm_hash_reuse']['account_count'])} "
-                "accounts are affected."
+                f"account{'s are' if results['ntlm_hash_reuse']['account_count'] != 1 else ' is'} affected."
             )
             for index, group in enumerate(groups, 1):
                 accounts = [

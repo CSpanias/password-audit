@@ -101,9 +101,10 @@ def commentary_admins(results):
             f"A total of {num_to_word(count)} {role} account"
             f"{'s had passwords' if count != 1 else ' had a password'} "
             "successfully recovered during the password audit. "
-            "These accounts represent some of the most privileged identities within "
-            "Active Directory and typically provide broad access to authentication services, directory "
-            "data, and domain-joined systems. Compromise of these credentials significantly increases "
+            f"{'These accounts represent some of' if count != 1 else 'This account represents one of'} "
+            "the most privileged identities within AD and typically "
+            f"{'provide' if count != 1 else 'provides'} broad access to authentication services, directory "
+            f"data, and domain-joined systems. Compromise of {'these credentials' if count != 1 else 'this credential'} significantly increases "
             "the potential impact of credential exposure and may facilitate privilege escalation or "
             "wider compromise of the environment."
         )
@@ -163,7 +164,7 @@ def commentary_privileged_users(results):
             lines.append("")
         count = len(other_accounts)
         lines.append(
-            f"Passwords were recovered for {num_to_word(count)} "
+            f"{'Passwords were' if count != 1 else 'A password was'} recovered for {num_to_word(count)} "
             f"{'other ' if high_accounts else ''}account{'s' if count != 1 else ''} "
             "belonging to selected privileged groups."
             + (f" {membership_note}" if privileged["status"] != "incomplete" else "")
@@ -221,20 +222,22 @@ def commentary_lm_hashes(results):
     if not lm_hash_count:
         return ""
 
+    lm_label = "LAN Manager (LM)"
     if da_count:
         lines.append(
-            f"LM recovery results included {num_to_word(da_count)} Domain Administrator "
+            f"{lm_label} recovery results included {num_to_word(da_count)} Domain Administrator "
             f"account{'s' if da_count != 1 else ''}. Exposure of privileged credential "
             "material increases the potential impact of compromise and may facilitate "
             "privilege escalation."
         )
         lines.append("")
+        lm_label = "LM"
 
     if duplicate_hashes:
 
         lines.append(
-            f"LM password hashes were present for {num_to_word(lm_hash_count)} account"
-            f"{'s' if lm_hash_count != 1 else ''}. The presence of LM hashes indicates that legacy "
+            f"{lm_label} password hashes were present for {num_to_word(lm_hash_count)} account"
+            f"{'s' if lm_hash_count != 1 else ''}. The presence of LM hash storage indicates that legacy "
             "password storage mechanisms remain enabled for a subset of accounts within the "
             f"environment. Analysis found {num_to_word(unique_hashes)} unique LM hash "
             f"value{'s' if unique_hashes != 1 else ''} and {num_to_word(duplicate_hashes)} duplicate "
@@ -245,8 +248,8 @@ def commentary_lm_hashes(results):
     else:
 
         lines.append(
-            f"LM password hashes were present for {num_to_word(lm_hash_count)} account"
-            f"{'s' if lm_hash_count != 1 else ''}. The presence of LM hashes indicates that legacy "
+            f"{lm_label} password hashes were present for {num_to_word(lm_hash_count)} account"
+            f"{'s' if lm_hash_count != 1 else ''}. The presence of LM hash storage indicates that legacy "
             "password storage mechanisms remain enabled for a subset of accounts within the "
             f"environment. Analysis found {num_to_word(unique_hashes)} unique LM hash "
             f"value{'s' if unique_hashes != 1 else ''}."
@@ -261,9 +264,9 @@ def commentary_lm_hashes(results):
             "the LM hashing algorithm, which processes passwords in two independent seven-character "
             "halves. This significantly reduces the effective search space and enables rapid "
             "password recovery using commonly available password dictionaries and rule sets.\n\n"
-            f"Passwords were successfully recovered from {num_to_word(lm_password_count)} "
+            f"{'Passwords were' if lm_password_count != 1 else 'A password was'} successfully recovered from {num_to_word(lm_password_count)} "
             f"account{'s' if lm_password_count != 1 else ''} that stored LM hashes, representing "
-            f"{lm_crack_rate}% of affected accounts"
+            f"{lm_crack_rate}% of the affected account population"
         )
 
         if lm_crack_rate >= 90:
@@ -282,8 +285,8 @@ def commentary_lm_hashes(results):
         if partial_lm_password_count:
 
             recovery_text += (
-                f" A further {num_to_word(partial_lm_password_count)} account"
-                f"{'s' if partial_lm_password_count != 1 else ''} yielded a partial password "
+                f" A further {'account' if partial_lm_password_count == 1 else num_to_word(partial_lm_password_count) + ' accounts'}"
+                " yielded a partial password "
                 "recovery."
             )
 
@@ -311,7 +314,7 @@ def commentary_lm_hashes(results):
         lines.append(f"| LM Domain Administrator Accounts | {da_count} |")
 
     lines.append("")
-    lines.append("The following table shows example accounts and their masked LM hashes:")
+    lines.append("The following table shows a sample of accounts and their masked LM hashes:")
     lines.append("")
     lines.append("| Username | LM Hash |")
     lines.append("| ---------- | ---------- |")
@@ -421,7 +424,7 @@ def commentary_password_lengths(results):
             lines.append(f"| {length} | {count:,} | {percentage}% |")
 
         lines.append("")
-        lines.append("The following table shows example accounts with passwords below the domain minimum:")
+        lines.append("The following table shows a sample of accounts with passwords below the domain minimum:")
         lines.append("")
         lines.append("| Username | Password |")
         lines.append("| ---------- | ---------- |")
@@ -479,7 +482,7 @@ def commentary_hibp(results):
     )
     return "\n\n".join([
         paragraph,
-        "The following table shows example accounts and their masked matching NTLM hashes:",
+        "The following table shows a sample of accounts and their masked matching NTLM hashes:",
         "\n".join(table),
     ])
 
@@ -488,7 +491,7 @@ def commentary_ntlm_hash_reuse(results):
     """Describe hash-based reuse independently of password recovery."""
     reuse = results["ntlm_hash_reuse"]
     if reuse["status"] == "unavailable":
-        return "NTLM hash reuse analysis was unavailable; organised NTDS user records were not supplied."
+        return "NTLM hash reuse analysis was unavailable; organised directory user records were not supplied."
     groups = reuse["groups"]
     if not groups:
         return ""
@@ -499,7 +502,8 @@ def commentary_ntlm_hash_reuse(results):
     paragraph = (
         f"A total of {num_to_word(len(groups))} shared NTLM "
         f"hash{'es were' if len(groups) != 1 else ' was'} shared across "
-        f"{num_to_word(reuse['account_count'])} enabled user accounts, regardless "
+        f"{num_to_word(reuse['account_count'])} enabled user "
+        f"account{'s' if reuse['account_count'] != 1 else ''}, regardless "
         "of whether their passwords were recovered. These results may overlap with "
         "the recovered-password reuse findings and should not be added together."
     )
@@ -598,7 +602,7 @@ def commentary_password_reuse(results):
     lines = []
 
     lines.append(
-        "Passwords were reused across multiple user accounts "
+        f"{'Passwords were' if len(reused_passwords) != 1 else 'A password was'} reused across multiple user accounts "
         "within the recovered credential dataset. Reuse of credentials "
         "reduces password diversity and increases the potential impact "
         "of credential compromise, as a single recovered password may "
@@ -1010,7 +1014,9 @@ def commentary_character_classes(results):
 
     lines = []
 
-    lines.append("Recovered passwords were analysed to determine the adoption of common character classes. Whilst the "
+    lines.append(
+        f"Recovered password{'s were' if results['total_passwords'] != 1 else ' was'} "
+        "analysed to determine the adoption of common character classes. Whilst the "
         "presence of uppercase characters, numbers, and special characters may increase password complexity, "
         "their use alone does not guarantee resistance to password guessing or password-cracking attacks. "
         "Strict composition rules can encourage predictable choices and make passwords harder to remember.")
@@ -1058,13 +1064,15 @@ def technical_commentary(results, findings_data=None):
     enabled_users = results["enabled_users"]
     crack_rate = results["crack_rate"]
 
-    introduction = ("A password audit was performed against extracted Active Directory password hashes to assess the "
+    introduction = ("A password audit was performed against NT LAN Manager (NTLM) password hashes extracted from "
+        "Active Directory (AD) to assess the "
         "effectiveness of password selection practices and highlight weaknesses that could increase the likelihood "
         f"of credential compromise.\n\nThrough password-cracking techniques, it was possible to recover {num_to_word(total)} "
-        "plaintext passwords")
+        f"plaintext password{'s' if total != 1 else ''}")
     if enabled_users:
         introduction += (
-            f" from {num_to_word(enabled_users)} enabled user accounts, representing approximately {crack_rate}% "
+            f" from {num_to_word(enabled_users)} enabled user "
+            f"account{'s' if enabled_users != 1 else ''}, representing approximately {crack_rate}% "
             "of the assessed population. "
         )
     else:
@@ -1082,7 +1090,7 @@ def technical_commentary(results, findings_data=None):
                 "following credential exposure. "
             )
         introduction = introduction.rstrip() + (
-            "\n\nThe recovered passwords were subsequently analysed for "
+            f"\n\nThe recovered password{'s were' if total != 1 else ' was'} subsequently analysed for "
             "common password selection patterns, password length, and other indicators of weak password hygiene."
         )
     else:

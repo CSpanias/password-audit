@@ -26,7 +26,7 @@ from analysis.parsers import load_ntds_users, load_passwords
 from analysis.analysis import ntlm_hash_reuse, similar_account_reuse, similar_account_hash_reuse
 from analysis.executive_summary import executive_summary
 from analysis.findings import build_finding_summary, build_findings_dict
-from analysis.remediation_guidance import remediation_references
+from analysis.remediation_guidance import remediation_guidance, remediation_references
 from analysis.results import build_results
 from analysis.technical_commentary import (
     commentary_admins,
@@ -218,6 +218,8 @@ class HtmlReportTests(unittest.TestCase):
                     "common_passwords", "date_passwords", "keyboard_walks"):
             results[key]["count"] = 1
         findings = build_findings_dict(results)
+        hash_reuse = next(item for item in findings if item["id"] == "PWD-REUSE-003")
+        self.assertIn("A total of one account is affected.", hash_reuse["description"])
         cards = build_finding_summary(results, findings)
         self.assertEqual(len(cards), 13)
         self.assertEqual(
@@ -542,7 +544,7 @@ class HtmlReportTests(unittest.TestCase):
         )
         self.assertEqual(text.count("Group memberships include nested membership"), 1)
         self.assertNotIn("S-1-5-21-1-2-3", text)
-        self.assertIn("Passwords were recovered for one account", text)
+        self.assertIn("A password was recovered for one account", text)
         self.assertNotIn("(s)", text)
         unavailable = commentary_privileged_users({"admins": {"accounts": []}, "privileged_users": {
             "status": "unavailable", "count": 0, "accounts": [],
@@ -572,7 +574,7 @@ class HtmlReportTests(unittest.TestCase):
         text = commentary_privileged_users(results)
         self.assertIn(
             "is incomplete: nine groups lacked membership data. "
-            "10 groups had conflicting names or domains. "
+            "A total of 10 groups had conflicting names or domains. "
             "One ambiguous NTDS/BloodHound account match was omitted.",
             text,
         )
@@ -779,6 +781,51 @@ class HtmlReportTests(unittest.TestCase):
         self.assertNotIn("The recovered passwords were subsequently analysed", commentary)
         self.assertIn("\n\nTo maintain report readability", commentary)
 
+    def test_report_narrative_uses_count_aware_grammar_and_independent_abbreviations(self):
+        results = build_results(
+            ntlm_mapped_passwords=[{"username": "alice", "password": "short"}],
+            domain_admins=["alice"], company_words=[], minimum_length=14,
+            enabled_users=["alice"], domain_name="example.test",
+            lm_users=[{"username": "alice", "lm_hash": "a" * 32}],
+            lm_mapped_passwords=[{"username": "alice", "password": "SHORT"}],
+        )
+        commentary = technical_commentary(results)
+        self.assertIn("NT LAN Manager (NTLM)", commentary)
+        self.assertIn("Active Directory (AD)", commentary)
+        self.assertIn("one plaintext password from one enabled user account", commentary)
+        self.assertIn("The recovered password was subsequently analysed", commentary)
+        self.assertIn("This account represents one of", commentary)
+        self.assertIn("LAN Manager (LM) recovery results", commentary)
+        self.assertEqual(commentary.count("LAN Manager (LM)"), 1)
+        self.assertIn("LAN Manager (LM)", remediation_guidance(results))
+        findings = {finding["id"]: finding for finding in build_findings_dict(results)}
+        self.assertIn("LAN Manager (LM)", findings["LM-AUTH-001"]["description"])
+        self.assertIn("LAN Manager (LM)", findings["LM-AUTH-001"]["remediation"])
+        self.assertIn("one recovered password fell below", executive_summary(results).lower())
+
+        results["total_passwords"] = 2
+        results["enabled_users"] = 2
+        commentary = technical_commentary(results)
+        self.assertIn("two plaintext passwords from two enabled user accounts", commentary)
+        self.assertIn("The recovered passwords were subsequently analysed", commentary)
+
+    def test_summary_uses_singular_and_plural_for_lm_and_breach_counts(self):
+        results = build_results(
+            ntlm_mapped_passwords=[], domain_admins=[], company_words=[],
+            minimum_length=12, enabled_users=["alice", "bob"], domain_name="example.test",
+            lm_users=[], lm_mapped_passwords=[], ntds_users=[],
+        )
+        for count, lm_phrase, breach_phrase in (
+            (1, "password hash was present", "one account had a password hash"),
+            (2, "password hashes were present", "two accounts had password hashes"),
+        ):
+            with self.subTest(count=count):
+                results["lm_hashes"]["count"] = count
+                results["hibp"] = {"count": count, "accounts": ["alice", "bob"][:count]}
+                summary = executive_summary(results)
+                self.assertIn(lm_phrase, summary)
+                self.assertIn(breach_phrase, summary)
+
     def test_hash_reuse_summary_and_finding(self):
         results = build_results(
             ntlm_mapped_passwords=[{"username": "user", "password": "weak"}],
@@ -802,11 +849,11 @@ class HtmlReportTests(unittest.TestCase):
         )
         self.assertIn("multiple accounts or systems.", summary)
         self.assertNotIn("undermine separation", summary)
-        self.assertNotIn("LanMan (LM)", summary)
+        self.assertNotIn("LAN Manager (LM)", summary)
         self.assertNotIn("shared credentials involving selected privileged", summary)
         self.assertNotIn("NTLM hash comparison", summary)
         finding = next(f for f in build_findings_dict(results) if f["id"] == "PWD-REUSE-003")
-        self.assertIn("A total of one shared NTLM credential group was", finding["description"])
+        self.assertIn("A total of one shared NT LAN Manager (NTLM) credential group was", finding["description"])
         self.assertNotIn("not identified in those groups", finding["description"])
         self.assertIn("Backup Operators", finding["evidence"][0])
         self.assertNotIn("(s)", finding["description"])
@@ -842,16 +889,16 @@ class HtmlReportTests(unittest.TestCase):
             ntds_users=[],
         )
         cases = [
-            ("admins", "count", "Privileged account credentials were recovered",
+            ("admins", "count", "The recovery of privileged account credentials",
              "expose critical systems"),
-            ("lm_hashes", "count", "Legacy LanMan (LM) password hashes were present",
+            ("lm_hashes", "count", "Legacy LAN Manager (LM) password hash was present",
              "susceptible to offline password cracking"),
-            ("hibp", "count", "Some passwords matched known breach data",
-             "affected accounts at greater risk of compromise"),
-            ("password_length", "count", "Some recovered passwords fell below",
+            ("hibp", "count", "one account had a password hash matching known breach data",
+             "increasing the risk of compromise"),
+            ("password_length", "count", "A total of one recovered password fell below",
              "easier to guess or crack"),
-            ("keyboard_walks", "count", "Some recovered passwords followed predictable patterns",
-             "affected accounts at greater risk of compromise"),
+            ("keyboard_walks", "count", "Predictable password construction was identified",
+             "risk of credential compromise"),
         ]
         results["hibp"] = {"count": 0, "accounts": []}
         for key, field, finding, impact in cases:
@@ -881,19 +928,19 @@ class HtmlReportTests(unittest.TestCase):
         selected["ntlm_hash_reuse"]["groups"] = [{"accounts": []}]
         selected["similar_account_reuse"]["count"] = 1
         paragraph = executive_summary(selected).split("\n\n")[1]
-        self.assertIn("Privileged account credentials were recovered", paragraph)
+        self.assertIn("The recovery of privileged account credentials", paragraph)
         self.assertIn(
-            "passwords recovered from accounts storing them",
+            "the recovery of one password from an affected account",
             paragraph,
         )
-        self.assertIn("including for Domain Administrator accounts", paragraph)
+        self.assertIn("including for one Domain Administrator account", paragraph)
         self.assertIn("multiple accounts or systems and may undermine "
                       "separation between accounts with different roles", paragraph)
         self.assertIn("passwords matching known breach data and passwords with "
                       "predictable patterns", paragraph.lower())
-        self.assertIn("some recovered passwords fell below", paragraph.lower())
-        self.assertIn("In addition, legacy LanMan", paragraph)
-        self.assertIn("Finally, some recovered passwords", paragraph)
+        self.assertIn("one recovered password fell below", paragraph.lower())
+        self.assertIn("In addition, legacy LAN Manager", paragraph)
+        self.assertIn("Finally, a total of one recovered password", paragraph)
         self.assertEqual(paragraph.count("The assessment"), 1)
         self.assertNotIn("Moreover", paragraph)
         self.assertNotIn("Some passwords matched known breach data", paragraph)
@@ -901,8 +948,8 @@ class HtmlReportTests(unittest.TestCase):
 
         selected["lm_hashes"]["count"] = 0
         paragraph = executive_summary(selected).split("\n\n")[1]
-        self.assertIn("legacy lanman (lm) password hashes were present", paragraph.lower())
-        self.assertIn("including for Domain Administrator accounts", paragraph)
+        self.assertIn("legacy lan manager (lm) password hashes were present", paragraph.lower())
+        self.assertIn("including for one Domain Administrator account", paragraph)
 
     def test_executive_summary_transitions_follow_present_findings(self):
         results = build_results(
@@ -912,10 +959,10 @@ class HtmlReportTests(unittest.TestCase):
         )
         results["hibp"] = {"count": 0, "accounts": []}
         cases = [
-            ("lm_hashes", "count", "legacy lanman (lm) password hashes"),
+            ("lm_hashes", "count", "legacy lan manager (lm) password hash"),
             ("password_reuse_general", "sharedPasswords", "password reuse could"),
-            ("hibp", "count", "passwords matched known breach data"),
-            ("password_length", "count", "recovered passwords fell below"),
+            ("hibp", "count", "password hash matching known breach data"),
+            ("password_length", "count", "recovered password fell below"),
         ]
         findings_data = [
             {"id": finding_id, "severity": severity}
@@ -958,14 +1005,14 @@ class HtmlReportTests(unittest.TestCase):
         self.assertEqual(
             paragraph,
             "The assessment also highlighted weaknesses that could increase the risk of "
-            "credential compromise. Legacy LanMan (LM) password hashes were present, "
+            "credential compromise. Legacy LAN Manager (LM) password hash was present, "
             "making credentials more susceptible to offline password cracking, as "
-            "demonstrated by passwords recovered from accounts storing them. In addition, "
+            "demonstrated by the recovery of one password from an affected account. In addition, "
             "password reuse could allow a compromised credential to affect multiple accounts "
             "or systems and may undermine separation between accounts with different "
             "roles. Passwords matching known breach data and passwords with predictable "
             "patterns were identified, placing affected accounts at greater risk of "
-            "compromise. Finally, some recovered passwords fell below the domain's configured "
+            "compromise. Finally, a total of one recovered password fell below the domain's configured "
             "minimum length and may be easier to guess or crack.",
         )
 
@@ -1103,7 +1150,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertNotIn("training6", text)
         exported = next(f for f in build_findings_dict(hash_only) if f["id"] == "PWD-REUSE-002")
         self.assertIn("10 similarly named account pairs", exported["description"])
-        self.assertIn("matching NTLM hashes", exported["description"])
+        self.assertIn("matching NT LAN Manager (NTLM) hashes", exported["description"])
         self.assertNotIn(hash_value, json.dumps(exported))
         cards = {card["id"]: card for card in build_finding_summary(
             hash_only, build_findings_dict(hash_only)
@@ -1420,7 +1467,7 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("### Password Complexity\n\n", text)
         self.assertNotIn("### Privileged Accounts", text)
         self.assertNotIn("### LM Hashes", text)
-        self.assertLess(text.index("Passwords were reused"),
+        self.assertLess(text.index("A password was reused"),
                         text.index("A total of one shared NTLM hash"))
         results["privileged_users"]["status"] = "incomplete"
         results["lm_hashes"].update({
@@ -1456,12 +1503,12 @@ class HtmlReportTests(unittest.TestCase):
         summary = executive_summary(results)
         paragraph = summary.split("\n\n")[1]
         paragraph_lower = paragraph.lower()
-        self.assertLess(paragraph_lower.index("including for domain administrator accounts"),
-                        paragraph_lower.index("privileged account credentials were recovered"))
-        self.assertLess(paragraph_lower.index("privileged account credentials were recovered"),
-                        paragraph_lower.index("some recovered passwords fell below"))
+        self.assertLess(paragraph_lower.index("including for one domain administrator account"),
+                        paragraph_lower.index("the recovery of privileged account credentials"))
+        self.assertLess(paragraph_lower.index("the recovery of privileged account credentials"),
+                        paragraph_lower.index("recovered passwords fell below"))
         self.assertLess(paragraph_lower.index("passwords matching known breach data"),
-                        paragraph_lower.index("some recovered passwords fell below"))
+                        paragraph_lower.index("recovered passwords fell below"))
         self.assertIn("Prioritising remediation according to severity and business context",
                       summary.split("\n\n")[-1])
         self.assertIn("Affected privileged passwords should be reset promptly",
@@ -1475,7 +1522,7 @@ class HtmlReportTests(unittest.TestCase):
         ]
         self.assertEqual([text.index(heading) for heading in headings],
                          sorted(text.index(heading) for heading in headings))
-        self.assertLess(text.index("LM recovery results included"),
+        self.assertLess(text.index("LAN Manager (LM) recovery results included"),
                         text.index("LM password hashes were present"))
 
         hash_only = build_results(
@@ -1516,23 +1563,23 @@ class HtmlReportTests(unittest.TestCase):
 
         self.assertIn(
             "password recovery using commonly available password dictionaries and rule sets.\n\n"
-            "Passwords were successfully recovered from one account that stored LM hashes, "
-            "representing 100.0% of affected accounts, which demonstrates the practical "
+            "A password was successfully recovered from one account that stored LM hashes, "
+            "representing 100.0% of the affected account population, which demonstrates the practical "
             "weakness of LM password storage.",
             text,
         )
         self.assertNotIn("The extremely high recovery rate", text)
         results["lm_passwords"]["partialCount"] = 1
-        self.assertIn("weakness of LM password storage. A further one account",
+        self.assertIn("weakness of LM password storage. A further account",
                       commentary_lm_hashes(results))
         for rate in (50.0, 10.0):
             with self.subTest(rate=rate):
                 results["lm_passwords"]["recoveryRate"] = rate
                 text = commentary_lm_hashes(results)
                 recovery = text.split("\n\n")[2]
-                self.assertIn("Passwords were successfully recovered", recovery)
+                self.assertIn("A password was successfully recovered", recovery)
                 self.assertIn("LM password storage", recovery)
-                self.assertIn("A further one account", recovery)
+                self.assertIn("A further account", recovery)
 
     def test_partial_lm_admin_recovery_does_not_claim_a_complete_password(self):
         results = build_results(
@@ -1544,9 +1591,9 @@ class HtmlReportTests(unittest.TestCase):
         )
         summary = executive_summary(results)
         commentary = commentary_lm_hashes(results)
-        self.assertIn("including for Domain Administrator accounts", summary)
+        self.assertIn("including for one Domain Administrator account", summary)
         self.assertNotIn("passwords recovered from accounts storing them", summary)
-        self.assertIn("LM recovery results included one Domain Administrator account", commentary)
+        self.assertIn("LAN Manager (LM) recovery results included one Domain Administrator account", commentary)
         self.assertIn("| Partially Recovered LM Passwords | 1 |", commentary)
         self.assertNotIn("Passwords were successfully recovered", commentary)
 

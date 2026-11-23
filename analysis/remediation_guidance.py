@@ -72,7 +72,7 @@ def remediation_guidance(results):
     if results["lm_hashes"]["count"]:
 
         recommendation = (
-            "- LM hash storage should be disabled and affected users should be required to change "
+            "- LAN Manager (LM) hash storage should be disabled and affected users should be required to change "
             "their passwords to ensure that previously stored LM hashes are removed. Any legacy "
             "systems requiring LM compatibility should be identified and remediated where possible."
         )

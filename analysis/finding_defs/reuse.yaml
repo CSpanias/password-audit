@@ -26,7 +26,7 @@ shared-account-passwords:
     Investigate accounts sharing passwords with similarly named accounts. Require
     password changes and review for evidence of credential compromise or shared
     account usage.
-  description_template: "A total of {count} similarly named account pair{s} {were_was} found to share credentials based on recovered passwords or matching NTLM hashes."
+  description_template: "A total of {count} similarly named account pair{s} {were_was} found to share credentials based on recovered passwords or matching NT LAN Manager (NTLM) hashes."
 
 ntlm-hash-reuse:
   id: PWD-REUSE-003
@@ -39,7 +39,7 @@ ntlm-hash-reuse:
     Review the affected accounts and replace shared passwords with unique
     credentials. Prioritise accounts in privileged groups and review
     credential separation between privileged and other accounts.
-  description_template: "A total of {count} shared NTLM credential group{s} {were_was} identified across enabled user accounts, including passwords that may not have been recovered. These results may overlap with recovered-password reuse findings."
+  description_template: "A total of {count} shared NT LAN Manager (NTLM) credential group{s} {were_was} identified across enabled user accounts, including passwords that may not have been recovered. These results may overlap with recovered-password reuse findings."
 
 hibp-passwords:
   id: PWD-BREACH-001
@@ -52,4 +52,4 @@ hibp-passwords:
     Reset the passwords of affected accounts, prioritising privileged accounts,
     and require strong, unique replacements. Screen new passwords against a
     regularly updated compromised-password blocklist.
-  description_template: "A total of {count} enabled user account{s} {were_was} using passwords whose NTLM hashes matched the local Have I Been Pwned Pwned Passwords dataset. A match does not establish that the account itself appeared in a breach."
+  description_template: "A total of {count} enabled user account{s} {were_was} using passwords whose NT LAN Manager (NTLM) hashes matched the local Pwned Passwords dataset from Have I Been Pwned (HIBP). A match does not establish that the account itself appeared in a breach."

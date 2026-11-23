@@ -37,7 +37,7 @@ domain-admin-lm-hashes:
   summary_label: LM Admins
   summary_unit: accounts
   remediation: |
-    Disable LM hash storage and require affected Domain Administrator accounts
+    Disable LAN Manager (LM) hash storage and require affected Domain Administrator accounts
     to change their passwords immediately. Prioritise privileged accounts for
     password reset and review for evidence of credential exposure or misuse.
-  description_template: "A total of {count} Domain Administrator account{s} {were_was} found storing LM password hashes."
+  description_template: "A total of {count} Domain Administrator account{s} {were_was} found storing LAN Manager (LM) password hashes."

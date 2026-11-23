@@ -6,7 +6,7 @@ positive observations, and a concluding assessment.
 """
 
 from analysis.findings import build_findings_dict, finding_priority
-from common.utils import proportion_wording
+from common.utils import num_to_word, proportion_wording
 
 
 def executive_summary(results, findings_data=None):
@@ -146,20 +146,25 @@ def executive_summary(results, findings_data=None):
     findings = []
     if has_privileged:
         findings.append((("DOMAIN-ADMIN-001", "PRIV-ACCOUNT-001"),
-            "Privileged account credentials were recovered, which could expose "
+            "The recovery of privileged account credentials could expose "
             "critical systems and sensitive information to unauthorised access."
         ))
 
     if lm_count or lm_recovered:
         finding = (
-            "Legacy LanMan (LM) password hashes were present"
-            + (", including for Domain Administrator accounts" if lm_admin_count else "")
+            f"Legacy LAN Manager (LM) password hash{'es were' if lm_count != 1 else ' was'} present"
+            + (
+                f", including for {num_to_word(lm_admin_count)} Domain Administrator "
+                f"account{'s' if lm_admin_count != 1 else ''}"
+                if lm_admin_count else ""
+            )
             + ", making credentials more susceptible to offline password cracking"
         )
         if lm_recovered:
             finding += (
-                ", as demonstrated by passwords recovered from accounts storing "
-                "them"
+                f", as demonstrated by the recovery of {num_to_word(lm_recovered)} "
+                f"password{'s' if lm_recovered != 1 else ''} from "
+                f"{'affected accounts' if lm_recovered != 1 else 'an affected account'}"
             )
         finding += "."
         findings.append((("LM-AUTH-001", "DOMAIN-ADMIN-002"), finding))
@@ -186,19 +191,22 @@ def executive_summary(results, findings_data=None):
         ))
     elif breached:
         findings.append((("PWD-BREACH-001",),
-            "Some passwords matched known breach data, placing affected accounts "
-            "at greater risk of compromise."
+            f"A total of {num_to_word(results['hibp']['count'])} "
+            f"account{'s had' if results['hibp']['count'] != 1 else ' had a'} "
+            f"password hash{'es' if results['hibp']['count'] != 1 else ''} matching "
+            "known breach data, increasing the risk of compromise."
         ))
     elif weaknesses:
         findings.append((("PWD-PATTERN-001", "PWD-PATTERN-002", "PWD-PATTERN-003",
                           "PWD-PATTERN-004", "PWD-PATTERN-005"),
-            "Some recovered passwords followed predictable patterns, placing "
-            "affected accounts at greater risk of compromise."
+            "Predictable password construction was identified, increasing "
+            "the risk of credential compromise."
         ))
 
     if failure_count:
         findings.append((("PWD-POLICY-001",),
-            "Some recovered passwords fell below the domain's configured "
+            f"A total of {num_to_word(failure_count)} recovered "
+            f"password{'s' if failure_count != 1 else ''} fell below the domain's configured "
             "minimum length and may be easier to guess or crack."
         ))
 

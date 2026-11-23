@@ -35,9 +35,10 @@ _PRIVILEGED_GROUP_LABELS = (
     set(PRIVILEGED_GROUP_RIDS.values()) | set(PRIVILEGED_GROUP_NAMES.values())
 )
 UNCONFIRMED_DOMAIN_WARNING = (
-    "matched by name and RID to selected privileged users "
+    "matched by name and relative identifier (RID) to selected privileged users "
     "could not be confirmed as belonging to their BloodHound domains; "
-    "NetBIOS names or UPN suffixes may differ from DNS names."
+    "Network Basic Input/Output System (NetBIOS) names or user principal name "
+    "(UPN) suffixes may differ from Domain Name System (DNS) names."
 )
 
 
@@ -250,15 +251,16 @@ def extract_privileged_users(users_data, groups_data, entries, confirmed_domain_
     ambiguous = sum(bool(candidates & privileged_sids) for candidates in ambiguous_candidates)
     if ambiguous:
         warnings.append(
-            f"{ambiguous} ambiguous NTDS/BloodHound account "
-            f"match{'es were' if ambiguous != 1 else ' was'} omitted."
+            f"{ambiguous} ambiguous account match{'es' if ambiguous != 1 else ''} "
+            f"between organised directory and BloodHound data "
+            f"{'were' if ambiguous != 1 else 'was'} omitted."
         )
     unconfirmed_domains = sum(
         bool(candidates & privileged_sids) for candidates in unconfirmed_candidates
     )
     if unconfirmed_domains:
         warnings.append(
-            f"{unconfirmed_domains} NTDS account{'s' if unconfirmed_domains != 1 else ''} "
+            f"{unconfirmed_domains} organised directory account{'s' if unconfirmed_domains != 1 else ''} "
             f"{UNCONFIRMED_DOMAIN_WARNING}"
         )
     return {
