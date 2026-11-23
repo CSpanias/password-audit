@@ -1884,22 +1884,89 @@ class HtmlReportTests(unittest.TestCase):
             finally:
                 os.chdir(original_cwd)
 
-    def test_analyse_auto_loads_hashes_only_for_the_default_dataset(self):
+    def test_analyse_defaults_to_supporting_files_beside_mapped_passwords(self):
         with tempfile.TemporaryDirectory() as directory:
             original_cwd = os.getcwd()
             try:
                 os.chdir(directory)
-                Path("password-audit").mkdir()
-                Path("password-audit/ntds-users-clean.txt").write_text("", encoding="utf-8")
-                for mapped, expected in (
-                    ("password-audit/mapped-ntlm-passwords.txt", Path("password-audit/ntds-users-clean.txt")),
-                    ("other/mapped.txt", None),
+                root = Path("password-audit")
+                run_dir = root / "20261123-135252"
+                run_dir.mkdir(parents=True)
+                files = {
+                    "domain_admins": "domain-admins.txt",
+                    "privileged_users": "privileged-users.json",
+                    "ntds_users": "ntds-users-clean.txt",
+                    "lm_users": "lm-users.txt",
+                    "pass_policy": "domain-policy.txt",
+                    "enabled_users": "enabled-users.txt",
+                }
+                for filename in [*files.values(), "company-words.txt"]:
+                    (root / filename).write_text("stale", encoding="utf-8")
+                    (run_dir / filename).write_text("current", encoding="utf-8")
+                mapped = run_dir / "mapped-ntlm-passwords.txt"
+                argv = ["password-audit", "analyse", "-M", str(mapped)]
+                with patch.object(sys, "argv", argv), patch.object(
+                    cli_analyse, "analyse_passwords"
+                ) as run:
+                    cli_main.main()
+                for name, filename in files.items():
+                    self.assertEqual(run.call_args.kwargs[name], run_dir / filename)
+                self.assertEqual(run.call_args.kwargs["company_words"], [run_dir / "company-words.txt"])
+
+                for filename in [*files.values(), "company-words.txt"]:
+                    (run_dir / filename).unlink()
+                with patch.object(sys, "argv", argv), patch.object(
+                    cli_analyse, "analyse_passwords"
+                ) as run:
+                    cli_main.main()
+                for name in ("domain_admins", "privileged_users", "ntds_users", "lm_users"):
+                    self.assertIsNone(run.call_args.kwargs[name])
+                self.assertEqual(run.call_args.kwargs["company_words"], [])
+                for name in ("pass_policy", "enabled_users"):
+                    self.assertEqual(run.call_args.kwargs[name], run_dir / files[name])
+
+                with patch.object(sys, "argv", argv + [
+                    "-G", str(run_dir / "company-words.txt")
+                ]), patch.object(cli_analyse, "analyse_passwords") as run:
+                    cli_main.main()
+                self.assertEqual(
+                    run.call_args.kwargs["company_words"], [run_dir / "company-words.txt"]
+                )
+
+                for option, name in (
+                    ("-D", "domain_admins"), ("--privileged-users", "privileged_users"),
+                    ("--ntds-users", "ntds_users"), ("-U", "lm_users"),
+                    ("-P", "pass_policy"), ("-E", "enabled_users"),
                 ):
-                    with self.subTest(mapped=mapped), patch.object(
-                        sys, "argv", ["password-audit", "analyse", "-M", mapped]
+                    with self.subTest(option=option), patch.object(
+                        sys, "argv", argv + [option, "custom.txt"]
                     ), patch.object(cli_analyse, "analyse_passwords") as run:
                         cli_main.main()
-                        self.assertEqual(run.call_args.kwargs["ntds_users"], expected)
+                        self.assertEqual(run.call_args.kwargs[name], "custom.txt")
+            finally:
+                os.chdir(original_cwd)
+
+    def test_analyse_cli_uses_timestamped_run_without_path_overrides(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_dir = root / "password-audit" / "20261123-135252"
+            run_dir.mkdir(parents=True)
+            (run_dir / "mapped-ntlm-passwords.txt").write_text(
+                "alice:Password123!\n", encoding="utf-8"
+            )
+            (run_dir / "domain-policy.txt").write_text(
+                "Domain: example.test\nMinimum Password Length: 12\n", encoding="utf-8"
+            )
+            (run_dir / "enabled-users.txt").write_text("alice\n", encoding="utf-8")
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(root)
+                with patch.object(sys, "argv", [
+                    "password-audit", "analyse", "-M", str(run_dir / "mapped-ntlm-passwords.txt")
+                ]):
+                    cli_main.main()
+                self.assertTrue((root / "password-audit-report.html").exists())
+                self.assertTrue((root / "password-audit-findings.json").exists())
             finally:
                 os.chdir(original_cwd)
 

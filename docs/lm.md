@@ -1,8 +1,7 @@
 # LM workflows
 
 The `lm` command provides standalone workflows for mapping recovered LM
-passwords to accounts and generating case variants for Domain Administrator
-passwords.
+passwords to accounts and generating case variants for recovered passwords.
 
 The end-to-end [`audit`](audit.md) workflow automates LM result
 reconstruction and mapping when LM hashes are present.
@@ -71,22 +70,32 @@ empty LM recovery.
 
 ## Generate case variants
 
-LM hashes do not preserve character case. The `lm generate` command selects
-recovered LM passwords associated with Domain Administrator accounts and
-writes the matching records and their possible case variants:
+LM hashes do not preserve character case. The `lm generate` command writes
+recovered LM passwords and their possible case variants:
 
 ```bash
 password-audit lm generate \
-    --mapped-lm-passwords password-audit/mapped-lm-passwords.txt
+    --mapped-lm-passwords password-audit/20261123-135252/mapped-lm-passwords.txt
 ```
 
-The default output directory is `password-audit/`. The command creates:
+By default, the command reads `domain-admins.txt` from the same directory as
+the mapped LM passwords, if present, and selects only Domain Administrator
+accounts. Use `--domain-admins` to specify another list. If no default list
+exists, the command warns and generates variants for all mapped LM passwords.
+An explicitly specified list must exist.
+
+The default output directory is `password-audit/`. When a list is available,
+the command creates:
 
 | File | Contents |
 | --- | --- |
 | `lm-da-users.txt` | Domain Administrator accounts with recovered LM passwords. |
 | `lm-da-passwords.txt` | Matching recovered passwords. |
 | `lm-da-candidates.txt` | Generated capitalisation variants. |
+
+Without a list, the equivalent files are `lm-all-users.txt`,
+`lm-all-passwords.txt`, and `lm-all-candidates.txt`. These files include all
+mapped accounts and must not be interpreted as identifying administrators.
 
 The number of variants grows exponentially with the number of alphabetic
 characters. Review the output size and handle generated candidates securely.
@@ -107,8 +116,8 @@ password-audit analyse \
     --mapped-lm-passwords password-audit/mapped-lm-passwords.txt
 ```
 
-The corresponding `lm-users.txt` must also be available in the default
-directory or supplied with `--lm-users`.
+The corresponding `lm-users.txt` must also be available beside the mapped
+NTLM dataset or supplied with `--lm-users`.
 
 The report includes LM hash presence and, where applicable, Domain
 Administrator LM exposure and LM recovery statistics. See

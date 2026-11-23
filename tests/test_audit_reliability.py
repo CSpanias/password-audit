@@ -5,7 +5,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import DEFAULT, MagicMock, call, patch
@@ -27,6 +27,134 @@ from common.console import confirm_ntds_domain, confirm_without_password_policy
 
 
 class AuditReliabilityTests(unittest.TestCase):
+    def test_lm_generate_uses_admins_from_mapping_run_and_honours_override(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run = root / "password-audit" / "20261123-135252"
+            run.mkdir(parents=True)
+            mapped = run / "mapped-lm-passwords.txt"
+            mapped.write_text("EXAMPLE\\alice:AB\nEXAMPLE\\bob:CD\n", encoding="utf-8")
+            (run / "domain-admins.txt").write_text("alice\n", encoding="utf-8")
+            explicit = root / "other-admins.txt"
+            explicit.write_text("bob\n", encoding="utf-8")
+            for name, extra, user, password, variants in (
+                ("default", [], "alice", "AB", {"ab", "aB", "Ab", "AB"}),
+                ("override", ["-D", str(explicit)], "bob", "CD",
+                 {"cd", "cD", "Cd", "CD"}),
+            ):
+                with self.subTest(name=name):
+                    output = root / name
+                    argv = [
+                        "password-audit", "lm", "generate", "-L", str(mapped),
+                        "-O", str(output), *extra,
+                    ]
+                    with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()):
+                        cli_main.main()
+                    self.assertEqual((output / "lm-da-users.txt").read_text().splitlines(), [user])
+                    self.assertEqual(
+                        (output / "lm-da-passwords.txt").read_text().splitlines(),
+                        [f"EXAMPLE\\{user}:{password}"],
+                    )
+                    self.assertEqual(
+                        set((output / "lm-da-candidates.txt").read_text().splitlines()),
+                        variants,
+                    )
+
+    def test_lm_generate_without_admin_list_uses_all_mapped_passwords(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run = root / "run"
+            run.mkdir()
+            mapped = run / "mapped-lm-passwords.txt"
+            mapped.write_text("EXAMPLE\\alice:AB\nOTHER\\alice:C1\n", encoding="utf-8")
+            (root / "domain-admins.txt").write_text("alice\n", encoding="utf-8")
+            output = root / "output"
+            stdout = io.StringIO()
+            argv = [
+                "password-audit", "lm", "generate", "-L", str(mapped),
+                "-O", str(output),
+            ]
+            with patch.object(sys, "argv", argv), redirect_stdout(stdout):
+                cli_main.main()
+            self.assertIn("Generating candidates for all mapped LM passwords", stdout.getvalue())
+            self.assertEqual(
+                (output / "lm-all-users.txt").read_text().splitlines(),
+                ["EXAMPLE\\alice", "OTHER\\alice"],
+            )
+            self.assertEqual(
+                (output / "lm-all-passwords.txt").read_text().splitlines(),
+                ["EXAMPLE\\alice:AB", "OTHER\\alice:C1"],
+            )
+            self.assertEqual(
+                set((output / "lm-all-candidates.txt").read_text().splitlines()),
+                {"ab", "aB", "Ab", "AB", "c1", "C1"},
+            )
+            self.assertFalse((output / "lm-da-candidates.txt").exists())
+
+    def test_lm_generate_empty_admin_list_does_not_select_all_accounts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            mapped = root / "mapped-lm-passwords.txt"
+            mapped.write_text("alice:AB\n", encoding="utf-8")
+            (root / "domain-admins.txt").write_text("", encoding="utf-8")
+            output = root / "output"
+            argv = [
+                "password-audit", "lm", "generate", "-L", str(mapped),
+                "-O", str(output),
+            ]
+            with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()):
+                cli_main.main()
+            self.assertEqual((output / "lm-da-candidates.txt").read_text(), "")
+            self.assertFalse((output / "lm-all-candidates.txt").exists())
+
+    def test_lm_generate_missing_inputs_report_errors_without_creating_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run = root / "run"
+            run.mkdir()
+            mapped = run / "mapped-lm-passwords.txt"
+            mapped.write_text("alice:AB\n", encoding="utf-8")
+            cases = [
+                (["-D", str(root / "missing-admins.txt")], root / "missing-admins.txt",
+                 "Domain Administrator list not found"),
+            ]
+            for extra, missing, message in cases:
+                with self.subTest(missing=missing):
+                    output = root / "output"
+                    argv = [
+                        "password-audit", "lm", "generate", "-L", str(mapped),
+                        "-O", str(output), *extra,
+                    ]
+                    stderr = io.StringIO()
+                    with (
+                        patch.object(sys, "argv", argv),
+                        redirect_stderr(stderr),
+                        self.assertRaises(SystemExit) as exc,
+                    ):
+                        cli_main.main()
+                    self.assertEqual(exc.exception.code, 2)
+                    self.assertIn(message, stderr.getvalue())
+                    self.assertIn(str(missing), stderr.getvalue())
+                    self.assertNotIn("Traceback", stderr.getvalue())
+                    self.assertFalse(output.exists())
+
+            (run / "domain-admins.txt").write_text("alice\n", encoding="utf-8")
+            mapped.unlink()
+            stderr = io.StringIO()
+            with (
+                patch.object(sys, "argv", [
+                    "password-audit", "lm", "generate", "-L", str(mapped),
+                    "-O", str(root / "output"),
+                ]),
+                redirect_stderr(stderr),
+                self.assertRaises(SystemExit) as exc,
+            ):
+                cli_main.main()
+            self.assertEqual(exc.exception.code, 2)
+            self.assertIn("Mapped LM passwords file not found", stderr.getvalue())
+            self.assertIn(str(mapped), stderr.getvalue())
+            self.assertFalse((root / "output").exists())
+
     def test_test_run_notice_precedes_audit_validation(self):
         for enabled in (False, True):
             output = io.StringIO()

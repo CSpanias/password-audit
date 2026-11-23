@@ -7,13 +7,13 @@ Hashcat; use [`crack`](crack.md) to recover passwords first, or
 
 ## Usage
 
-The mapped NTLM dataset is required and supporting files default to the
-`password-audit/` directory; the LM dataset is optional:
+The mapped NTLM dataset is required. By default, supporting files are loaded
+from the same directory as that dataset; the mapped LM dataset is optional:
 
 ```bash
 password-audit analyse \
-    --mapped-ntlm-passwords password-audit/mapped-ntlm-passwords.txt \
-    --mapped-lm-passwords password-audit/mapped-lm-passwords.txt
+    --mapped-ntlm-passwords password-audit/20261123-135252/mapped-ntlm-passwords.txt \
+    --mapped-lm-passwords password-audit/20261123-135252/mapped-lm-passwords.txt
 ```
 
 Analysis can use the enabled-user list, Domain Administrator (DA) list, 
@@ -27,14 +27,13 @@ accounts must appear in the LM-user list. Duplicate account records are counted
 once; conflicting recovered passwords or missing explicitly supplied files stop
 analysis instead of producing misleading statistics.
 
-Privileged membership is loaded automatically from
-`password-audit/privileged-users.json` when present. For another output
-directory, pass `--privileged-users` with the path to the generated file.
-If it is unavailable or incomplete, the report and console say so.
+Privileged membership is loaded automatically from `privileged-users.json`
+beside the mapped NTLM dataset when present. Pass `--privileged-users` to
+specify another file. If it is unavailable or incomplete, the report and
+console say so.
 
-Hash reuse is analysed from the organiser's `password-audit/ntds-users-clean.txt`
-when present and the mapped passwords are also in `password-audit/`. For other
-locations, pass `--ntds-users` with the corresponding organised file's path.
+Hash reuse is analysed from the organiser's `ntds-users-clean.txt` beside the
+mapped NTLM dataset when present. Pass `--ntds-users` to specify another file.
 The file contains enabled NTDS users after filtering, including hashes for
 passwords that were not recovered. If it is unavailable, the report says so.
 
@@ -44,9 +43,10 @@ records; use `--ntds-users` when they are not auto-detected. See
 [Passwords in Breach Data](checks/breached-passwords.md) for the required
 format and limitations.
 
-A curated `./company-words.txt` file is also included automatically when 
-present; use `-G` to select a different curated list. Curated terms supplement 
-generated terms.
+Generated `company-words.txt` terms are loaded beside the mapped NTLM dataset
+when present. A curated `./company-words.txt` file is also included
+automatically when present; use `-G` to select a different curated list.
+Curated terms supplement generated terms.
 
 | Option | Purpose |
 | --- | --- |
