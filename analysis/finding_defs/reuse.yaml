@@ -13,7 +13,7 @@ password-reuse:
     Enforce unique passwords across all accounts. Require password changes for
     accounts sharing passwords and implement technical controls to prevent
     password reuse.
-  description_template: "A total of {count} password{s} {were_was} reused across multiple unrelated accounts."
+  description_template: "A total of {count} password{s} {were_was} reused across multiple accounts."
 
 shared-account-passwords:
   id: PWD-REUSE-002
@@ -52,4 +52,4 @@ hibp-passwords:
     Reset the passwords of affected accounts, prioritising privileged accounts,
     and require strong, unique replacements. Screen new passwords against a
     regularly updated compromised-password blocklist.
-  description_template: "A total of {count} enabled user account{s} {were_was} using passwords whose NT LAN Manager (NTLM) hashes matched the local Pwned Passwords dataset from Have I Been Pwned (HIBP). A match does not establish that the account itself appeared in a breach."
+  description_template: "A total of {count} enabled user account{s} {were_was} using {hibp_passwords} matched the local Pwned Passwords dataset from Have I Been Pwned (HIBP). A match does not establish that the account itself appeared in a breach."

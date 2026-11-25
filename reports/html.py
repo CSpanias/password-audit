@@ -104,12 +104,19 @@ def render_html(report):
       "account pairs": "pairs",
       "shared credential groups": "groups"
     }};
+    const singularUnits = {{
+      "accounts": "account",
+      "recovered passwords": "recovered password",
+      "unique passwords": "unique password",
+      "account pairs": "account pair",
+      "shared credential groups": "shared credential group"
+    }};
     const cards = document.getElementById("audit-summary");
     for (const item of findingSummary) {{
       const card = document.createElement("div");
       card.className = "card";
       card.setAttribute("role", "group");
-      const description = `${{item.title}} (${{item.unit}}): ${{number(item.count)}}`;
+      const description = `${{item.title}} (${{item.count === 1 ? singularUnits[item.unit] || item.unit : item.unit}}): ${{number(item.count)}}`;
       card.setAttribute("aria-label", description);
       card.title = description;
       const title = document.createElement("span");
@@ -118,7 +125,8 @@ def render_html(report):
       count.textContent = number(item.count);
       const unit = document.createElement("span");
       unit.className = "unit";
-      unit.textContent = units[item.unit] || item.unit;
+      unit.textContent = item.count === 1
+        ? singularUnits[item.unit] || item.unit : units[item.unit] || item.unit;
       card.append(title, count, unit);
       cards.append(card);
     }}
@@ -319,7 +327,7 @@ def render_html(report):
         if (match) visible++;
       }}
       document.getElementById("finding-count").textContent =
-        `${{visible}} of ${{findings.length}} findings`;
+        `${{visible}} of ${{findings.length}} ${{findings.length === 1 ? "finding" : "findings"}}`;
       emptyMessage.hidden = visible > 0;
       emptyMessage.textContent = findings.length
         ? "No findings match the selected filters."

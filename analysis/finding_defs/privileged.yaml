@@ -27,7 +27,7 @@ privileged-passwords:
     Reset the affected account passwords, review privileged group membership,
     and protect privileged identities with strong, unique credentials and
     appropriate additional controls.
-  description_template: "A total of {count} account{s} in selected privileged groups, excluding Domain Administrators, {were_was} found with recovered passwords."
+  description_template: "A total of {count} account{s} in selected privileged groups, excluding Domain Administrators, {were_was} found with {recovered_passwords}."
 
 domain-admin-lm-hashes:
   id: DOMAIN-ADMIN-002
@@ -40,4 +40,4 @@ domain-admin-lm-hashes:
     Disable LAN Manager (LM) hash storage and require affected Domain Administrator accounts
     to change their passwords immediately. Prioritise privileged accounts for
     password reset and review for evidence of credential exposure or misuse.
-  description_template: "A total of {count} Domain Administrator account{s} {were_was} found storing LAN Manager (LM) password hashes."
+  description_template: "A total of {count} Domain Administrator account{s} {were_was} found storing {lm_hashes}."

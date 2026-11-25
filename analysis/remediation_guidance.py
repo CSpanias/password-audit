@@ -55,11 +55,17 @@ def remediation_guidance(results):
     # ------------------------
 
     if results["admins"]["count"] or results["privileged_users"]["count"]:
-
+        affected = {
+            account["username"].casefold()
+            for key in ("admins", "privileged_users") for account in results[key]["accounts"]
+        }
         lines.append(
-            "- The affected privileged accounts should have their passwords "
-            "reset immediately and reviewed to ensure they are protected by "
-            "strong, unique credentials. Consider applying enhanced controls "
+            ("- The affected privileged account should have its password reset immediately "
+             "and be reviewed to ensure it is protected by a strong, unique credential. "
+             if len(affected) == 1 else
+             "- The affected privileged accounts should have their passwords reset immediately "
+             "and be reviewed to ensure they are protected by strong, unique credentials. ")
+            + "Consider applying enhanced controls "
             "to privileged identities, including dedicated password policies, "
             "privileged access management solutions, and multi-factor "
             "authentication."
@@ -72,14 +78,20 @@ def remediation_guidance(results):
     if results["lm_hashes"]["count"]:
 
         recommendation = (
-            "- LAN Manager (LM) hash storage should be disabled and affected users should be required to change "
-            "their passwords to ensure that previously stored LM hashes are removed. Any legacy "
+            "- LAN Manager (LM) hash storage should be disabled and "
+            + ("the affected user should be required to change their password to remove the stored LM hash. "
+               if results["lm_hashes"]["count"] == 1 else
+               "affected users should be required to change their passwords to remove the stored LM hashes. ")
+            + "Any legacy "
             "systems requiring LM compatibility should be identified and remediated where possible."
         )
 
         if results["lm_passwords"]["count"]:
         
             recommendation += (
+                " The account for which a password was recovered from an LM hash should be required "
+                "to change its password immediately in order to invalidate the recovered credential."
+                if results["lm_passwords"]["count"] == 1 else
                 " Accounts for which passwords were recovered from LM hashes should be required to "
                 "change their passwords immediately in order to invalidate recovered credentials."
             )
@@ -88,8 +100,10 @@ def remediation_guidance(results):
             if results["lm_admins"]["count"]:
     
                 recommendation += (
-                    " Privileged accounts should be prioritised for immediate password reset and "
-                    "reviewed for evidence of credential exposure or misuse."
+                    (" The privileged account should be prioritised for immediate password reset and "
+                     if results["lm_admins"]["count"] == 1 else
+                     " Privileged accounts should be prioritised for immediate password reset and ")
+                    + "reviewed for evidence of credential exposure or misuse."
                 )
 
         lines.append(recommendation)

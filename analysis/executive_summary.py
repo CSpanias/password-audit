@@ -67,7 +67,16 @@ def executive_summary(results, findings_data=None):
         "to credential-based attacks."
     )
     if results["total_passwords"]:
-        if results["enabled_users"]:
+        if 0 < results["enabled_users"] <= 5:
+            total = results["total_passwords"]
+            enabled = results["enabled_users"]
+            recovery = (
+                f"{num_to_word(total)} password{'s' if total != 1 else ''} "
+                "could be recovered through offline password "
+                f"cracking from {num_to_word(enabled)} enabled "
+                f"account{'s' if enabled != 1 else ''}"
+            )
+        elif results["enabled_users"]:
             size, impact = proportion_wording(results["crack_rate"])
             recovery = (
                 f"{size} of user credentials could be recovered through offline "
@@ -76,8 +85,10 @@ def executive_summary(results, findings_data=None):
             )
         else:
             recovery = (
-                "passwords could be recovered through offline password cracking, "
-                "demonstrating their susceptibility to compromise if credential "
+                f"{'a password' if results['total_passwords'] == 1 else 'passwords'} "
+                "could be recovered through offline password cracking, "
+                f"demonstrating {'its' if results['total_passwords'] == 1 else 'their'} "
+                "susceptibility to compromise if credential "
                 "data is exposed"
             )
         if positive_observations:
@@ -152,7 +163,7 @@ def executive_summary(results, findings_data=None):
 
     if lm_count or lm_recovered:
         finding = (
-            f"Legacy LAN Manager (LM) password hash{'es were' if lm_count != 1 else ' was'} present"
+            f"{'Legacy LAN Manager (LM) password hashes were' if lm_count != 1 else 'A legacy LAN Manager (LM) password hash was'} present"
             + (
                 f", including for {num_to_word(lm_admin_count)} Domain Administrator "
                 f"account{'s' if lm_admin_count != 1 else ''}"
@@ -185,8 +196,8 @@ def executive_summary(results, findings_data=None):
     if breached and weaknesses:
         findings.append((("PWD-BREACH-001", "PWD-PATTERN-001", "PWD-PATTERN-002",
                           "PWD-PATTERN-003", "PWD-PATTERN-004", "PWD-PATTERN-005"),
-            "Passwords matching known breach data and passwords with "
-            "predictable patterns were identified, placing affected accounts at "
+            f"{'Matches' if results['hibp']['count'] != 1 else 'A match'} against known breach data "
+            "and predictable password construction were identified, placing affected accounts at "
             "greater risk of compromise."
         ))
     elif breached:

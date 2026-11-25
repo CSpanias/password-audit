@@ -108,7 +108,14 @@ def _format_description(template, count, **fmt_kwargs):
     s = "s" if count != 1 else ""
     were_was = "were" if count != 1 else "was"
 
-    values = {"count": num_to_word(count), "s": s, "were_was": were_was}
+    values = {
+        "count": num_to_word(count), "s": s, "were_was": were_was,
+        "lm_hashes": ("a LAN Manager (LM) password hash" if count == 1
+                      else "LAN Manager (LM) password hashes"),
+        "recovered_passwords": "a recovered password" if count == 1 else "recovered passwords",
+        "hibp_passwords": ("a password whose NT LAN Manager (NTLM) hash"
+                           if count == 1 else "passwords whose NT LAN Manager (NTLM) hashes"),
+    }
     values.update(fmt_kwargs)
 
     return template.format(**values)

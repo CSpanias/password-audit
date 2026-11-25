@@ -38,7 +38,7 @@ common-passwords:
   remediation: |
     Advise users to avoid common dictionary words in passwords. Consider deploying
     password filtering solutions that block commonly used password terms.
-  description_template: "A total of {count} password{s} contained common dictionary words."
+  description_template: "A total of {count} password{s} contained common password terminology."
 
 date-based-passwords:
   id: PWD-PATTERN-004
@@ -62,4 +62,4 @@ keyboard-patterns:
   remediation: |
     Advise users to avoid keyboard walking patterns in passwords. Consider
     deploying password filtering solutions that block keyboard sequence patterns.
-  description_template: "A total of {count} password{s} contained keyboard walking patterns."
+  description_template: "A total of {count} password{s} contained keyboard walking content."

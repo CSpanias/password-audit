@@ -11,4 +11,4 @@ lm-hashes-present:
     Disable LAN Manager (LM) hash storage and require affected users to change their passwords
     to ensure previously stored LM hashes are removed. Identify and remediate any
     legacy systems requiring LM compatibility.
-  description_template: "A total of {count} account{s} {were_was} found storing LAN Manager (LM) password hashes."
+  description_template: "A total of {count} account{s} {were_was} found storing {lm_hashes}."

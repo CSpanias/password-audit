@@ -349,7 +349,7 @@ def test_analyse_reports_matches_without_recovered_passwords(monkeypatch, tmp_pa
     assert finding["affected_assets"] == ["alice"]
     assert "A total of one enabled user account was" in finding["description"]
     assert "A total of two enabled user accounts were checked" in report
-    assert "A total of one account had matching password hashes" in report
+    assert "A total of one account had a matching password hash" in report
     assert "| alice | ab" + "*" * 28 + "11 |" in report
     assert (
         "However, it should be noted that a matching hash does not mean "
